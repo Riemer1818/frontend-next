@@ -5,14 +5,41 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 export default function DashboardPage() {
+  const [isChecking, setIsChecking] = useState(false);
+
   const { data: stats, isLoading: loadingStats } = trpc.reporting.getDashboardStats.useQuery();
   const { data: outstandingInvoices, isLoading: loadingInvoices } = trpc.reporting.getOutstandingInvoices.useQuery();
   const { data: trendData, isLoading: loadingTrend } = trpc.reporting.getIncomeExpenseTrend.useQuery({ months: 6 });
-  const { data: pendingExpenses, isLoading: loadingExpenses } = trpc.expense.getPending.useQuery();
+  const { data: pendingExpenses, isLoading: loadingExpenses, refetch: refetchExpenses } = trpc.expense.getPending.useQuery();
+
+  const checkForInvoices = trpc.invoiceIngestion.processInvoices.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success('Invoice check completed! Check your pending expenses.');
+        refetchExpenses();
+      } else {
+        toast.error(data.message || 'Failed to check for invoices');
+      }
+      setIsChecking(false);
+    },
+    onError: (error) => {
+      toast.error(`Error: ${error.message}`);
+      setIsChecking(false);
+    },
+  });
+
+  const handleCheckInvoices = () => {
+    setIsChecking(true);
+    toast.info('Checking for new invoices in email...');
+    checkForInvoices.mutate();
+  };
 
   if (loadingStats) {
     return (
@@ -30,9 +57,18 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600 mt-1">Overview of your business performance</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+            <p className="text-slate-600 mt-1">Overview of your business performance</p>
+          </div>
+          <Button
+            onClick={handleCheckInvoices}
+            disabled={isChecking}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isChecking ? 'Checking...' : '📧 Check for Invoices'}
+          </Button>
         </div>
 
         {/* Main Stats Cards (Top Row) */}
