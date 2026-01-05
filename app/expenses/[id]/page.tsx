@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import { MainLayout } from '@/components/layout/MainLayout';
@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
-import { CheckCircle, XCircle, Edit2, ArrowLeft, Save, X, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowLeft, Save, FileText } from 'lucide-react';
 
 export default function ExpenseDetailPage() {
   const params = useParams();
@@ -19,23 +20,51 @@ export default function ExpenseDetailPage() {
   const utils = trpc.useUtils();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
+
+  const { data: expense, isLoading } = trpc.expense.getById.useQuery({ id });
+  const { data: projects } = trpc.project.getAll.useQuery({ status: 'active' });
+
+  // Auto-enable edit mode for pending expenses (review mode)
+  const isPendingStatus = expense?.review_status === 'pending';
+
+  // Auto-enable editing for pending expenses
+  useEffect(() => {
+    if (isPendingStatus) {
+      setIsEditing(true);
+    }
+  }, [isPendingStatus]);
+
   const [editedData, setEditedData] = useState({
     supplier_name: '',
     description: '',
     subtotal: 0,
     tax_amount: 0,
     total_amount: 0,
+    project_id: null as number | null,
+    currency: 'EUR' as string,
   });
-  const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
 
-  const { data: expense, isLoading } = trpc.expense.getById.useQuery({ id });
+  // Update editedData when expense loads
+  useEffect(() => {
+    if (expense) {
+      setEditedData({
+        supplier_name: expense.supplier_name,
+        description: expense.description || '',
+        subtotal: parseFloat(expense.original_subtotal || expense.subtotal),
+        tax_amount: parseFloat(expense.original_tax_amount || expense.tax_amount),
+        total_amount: parseFloat(expense.original_amount || expense.total_amount),
+        project_id: expense.project_id || null,
+        currency: expense.original_currency || 'EUR',
+      });
+    }
+  }, [expense]);
 
   const approveMutation = trpc.expense.approve.useMutation({
     onSuccess: () => {
       utils.expense.getById.invalidate({ id });
       utils.expense.getPending.invalidate();
       utils.reporting.getDashboardStats.invalidate();
-      setIsEditing(false);
       router.push('/money');
     },
   });
@@ -55,34 +84,49 @@ export default function ExpenseDetailPage() {
     },
   });
 
+  const updateMutation = trpc.expense.approve.useMutation({
+    onSuccess: () => {
+      utils.expense.getById.invalidate({ id });
+      utils.expense.getPending.invalidate();
+      utils.reporting.getDashboardStats.invalidate();
+      setIsEditing(false);
+    },
+  });
+
   const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    // Reset to original values
     if (expense) {
       setEditedData({
         supplier_name: expense.supplier_name,
         description: expense.description || '',
-        subtotal: parseFloat(expense.subtotal),
-        tax_amount: parseFloat(expense.tax_amount),
-        total_amount: parseFloat(expense.total_amount),
+        subtotal: parseFloat(expense.original_subtotal || expense.subtotal),
+        tax_amount: parseFloat(expense.original_tax_amount || expense.tax_amount),
+        total_amount: parseFloat(expense.original_amount || expense.total_amount),
+        project_id: expense.project_id || null,
+        currency: expense.original_currency || 'EUR',
       });
-      setIsEditing(true);
     }
-  };
-
-  const handleCancelEdit = () => {
     setIsEditing(false);
   };
 
+  const handleSave = () => {
+    updateMutation.mutate({
+      id,
+      edits: editedData,
+    });
+  };
+
   const handleApprove = () => {
-    if (isEditing) {
-      // Approve with edits
-      approveMutation.mutate({
-        id,
-        edits: editedData,
-      });
-    } else {
-      // Approve without edits
-      approveMutation.mutate({ id });
-    }
+    // Always approve with the current edited data in review mode
+    console.log('🔍 FRONTEND APPROVE: Sending editedData:', editedData);
+    approveMutation.mutate({
+      id,
+      edits: editedData,
+    });
   };
 
   const handleReject = () => {
@@ -111,7 +155,6 @@ export default function ExpenseDetailPage() {
     );
   }
 
-  const isPending = expense.review_status === 'pending';
   const isApproved = expense.review_status === 'approved';
   const isRejected = expense.review_status === 'rejected';
 
@@ -134,11 +177,22 @@ export default function ExpenseDetailPage() {
               <h1 className="text-3xl font-bold text-slate-900">Expense Details</h1>
               <p className="text-slate-600 mt-1">
                 {expense.supplier_name} • {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
+                {expense.language && <span> • {expense.language.toUpperCase()}</span>}
               </p>
             </div>
           </div>
+          <div className="flex gap-2">
+            {!isPendingStatus && (
+              <Button
+                className="bg-blue-900 hover:bg-blue-800 text-white"
+                onClick={() => router.push(`/expenses/${id}/edit`)}
+              >
+                Edit
+              </Button>
+            )}
+          </div>
           <div>
-            {isPending && (
+            {isPendingStatus && (
               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                 Pending Review
               </Badge>
@@ -154,13 +208,366 @@ export default function ExpenseDetailPage() {
           </div>
         </div>
 
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Expense Details Card */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Expense Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Supplier Name */}
+              <div>
+                <label className="text-sm font-medium text-slate-700">Supplier</label>
+                {isEditing ? (
+                  <Input
+                    value={editedData.supplier_name}
+                    onChange={(e) =>
+                      setEditedData({ ...editedData, supplier_name: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-slate-900 mt-1">{expense.supplier_name}</p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-sm font-medium text-slate-700">Description</label>
+                {isEditing ? (
+                  <Textarea
+                    value={editedData.description}
+                    onChange={(e) =>
+                      setEditedData({ ...editedData, description: e.target.value })
+                    }
+                    className="mt-1"
+                    rows={3}
+                  />
+                ) : (
+                  <p className="text-slate-900 mt-1">{expense.description || '—'}</p>
+                )}
+              </div>
+
+              {/* Project */}
+              <div>
+                <label className="text-sm font-medium text-slate-700">Project</label>
+                {isEditing ? (
+                  <Select
+                    value={editedData.project_id?.toString() || 'none'}
+                    onValueChange={(value) =>
+                      setEditedData({ ...editedData, project_id: value === 'none' ? null : parseInt(value) })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No project</SelectItem>
+                      {projects?.map((project: any) => (
+                        <SelectItem key={project.id} value={project.id.toString()}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-slate-900 mt-1">
+                    {expense.project_name || '—'}
+                  </p>
+                )}
+              </div>
+
+              {/* Invoice Date */}
+              <div>
+                <label className="text-sm font-medium text-slate-700">Invoice Date</label>
+                <p className="text-slate-900 mt-1">
+                  {format(new Date(expense.invoice_date), 'MMMM dd, yyyy')}
+                </p>
+              </div>
+
+              {/* Due Date */}
+              {expense.due_date && (
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Due Date</label>
+                  <p className="text-slate-900 mt-1">
+                    {format(new Date(expense.due_date), 'MMMM dd, yyyy')}
+                  </p>
+                </div>
+              )}
+
+              {/* Currency Selector - Only in edit mode */}
+              {isEditing && (
+                <div className="pt-4 border-t">
+                  <label className="text-sm font-medium text-slate-700">Currency</label>
+                  <Select
+                    value={editedData.currency}
+                    onValueChange={(value) => setEditedData({ ...editedData, currency: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EUR">€ EUR (Euro)</SelectItem>
+                      <SelectItem value="USD">$ USD (US Dollar)</SelectItem>
+                      <SelectItem value="GBP">£ GBP (British Pound)</SelectItem>
+                      <SelectItem value="SGD">S$ SGD (Singapore Dollar)</SelectItem>
+                      <SelectItem value="JPY">¥ JPY (Japanese Yen)</SelectItem>
+                      <SelectItem value="CHF">CHF (Swiss Franc)</SelectItem>
+                      <SelectItem value="CAD">C$ CAD (Canadian Dollar)</SelectItem>
+                      <SelectItem value="AUD">A$ AUD (Australian Dollar)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Amounts */}
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Subtotal</label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editedData.subtotal}
+                        onChange={(e) =>
+                          setEditedData({ ...editedData, subtotal: parseFloat(e.target.value) })
+                        }
+                      />
+                      <span className="text-slate-600 min-w-[3rem] text-sm">{editedData.currency}</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      {expense.original_currency && expense.original_currency !== 'EUR' ? (
+                        <>
+                          <p className="text-lg font-bold text-slate-900">
+                            {expense.original_currency} {parseFloat(expense.original_subtotal || 0).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            ≈ €{parseFloat(expense.subtotal).toFixed(2)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-lg font-bold text-slate-900">
+                          €{parseFloat(expense.subtotal).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700">VAT</label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editedData.tax_amount}
+                        onChange={(e) =>
+                          setEditedData({ ...editedData, tax_amount: parseFloat(e.target.value) })
+                        }
+                      />
+                      <span className="text-slate-600 min-w-[3rem] text-sm">{editedData.currency}</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      {expense.original_currency && expense.original_currency !== 'EUR' ? (
+                        <>
+                          <p className="text-lg font-bold text-slate-900">
+                            {expense.original_currency} {parseFloat(expense.original_tax_amount || 0).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            ≈ €{parseFloat(expense.tax_amount).toFixed(2)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-lg font-bold text-slate-900">
+                          €{parseFloat(expense.tax_amount).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Total</label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editedData.total_amount}
+                        onChange={(e) =>
+                          setEditedData({ ...editedData, total_amount: parseFloat(e.target.value) })
+                        }
+                      />
+                      <span className="text-slate-600 min-w-[3rem] text-sm">{editedData.currency}</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      {expense.original_currency && expense.original_currency !== 'EUR' ? (
+                        <>
+                          <p className="text-xl font-bold text-slate-900">
+                            {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            ≈ €{parseFloat(expense.total_amount).toFixed(2)} @ {parseFloat(expense.exchange_rate || 1).toFixed(4)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xl font-bold text-slate-900">
+                          €{parseFloat(expense.total_amount).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Currency Conversion Info - Show after approval */}
+              {!isEditing && expense.original_currency && expense.original_currency !== 'EUR' && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">Currency Conversion</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Exchange rate from {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-slate-900">
+                        {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
+                      </p>
+                      <p className="text-sm text-slate-600 mt-1">
+                        = €{parseFloat(expense.total_amount).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        @ {parseFloat(expense.exchange_rate || 1).toFixed(4)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Currency Info */}
+              {expense.original_currency && expense.original_currency !== 'EUR' && (
+                <div className="pt-4 border-t">
+                  <label className="text-sm font-medium text-slate-700">Currency Conversion</label>
+                  <div className="mt-2 space-y-1 text-sm">
+                    <p className="text-slate-700">
+                      <span className="font-medium">Original:</span> {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
+                    </p>
+                    <p className="text-slate-700">
+                      <span className="font-medium">Rate:</span> {parseFloat(expense.exchange_rate || 1).toFixed(4)}
+                    </p>
+                    {expense.exchange_rate_date && (
+                      <p className="text-slate-500 text-xs">
+                        Rate from {format(new Date(expense.exchange_rate_date), 'MMM dd, yyyy')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Status */}
+              {expense.payment_status && (
+                <div className="pt-4 border-t">
+                  <label className="text-sm font-medium text-slate-700">Payment Status</label>
+                  <p className="text-slate-900 mt-1 capitalize">{expense.payment_status}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Actions Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {isPendingStatus && (
+                <>
+                  <Button
+                    onClick={handleApprove}
+                    disabled={approveMutation.isPending}
+                    className="w-full bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                  >
+                    {isEditing ? <Save className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                    {isEditing ? 'Save & Approve' : 'Approve'}
+                  </Button>
+                  <Button
+                    onClick={handleReject}
+                    disabled={rejectMutation.isPending}
+                    variant="destructive"
+                    className="w-full flex items-center gap-2"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Reject
+                  </Button>
+                </>
+              )}
+
+              {isApproved && (
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                  <p className="text-sm text-green-700 font-medium">This expense has been approved</p>
+                  {expense.reviewed_at && (
+                    <p className="text-xs text-green-600 mt-1">
+                      on {format(new Date(expense.reviewed_at), 'MMM dd, yyyy')}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {isRejected && (
+                <div className="text-center p-4 bg-red-50 rounded-lg">
+                  <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                  <p className="text-sm text-red-700 font-medium">This expense has been rejected</p>
+                  {expense.reviewed_at && (
+                    <p className="text-xs text-red-600 mt-1">
+                      on {format(new Date(expense.reviewed_at), 'MMM dd, yyyy')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* PDF Viewer */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle>Invoice PDF</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Attachments {expense.attachments && expense.attachments.length > 0 && `(${expense.attachments.length})`}</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-{uploadedPdf || expense.invoice_file_base64 ? (
+            {expense.attachments && expense.attachments.length > 0 ? (
+              <div className="space-y-6">
+                {expense.attachments.map((attachment: any, index: number) => (
+                  <div key={attachment.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">
+                          {attachment.file_name}
+                        </p>
+                        <p className="text-xs text-slate-500 capitalize">
+                          {attachment.attachment_type} • {(attachment.file_size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      <Badge variant={attachment.attachment_type === 'invoice' ? 'default' : 'secondary'}>
+                        {attachment.attachment_type}
+                      </Badge>
+                    </div>
+                    <iframe
+                      src={`data:${attachment.file_type};base64,${attachment.file_data}`}
+                      className="w-full h-[600px] border border-slate-200 rounded"
+                      title={attachment.file_name}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : uploadedPdf || expense.invoice_file_base64 ? (
               <div className="space-y-4">
                 <iframe
                   src={`data:application/pdf;base64,${uploadedPdf || expense.invoice_file_base64}`}
@@ -229,212 +636,6 @@ export default function ExpenseDetailPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Expense Details Card */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Expense Information</span>
-                {isPending && !isEditing && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEdit}
-                    className="flex items-center gap-2"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    Edit
-                  </Button>
-                )}
-                {isEditing && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCancelEdit}
-                    className="flex items-center gap-2"
-                  >
-                    <X className="h-4 w-4" />
-                    Cancel
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Supplier Name */}
-              <div>
-                <label className="text-sm font-medium text-slate-700">Supplier</label>
-                {isEditing ? (
-                  <Input
-                    value={editedData.supplier_name}
-                    onChange={(e) =>
-                      setEditedData({ ...editedData, supplier_name: e.target.value })
-                    }
-                    className="mt-1"
-                  />
-                ) : (
-                  <p className="text-slate-900 mt-1">{expense.supplier_name}</p>
-                )}
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="text-sm font-medium text-slate-700">Description</label>
-                {isEditing ? (
-                  <Textarea
-                    value={editedData.description}
-                    onChange={(e) =>
-                      setEditedData({ ...editedData, description: e.target.value })
-                    }
-                    className="mt-1"
-                    rows={3}
-                  />
-                ) : (
-                  <p className="text-slate-900 mt-1">{expense.description || '—'}</p>
-                )}
-              </div>
-
-              {/* Invoice Date */}
-              <div>
-                <label className="text-sm font-medium text-slate-700">Invoice Date</label>
-                <p className="text-slate-900 mt-1">
-                  {format(new Date(expense.invoice_date), 'MMMM dd, yyyy')}
-                </p>
-              </div>
-
-              {/* Due Date */}
-              {expense.due_date && (
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Due Date</label>
-                  <p className="text-slate-900 mt-1">
-                    {format(new Date(expense.due_date), 'MMMM dd, yyyy')}
-                  </p>
-                </div>
-              )}
-
-              {/* Amounts */}
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Subtotal</label>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={editedData.subtotal}
-                      onChange={(e) =>
-                        setEditedData({ ...editedData, subtotal: parseFloat(e.target.value) })
-                      }
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="text-lg font-bold text-slate-900 mt-1">
-                      €{parseFloat(expense.subtotal).toFixed(2)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700">VAT</label>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={editedData.tax_amount}
-                      onChange={(e) =>
-                        setEditedData({ ...editedData, tax_amount: parseFloat(e.target.value) })
-                      }
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="text-lg font-bold text-slate-900 mt-1">
-                      €{parseFloat(expense.tax_amount).toFixed(2)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Total</label>
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={editedData.total_amount}
-                      onChange={(e) =>
-                        setEditedData({ ...editedData, total_amount: parseFloat(e.target.value) })
-                      }
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="text-xl font-bold text-slate-900 mt-1">
-                      €{parseFloat(expense.total_amount).toFixed(2)}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Payment Status */}
-              {expense.payment_status && (
-                <div className="pt-4 border-t">
-                  <label className="text-sm font-medium text-slate-700">Payment Status</label>
-                  <p className="text-slate-900 mt-1 capitalize">{expense.payment_status}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Actions Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {isPending && (
-                <>
-                  <Button
-                    onClick={handleApprove}
-                    disabled={approveMutation.isPending}
-                    className="w-full bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                  >
-                    {isEditing ? <Save className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                    {isEditing ? 'Save & Approve' : 'Approve'}
-                  </Button>
-                  <Button
-                    onClick={handleReject}
-                    disabled={rejectMutation.isPending}
-                    variant="destructive"
-                    className="w-full flex items-center gap-2"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Reject
-                  </Button>
-                </>
-              )}
-
-              {isApproved && (
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <p className="text-sm text-green-700 font-medium">This expense has been approved</p>
-                  {expense.reviewed_at && (
-                    <p className="text-xs text-green-600 mt-1">
-                      on {format(new Date(expense.reviewed_at), 'MMM dd, yyyy')}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {isRejected && (
-                <div className="text-center p-4 bg-red-50 rounded-lg">
-                  <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                  <p className="text-sm text-red-700 font-medium">This expense has been rejected</p>
-                  {expense.reviewed_at && (
-                    <p className="text-xs text-red-600 mt-1">
-                      on {format(new Date(expense.reviewed_at), 'MMM dd, yyyy')}
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </MainLayout>
   );

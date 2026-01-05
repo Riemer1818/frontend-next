@@ -25,6 +25,7 @@ export default function ProjectDetailPage() {
   const { data: timeEntries } = trpc.timeEntries.getAll.useQuery({ projectId });
   const { data: totalHours } = trpc.timeEntries.getTotalHoursByProject.useQuery({ projectId });
   const { data: invoices } = trpc.invoice.getAll.useQuery({ projectId });
+  const { data: monthlyExpenses } = trpc.project.getMonthlyExpenses.useQuery({ id: projectId });
   const { data: contacts } = trpc.contact.getByCompanyId.useQuery(
     { companyId: project?.client_id || 0, activeOnly: false },
     { enabled: !!project?.client_id }
@@ -107,7 +108,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Project Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card className="bg-white border-slate-200">
             <CardHeader>
               <CardTitle className="text-slate-700 text-sm font-medium">Status</CardTitle>
@@ -149,6 +150,18 @@ export default function ProjectDetailPage() {
               <p className="text-2xl font-bold text-slate-900">
                 {project.budget ? `€${Number(project.budget).toFixed(2)}` : '—'}
               </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-slate-700 text-sm font-medium">Total Spent</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-slate-900">
+                €{project.total_spent ? Number(project.total_spent).toFixed(2) : '0.00'}
+              </p>
+              <p className="text-xs text-slate-600 mt-1">Approved expenses</p>
             </CardContent>
           </Card>
         </div>
@@ -248,6 +261,46 @@ export default function ProjectDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Monthly Expenses */}
+        {monthlyExpenses && monthlyExpenses.length > 0 && (
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-slate-900">Monthly Expenses (Last 12 Months)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {monthlyExpenses.map((expense) => {
+                  const maxSpent = Math.max(...monthlyExpenses.map(e => e.total_spent));
+                  const widthPercent = maxSpent > 0 ? (expense.total_spent / maxSpent) * 100 : 0;
+                  const monthName = new Date(expense.month + '-01').toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short'
+                  });
+
+                  return (
+                    <div key={expense.month} className="flex items-center gap-4">
+                      <div className="w-24 text-sm text-slate-600 font-medium">{monthName}</div>
+                      <div className="flex-1">
+                        <div className="bg-slate-100 rounded-full h-8 overflow-hidden">
+                          <div
+                            className="bg-blue-900 h-full flex items-center justify-end px-3 text-white text-sm font-medium transition-all"
+                            style={{ width: `${Math.max(widthPercent, 10)}%` }}
+                          >
+                            €{expense.total_spent.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="w-20 text-sm text-slate-600 text-right">
+                        {expense.invoice_count} {expense.invoice_count === 1 ? 'invoice' : 'invoices'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         )}

@@ -318,15 +318,33 @@ export default function DashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {pendingExpenses.map((expense: any) => (
-                    <TableRow key={expense.id} className="cursor-pointer hover:bg-slate-50">
-                      <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
-                      <TableCell className="font-medium">{expense.supplier_name}</TableCell>
-                      <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
-                      <TableCell className="text-right font-medium">€{parseFloat(expense.total_amount).toFixed(2)}</TableCell>
+                    <TableRow key={expense.id}>
                       <TableCell>
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                          Pending
-                        </Badge>
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          {expense.supplier_name}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          {expense.description || '—'}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          €{parseFloat(expense.total_amount).toFixed(2)}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            Pending
+                          </Badge>
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <Link

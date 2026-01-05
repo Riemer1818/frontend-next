@@ -90,6 +90,21 @@ export default function CompanyDetailPage() {
           </div>
         </div>
 
+        {/* Total Spent (for suppliers) */}
+        {(company.type === 'supplier' || company.type === 'both') && (
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-slate-700 text-sm font-medium">Total Spent</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-slate-900">
+                €{company.total_spent ? Number(company.total_spent).toFixed(2) : '0.00'}
+              </p>
+              <p className="text-xs text-slate-600 mt-1">Approved invoices only</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Company Information */}
         <Card className="bg-white border-slate-200">
           <CardHeader>

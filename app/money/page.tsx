@@ -179,14 +179,11 @@ export default function MoneyPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Outstanding Invoices */}
           <Card className="bg-white border-slate-200">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="text-slate-900 flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Outstanding Invoices
               </CardTitle>
-              <Link href="/invoices" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
-                View All →
-              </Link>
             </CardHeader>
             <CardContent>
               {loadingInvoices ? (
@@ -232,7 +229,7 @@ export default function MoneyPage() {
 
           {/* Pending Expenses for Review */}
           <Card className="bg-white border-slate-200">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="text-slate-900 flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
                 Expenses Pending Review
@@ -242,9 +239,6 @@ export default function MoneyPage() {
                   </Badge>
                 )}
               </CardTitle>
-              <Link href="/expenses" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
-                View All →
-              </Link>
             </CardHeader>
             <CardContent>
               {loadingExpenses ? (
@@ -257,24 +251,40 @@ export default function MoneyPage() {
               ) : (
                 <div className="space-y-3">
                   {pendingExpenses.slice(0, 5).map((expense: any) => (
-                    <div key={expense.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-200">
+                    <Link
+                      key={expense.id}
+                      href={`/expenses/${expense.id}`}
+                      className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-200"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4 text-yellow-600" />
-                          <Link href={`/expenses/${expense.id}`} className="font-medium text-slate-900 hover:underline">
+                          <span className="font-medium text-slate-900">
                             {expense.supplier_name}
-                          </Link>
+                          </span>
                           <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
                             Review
                           </Badge>
                         </div>
                         <p className="text-sm text-slate-600 ml-6">{expense.description || 'No description'}</p>
-                        <p className="text-xs text-slate-500 ml-6">{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</p>
+                        <p className="text-xs text-slate-500 ml-6">
+                          {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
+                          {expense.language && <span> • {expense.language.toUpperCase()}</span>}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-slate-900">€{parseFloat(expense.total_amount).toFixed(2)}</p>
+                        {expense.original_currency && expense.original_currency !== 'EUR' ? (
+                          <>
+                            <p className="font-medium text-slate-700 text-sm">
+                              {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
+                            </p>
+                            <p className="font-bold text-slate-900">€{parseFloat(expense.total_amount).toFixed(2)}</p>
+                          </>
+                        ) : (
+                          <p className="font-bold text-slate-900">€{parseFloat(expense.total_amount).toFixed(2)}</p>
+                        )}
                       </div>
-                    </div>
+                    </Link>
                   ))}
                   <div className="pt-2 border-t border-yellow-200">
                     <div className="flex justify-between items-center">
@@ -292,11 +302,8 @@ export default function MoneyPage() {
 
         {/* All Expenses Table (Recent Activity) */}
         <Card className="bg-white border-slate-200">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle className="text-slate-900">Recent Expenses</CardTitle>
-            <Link href="/expenses" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
-              View All →
-            </Link>
           </CardHeader>
           <CardContent>
             {loadingAllExpenses ? (
@@ -311,38 +318,76 @@ export default function MoneyPage() {
                     <TableHead>Supplier</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Lang</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {allExpenses.slice(0, 10).map((expense: any) => (
-                    <TableRow
-                      key={expense.id}
-                      className="cursor-pointer hover:bg-slate-50"
-                      onClick={() => router.push(`/expenses/${expense.id}`)}
-                    >
-                      <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
-                      <TableCell className="font-medium">{expense.supplier_name}</TableCell>
-                      <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
-                      <TableCell className="text-right font-medium">€{parseFloat(expense.total_amount).toFixed(2)}</TableCell>
+                    <TableRow key={expense.id}>
                       <TableCell>
-                        <span
-                          className={
-                            expense.review_status === 'pending'
-                              ? 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-yellow-50 text-yellow-900 border-yellow-200'
-                              : expense.review_status === 'approved'
-                              ? 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-green-50 text-green-900 border-green-200'
-                              : 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-red-50 text-red-900 border-red-200'
-                          }
-                        >
-                          {expense.review_status}
-                        </span>
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          {expense.supplier_name}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          {expense.description || '—'}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          {expense.original_currency && expense.original_currency !== 'EUR' ? (
+                            <div>
+                              <div className="text-sm text-slate-600">
+                                {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
+                              </div>
+                              <div className="font-bold">
+                                €{parseFloat(expense.total_amount).toFixed(2)}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="font-bold">
+                              €{parseFloat(expense.total_amount).toFixed(2)}
+                            </div>
+                          )}
+                        </Link>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-blue-600">
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          <span className="text-xs uppercase text-slate-600">
+                            {expense.language || '—'}
+                          </span>
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/expenses/${expense.id}`} className="block w-full">
+                          <span
+                            className={
+                              expense.review_status === 'pending'
+                                ? 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-yellow-50 text-yellow-900 border-yellow-200'
+                                : expense.review_status === 'approved'
+                                ? 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-green-50 text-green-900 border-green-200'
+                                : 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-red-50 text-red-900 border-red-200'
+                            }
+                          >
+                            {expense.review_status}
+                          </span>
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/expenses/${expense.id}`}
+                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                        >
                           {expense.review_status === 'pending' ? 'Review →' : 'View →'}
-                        </span>
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}
