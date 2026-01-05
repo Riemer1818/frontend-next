@@ -31,12 +31,27 @@ export default function MoneyPage() {
   const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
   const currentYear = new Date().getFullYear();
 
+  // Tax data
+  const { data: taxCalc } = trpc.tax.getIncomeTaxCalculation.useQuery({ year: currentYear });
+  const { data: vatSettlement } = trpc.tax.getVATSettlement.useQuery({ year: currentYear });
+
   return (
     <MainLayout>
       <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Money Dashboard</h1>
-          <p className="text-slate-600 mt-1">Overview of invoices, expenses, and VAT</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Money Dashboard</h1>
+            <p className="text-slate-600 mt-1">Overview of invoices, expenses, and VAT</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => router.push('/expenses/new')}
+              className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 flex items-center gap-2"
+            >
+              <Receipt className="h-5 w-5" />
+              Add Incoming Invoice
+            </button>
+          </div>
         </div>
 
         {/* VAT & Tax Overview (Top Row) */}
@@ -396,6 +411,103 @@ export default function MoneyPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Tax Overview Section */}
+        <div className="pt-8 border-t-4 border-slate-300">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">Tax Overview {currentYear}</h2>
+
+          {/* Income Tax Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="bg-white border-slate-200">
+              <CardHeader>
+                <CardTitle className="text-slate-700 text-sm font-medium">Gross Profit</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-slate-900">€{taxCalc?.gross_profit?.toFixed(2) || '0.00'}</p>
+                <p className="text-xs text-slate-500 mt-1">Revenue - Expenses</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-slate-200">
+              <CardHeader>
+                <CardTitle className="text-slate-700 text-sm font-medium">Taxable Income</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-slate-900">€{taxCalc?.taxable_income?.toFixed(2) || '0.00'}</p>
+                <p className="text-xs text-slate-500 mt-1">After deductions & MKB exemption</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-red-50 border-red-200">
+              <CardHeader>
+                <CardTitle className="text-red-900 text-sm font-medium">Income Tax Owed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-red-900">€{taxCalc?.total_income_tax?.toFixed(2) || '0.00'}</p>
+                <p className="text-xs text-red-700 mt-1">Effective: {taxCalc?.effective_tax_rate?.toFixed(1) || '0'}%</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-green-50 border-green-200">
+              <CardHeader>
+                <CardTitle className="text-green-900 text-sm font-medium">Net After Tax</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-green-900">€{taxCalc?.net_profit_after_tax?.toFixed(2) || '0.00'}</p>
+                <p className="text-xs text-green-700 mt-1">Your take-home</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* VAT Settlement Table */}
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-slate-900">VAT Settlement by Quarter</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Quarter</TableHead>
+                    <TableHead className="text-right">VAT Collected</TableHead>
+                    <TableHead className="text-right">Input VAT</TableHead>
+                    <TableHead className="text-right">Net to Pay</TableHead>
+                    <TableHead className="text-right">Paid</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vatSettlement?.map((quarter) => (
+                    <TableRow key={quarter.period}>
+                      <TableCell className="font-medium">{quarter.period}</TableCell>
+                      <TableCell className="text-right">€{(quarter.high_rate_vat_collected + quarter.low_rate_vat_collected).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">€{quarter.input_vat.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-medium">€{quarter.net_vat_to_pay.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">€{quarter.amount_paid.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        <span className={quarter.balance > 0 ? 'text-red-600 font-medium' : quarter.balance < 0 ? 'text-green-600 font-medium' : ''}>
+                          €{quarter.balance.toFixed(2)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {quarter.status === 'owed_to_tax_office' && (
+                          <Badge variant="destructive">Owed</Badge>
+                        )}
+                        {quarter.status === 'tax_office_owes_you' && (
+                          <Badge className="bg-green-600">Refund: €{quarter.expected_refund.toFixed(2)}</Badge>
+                        )}
+                        {quarter.status === 'settled' && (
+                          <Badge variant="outline">Settled</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </MainLayout>
   );
