@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# riemer.fyi Frontend - Next.js + tRPC
 
-## Getting Started
+Modern Next.js 15 frontend with full type-safety via tRPC.
 
-First, run the development server:
+## 🚀 Quick Start
+
+### 1. Start the Backend (tRPC API)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# In a separate terminal
+cd /home/thartist/Desktop/riemerFYI/backoffice
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The backend will run on **http://localhost:7000**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. Start the Frontend
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd /home/thartist/Desktop/riemerFYI/frontend-next
+npm run dev
+```
 
-## Learn More
+The frontend will run on **http://localhost:3000**
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Open in Browser
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Navigate to **http://localhost:3000** - it will redirect to `/dashboard`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 What's Built
 
-## Deploy on Vercel
+### ✅ Working Pages
+- **Dashboard** - Real-time stats (income, expenses, profit)
+- **Companies** - Full CRUD with type safety
+- **Projects** - List view with client relationships
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 🚧 Placeholder Pages (Backend routers needed)
+- **Invoices** - Need `invoiceRouter.ts`
+- **Expenses** - Need `expenseRouter.ts` (incoming invoices)
+- **Time Entries** - Need `timeEntryRouter.ts`
+- **Reports** - Need additional reporting endpoints
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Tech Stack
+
+- **Framework:** Next.js 15 (App Router)
+- **Type Safety:** tRPC + TypeScript
+- **UI Components:** shadcn/ui (Radix UI + Tailwind)
+- **Data Fetching:** TanStack React Query
+- **Styling:** Tailwind CSS
+- **Icons:** Lucide React
+
+## 📡 Available tRPC Endpoints
+
+### Companies
+- `trpc.company.getAll.useQuery()` ✅
+- `trpc.company.create.useMutation()` ✅
+- More in backend...
+
+### Projects
+- `trpc.project.getAll.useQuery()` ✅
+
+### Reporting
+- `trpc.reporting.getDashboardStats.useQuery()` ✅
+- `trpc.reporting.getProfitLossSummary.useQuery()` ✅
+
+## 🔧 Development
+
+```bash
+# Start dev server
+npm run dev
+
+# Build
+npm run build
+
+# Lint
+npm run lint
+```
+
+## 📚 Documentation
+
+- [Migration Plan](../FRONTEND_MIGRATION_PLAN.md)
+- [Type Schemas](../FRONTEND_TYPE_SCHEMAS.md)
+- [tRPC Docs](https://trpc.io/docs)
+- [shadcn/ui Docs](https://ui.shadcn.com)
+
+## 🎉 Success!
+
+The foundation is complete - just add the remaining backend routers and you're ready to go!
