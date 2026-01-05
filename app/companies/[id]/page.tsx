@@ -162,12 +162,6 @@ export default function CompanyDetailPage() {
                 <p className="text-sm text-slate-600 mb-1">IBAN</p>
                 <p className="text-slate-900">{company.iban || '—'}</p>
               </div>
-              <div>
-                <p className="text-sm text-slate-600 mb-1">Status</p>
-                <span className={company.is_active ? 'bg-blue-900 text-white px-2 py-1 rounded text-xs' : 'bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs'}>
-                  {company.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
             </div>
             {company.notes && (
               <div className="mt-6">
@@ -192,13 +186,15 @@ export default function CompanyDetailPage() {
                     <TableHead className="text-slate-900 font-semibold">Role</TableHead>
                     <TableHead className="text-slate-900 font-semibold">Email</TableHead>
                     <TableHead className="text-slate-900 font-semibold">Phone</TableHead>
-                    <TableHead className="text-slate-900 font-semibold">Status</TableHead>
-                    <TableHead className="text-right text-slate-900 font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {contacts.map((contact) => (
-                    <TableRow key={contact.id} className="hover:bg-slate-50">
+                    <TableRow
+                      key={contact.id}
+                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      onClick={() => router.push(`/contacts/${contact.id}`)}
+                    >
                       <TableCell className="font-medium text-slate-900">
                         <div className="flex items-center gap-2">
                           {contact.first_name} {contact.last_name}
@@ -212,24 +208,6 @@ export default function CompanyDetailPage() {
                       <TableCell className="text-slate-700">{contact.role || '—'}</TableCell>
                       <TableCell className="text-slate-700">{contact.email || '—'}</TableCell>
                       <TableCell className="text-slate-700">{contact.phone || '—'}</TableCell>
-                      <TableCell>
-                        {contact.is_active ? (
-                          <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">
-                            Inactive
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link href={`/contacts/${contact.id}`}>
-                          <Button variant="ghost" size="sm" className="text-slate-900 hover:bg-slate-100">
-                            View
-                          </Button>
-                        </Link>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -251,7 +229,6 @@ export default function CompanyDetailPage() {
                 <TableHeader>
                   <TableRow className="bg-slate-50">
                     <TableHead className="text-slate-900 font-semibold">Name</TableHead>
-                    <TableHead className="text-slate-900 font-semibold">Status</TableHead>
                     <TableHead className="text-slate-900 font-semibold">Hourly Rate</TableHead>
                     <TableHead className="text-slate-900 font-semibold">Start Date</TableHead>
                   </TableRow>
@@ -264,11 +241,6 @@ export default function CompanyDetailPage() {
                       onClick={() => router.push(`/projects/${project.id}`)}
                     >
                       <TableCell className="font-medium text-slate-900">{project.name}</TableCell>
-                      <TableCell>
-                        <span className={project.status === 'active' ? 'bg-blue-900 text-white px-2 py-1 rounded text-xs' : 'bg-slate-200 text-slate-900 px-2 py-1 rounded text-xs'}>
-                          {project.status}
-                        </span>
-                      </TableCell>
                       <TableCell className="text-slate-700">€{Number(project.hourly_rate || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-slate-700">
                         {project.start_date ? new Date(project.start_date).toLocaleDateString() : '—'}
@@ -295,21 +267,19 @@ export default function CompanyDetailPage() {
                   <TableRow className="bg-slate-50">
                     <TableHead className="text-slate-900 font-semibold">Invoice #</TableHead>
                     <TableHead className="text-slate-900 font-semibold">Date</TableHead>
-                    <TableHead className="text-slate-900 font-semibold">Status</TableHead>
                     <TableHead className="text-slate-900 font-semibold">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {invoices.map((invoice) => (
-                    <TableRow key={invoice.id} className="hover:bg-slate-50">
+                    <TableRow
+                      key={invoice.id}
+                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      onClick={() => router.push(`/invoices/${invoice.id}`)}
+                    >
                       <TableCell className="font-medium text-slate-900">{invoice.invoice_number}</TableCell>
                       <TableCell className="text-slate-700">
                         {new Date(invoice.invoice_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <span className={invoice.status === 'paid' ? 'bg-blue-900 text-white px-2 py-1 rounded text-xs' : 'bg-slate-200 text-slate-900 px-2 py-1 rounded text-xs'}>
-                          {invoice.status}
-                        </span>
                       </TableCell>
                       <TableCell className="text-slate-700">€{Number(invoice.total_amount || 0).toFixed(2)}</TableCell>
                     </TableRow>

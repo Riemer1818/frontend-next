@@ -12,6 +12,9 @@ import { useRouter } from 'next/navigation';
 
 export default function MoneyPage() {
   const router = useRouter();
+  const currentYear = new Date().getFullYear();
+  const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
+
   const { data: stats, isLoading: loadingStats } = trpc.reporting.getDashboardStats.useQuery();
   const { data: outstandingInvoices, isLoading: loadingInvoices } = trpc.reporting.getOutstandingInvoices.useQuery();
   const { data: trendData, isLoading: loadingTrend } = trpc.reporting.getIncomeExpenseTrend.useQuery({ months: 6 });
@@ -28,13 +31,6 @@ export default function MoneyPage() {
     );
   }
 
-  const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
-  const currentYear = new Date().getFullYear();
-
-  // Tax data
-  const { data: taxCalc } = trpc.tax.getIncomeTaxCalculation.useQuery({ year: currentYear });
-  const { data: vatSettlement } = trpc.tax.getVATSettlement.useQuery({ year: currentYear });
-
   return (
     <MainLayout>
       <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
@@ -45,11 +41,24 @@ export default function MoneyPage() {
           </div>
           <div className="flex gap-3">
             <button
+              onClick={() => router.push('/taxes')}
+              className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 flex items-center gap-2"
+            >
+              Tax Settings
+            </button>
+            <button
               onClick={() => router.push('/expenses/new')}
-              className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 flex items-center gap-2"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
             >
               <Receipt className="h-5 w-5" />
-              Add Incoming Invoice
+              Add Expense
+            </button>
+            <button
+              onClick={() => router.push('/invoices/new')}
+              className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 flex items-center gap-2"
+            >
+              <FileText className="h-5 w-5" />
+              Build Invoice
             </button>
           </div>
         </div>
@@ -208,12 +217,16 @@ export default function MoneyPage() {
               ) : (
                 <div className="space-y-3">
                   {outstandingInvoices.slice(0, 5).map((invoice: any) => (
-                    <div key={invoice.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                    <div
+                      key={invoice.id}
+                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/invoices/${invoice.id}`)}
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <Link href={`/invoices/${invoice.id}`} className="font-medium text-slate-900 hover:underline">
+                          <span className="font-medium text-slate-900">
                             {invoice.invoice_number}
-                          </Link>
+                          </span>
                           {invoice.urgency === 'overdue' && (
                             <Badge variant="destructive" className="text-xs">Overdue</Badge>
                           )}
@@ -226,6 +239,7 @@ export default function MoneyPage() {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-slate-900">€{invoice.total_amount.toFixed(2)}</p>
+                        <p className="text-xs text-blue-600 mt-1">View →</p>
                       </div>
                     </div>
                   ))}
@@ -266,10 +280,10 @@ export default function MoneyPage() {
               ) : (
                 <div className="space-y-3">
                   {pendingExpenses.slice(0, 5).map((expense: any) => (
-                    <Link
+                    <div
                       key={expense.id}
-                      href={`/expenses/${expense.id}`}
-                      className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-200"
+                      className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-200 cursor-pointer"
+                      onClick={() => router.push(`/expenses/${expense.id}`)}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -282,24 +296,13 @@ export default function MoneyPage() {
                           </Badge>
                         </div>
                         <p className="text-sm text-slate-600 ml-6">{expense.description || 'No description'}</p>
-                        <p className="text-xs text-slate-500 ml-6">
-                          {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
-                          {expense.language && <span> • {expense.language.toUpperCase()}</span>}
-                        </p>
+                        <p className="text-xs text-slate-500 ml-6">{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</p>
                       </div>
                       <div className="text-right">
-                        {expense.original_currency && expense.original_currency !== 'EUR' ? (
-                          <>
-                            <p className="font-medium text-slate-700 text-sm">
-                              {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
-                            </p>
-                            <p className="font-bold text-slate-900">€{parseFloat(expense.total_amount).toFixed(2)}</p>
-                          </>
-                        ) : (
-                          <p className="font-bold text-slate-900">€{parseFloat(expense.total_amount).toFixed(2)}</p>
-                        )}
+                        <p className="font-bold text-slate-900">€{parseFloat(expense.total_amount).toFixed(2)}</p>
+                        <p className="text-xs text-blue-600 mt-1">Review →</p>
                       </div>
-                    </Link>
+                    </div>
                   ))}
                   <div className="pt-2 border-t border-yellow-200">
                     <div className="flex justify-between items-center">
@@ -333,77 +336,19 @@ export default function MoneyPage() {
                     <TableHead>Supplier</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Lang</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {allExpenses.slice(0, 10).map((expense: any) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          {expense.supplier_name}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          {expense.description || '—'}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          {expense.original_currency && expense.original_currency !== 'EUR' ? (
-                            <div>
-                              <div className="text-sm text-slate-600">
-                                {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
-                              </div>
-                              <div className="font-bold">
-                                €{parseFloat(expense.total_amount).toFixed(2)}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="font-bold">
-                              €{parseFloat(expense.total_amount).toFixed(2)}
-                            </div>
-                          )}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          <span className="text-xs uppercase text-slate-600">
-                            {expense.language || '—'}
-                          </span>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          <span
-                            className={
-                              expense.review_status === 'pending'
-                                ? 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-yellow-50 text-yellow-900 border-yellow-200'
-                                : expense.review_status === 'approved'
-                                ? 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-green-50 text-green-900 border-green-200'
-                                : 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-red-50 text-red-900 border-red-200'
-                            }
-                          >
-                            {expense.review_status}
-                          </span>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/expenses/${expense.id}`}
-                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {expense.review_status === 'pending' ? 'Review →' : 'View →'}
-                        </Link>
-                      </TableCell>
+                    <TableRow
+                      key={expense.id}
+                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      onClick={() => router.push(`/expenses/${expense.id}`)}
+                    >
+                      <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell className="font-medium">{expense.supplier_name}</TableCell>
+                      <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
+                      <TableCell className="text-right font-medium">€{parseFloat(expense.total_amount).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -411,103 +356,6 @@ export default function MoneyPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Tax Overview Section */}
-        <div className="pt-8 border-t-4 border-slate-300">
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Tax Overview {currentYear}</h2>
-
-          {/* Income Tax Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="bg-white border-slate-200">
-              <CardHeader>
-                <CardTitle className="text-slate-700 text-sm font-medium">Gross Profit</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-slate-900">€{taxCalc?.gross_profit?.toFixed(2) || '0.00'}</p>
-                <p className="text-xs text-slate-500 mt-1">Revenue - Expenses</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white border-slate-200">
-              <CardHeader>
-                <CardTitle className="text-slate-700 text-sm font-medium">Taxable Income</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-slate-900">€{taxCalc?.taxable_income?.toFixed(2) || '0.00'}</p>
-                <p className="text-xs text-slate-500 mt-1">After deductions & MKB exemption</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-red-50 border-red-200">
-              <CardHeader>
-                <CardTitle className="text-red-900 text-sm font-medium">Income Tax Owed</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-red-900">€{taxCalc?.total_income_tax?.toFixed(2) || '0.00'}</p>
-                <p className="text-xs text-red-700 mt-1">Effective: {taxCalc?.effective_tax_rate?.toFixed(1) || '0'}%</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-green-50 border-green-200">
-              <CardHeader>
-                <CardTitle className="text-green-900 text-sm font-medium">Net After Tax</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-green-900">€{taxCalc?.net_profit_after_tax?.toFixed(2) || '0.00'}</p>
-                <p className="text-xs text-green-700 mt-1">Your take-home</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* VAT Settlement Table */}
-          <Card className="bg-white border-slate-200">
-            <CardHeader>
-              <CardTitle className="text-slate-900">VAT Settlement by Quarter</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Quarter</TableHead>
-                    <TableHead className="text-right">VAT Collected</TableHead>
-                    <TableHead className="text-right">Input VAT</TableHead>
-                    <TableHead className="text-right">Net to Pay</TableHead>
-                    <TableHead className="text-right">Paid</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {vatSettlement?.map((quarter) => (
-                    <TableRow key={quarter.period}>
-                      <TableCell className="font-medium">{quarter.period}</TableCell>
-                      <TableCell className="text-right">€{(quarter.high_rate_vat_collected + quarter.low_rate_vat_collected).toFixed(2)}</TableCell>
-                      <TableCell className="text-right">€{quarter.input_vat.toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-medium">€{quarter.net_vat_to_pay.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">€{quarter.amount_paid.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">
-                        <span className={quarter.balance > 0 ? 'text-red-600 font-medium' : quarter.balance < 0 ? 'text-green-600 font-medium' : ''}>
-                          €{quarter.balance.toFixed(2)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {quarter.status === 'owed_to_tax_office' && (
-                          <Badge variant="destructive">Owed</Badge>
-                        )}
-                        {quarter.status === 'tax_office_owes_you' && (
-                          <Badge className="bg-green-600">Refund: €{quarter.expected_refund.toFixed(2)}</Badge>
-                        )}
-                        {quarter.status === 'settled' && (
-                          <Badge variant="outline">Settled</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </MainLayout>
   );

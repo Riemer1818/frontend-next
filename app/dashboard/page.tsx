@@ -10,9 +10,11 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const [isChecking, setIsChecking] = useState(false);
+  const router = useRouter();
 
   const { data: stats, isLoading: loadingStats } = trpc.reporting.getDashboardStats.useQuery();
   const { data: outstandingInvoices, isLoading: loadingInvoices } = trpc.reporting.getOutstandingInvoices.useQuery();
@@ -312,48 +314,19 @@ export default function DashboardPage() {
                     <TableHead>Supplier</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pendingExpenses.map((expense: any) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          {expense.supplier_name}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          {expense.description || '—'}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          €{parseFloat(expense.total_amount).toFixed(2)}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/expenses/${expense.id}`} className="block w-full">
-                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                            Pending
-                          </Badge>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/expenses/${expense.id}`}
-                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          Review →
-                        </Link>
-                      </TableCell>
+                    <TableRow
+                      key={expense.id}
+                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      onClick={() => router.push(`/expenses/${expense.id}`)}
+                    >
+                      <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell className="font-medium">{expense.supplier_name}</TableCell>
+                      <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
+                      <TableCell className="text-right font-medium">€{parseFloat(expense.total_amount).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

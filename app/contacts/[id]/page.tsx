@@ -150,16 +150,6 @@ export default function ContactDetailPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-3">
-                <div className="h-4 w-4" />
-                <div>
-                  <p className="text-xs text-slate-500">Status</p>
-                  <Badge variant={contact.is_active ? "default" : "secondary"} className={contact.is_active ? "bg-green-100 text-green-800" : ""}>
-                    {contact.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-              </div>
-
               {contact.notes && (
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Notes</p>
@@ -204,29 +194,19 @@ export default function ContactDetailPage() {
                 <TableHeader>
                   <TableRow className="bg-slate-50">
                     <TableHead className="text-slate-900 font-semibold">Project</TableHead>
-                    <TableHead className="text-slate-900 font-semibold">Status</TableHead>
                     <TableHead className="text-slate-900 font-semibold">Hourly Rate</TableHead>
-                    <TableHead className="text-right text-slate-900 font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {projects.map((project) => (
-                    <TableRow key={project.id} className="hover:bg-slate-50">
+                    <TableRow
+                      key={project.id}
+                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      onClick={() => router.push(`/projects/${project.id}`)}
+                    >
                       <TableCell className="font-medium text-slate-900">{project.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={project.status === 'active' ? "default" : "secondary"} className={project.status === 'active' ? "bg-blue-900 text-white" : ""}>
-                          {project.status}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="text-slate-700">
                         €{Number(project.hourly_rate || 0).toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link href={`/projects/${project.id}`}>
-                          <Button variant="ghost" size="sm" className="text-slate-900 hover:bg-slate-100">
-                            View
-                          </Button>
-                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}

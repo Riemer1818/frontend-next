@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { ArrowLeft, CheckCircle, FileText, Calendar } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileText, Calendar, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -123,14 +124,35 @@ export default function InvoiceDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-slate-700">Client</label>
-                  <p className="text-slate-900 mt-1">
+                  <Link
+                    href={`/companies/${invoice.client_id}`}
+                    className="text-blue-900 hover:underline font-medium mt-1 flex items-center gap-1"
+                  >
                     {invoice.client_name || `Client ID: ${invoice.client_id}`}
-                  </p>
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                  {invoice.client_email && (
+                    <p className="text-sm text-slate-600 mt-1">{invoice.client_email}</p>
+                  )}
+                  {invoice.client_phone && (
+                    <p className="text-sm text-slate-600">{invoice.client_phone}</p>
+                  )}
                 </div>
                 {invoice.project_id && (
                   <div>
                     <label className="text-sm font-medium text-slate-700">Project</label>
-                    <p className="text-slate-900 mt-1">Project ID: {invoice.project_id}</p>
+                    <Link
+                      href={`/projects/${invoice.project_id}`}
+                      className="text-blue-900 hover:underline font-medium mt-1 flex items-center gap-1"
+                    >
+                      {invoice.project_name || `Project ID: ${invoice.project_id}`}
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                    {invoice.project_description && (
+                      <p className="text-sm text-slate-600 mt-1 line-clamp-2">
+                        {invoice.project_description}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -303,6 +325,57 @@ export default function InvoiceDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* PDF Preview */}
+        {invoice.pdf_file && (
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Invoice PDF
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-slate-100 rounded-lg overflow-hidden border border-slate-300" style={{ height: '800px' }}>
+                <iframe
+                  src={`data:application/pdf;base64,${Buffer.from(invoice.pdf_file).toString('base64')}`}
+                  className="w-full h-full"
+                  title="Invoice PDF"
+                />
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button
+                  onClick={() => {
+                    const pdfData = Buffer.from(invoice.pdf_file);
+                    const blob = new Blob([pdfData], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${invoice.invoice_number}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="bg-blue-900 hover:bg-blue-800"
+                >
+                  Download PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const pdfData = Buffer.from(invoice.pdf_file);
+                    const blob = new Blob([pdfData], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                  }}
+                >
+                  Open in New Tab
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </MainLayout>
   );

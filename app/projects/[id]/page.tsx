@@ -24,6 +24,7 @@ export default function ProjectDetailPage() {
   const { data: project, isLoading } = trpc.project.getById.useQuery({ id: projectId });
   const { data: timeEntries } = trpc.timeEntries.getAll.useQuery({ projectId });
   const { data: totalHours } = trpc.timeEntries.getTotalHoursByProject.useQuery({ projectId });
+  const { data: uninvoicedEntries } = trpc.timeEntries.getUninvoiced.useQuery({ projectId });
   const { data: invoices } = trpc.invoice.getAll.useQuery({ projectId });
   const { data: monthlyExpenses } = trpc.project.getMonthlyExpenses.useQuery({ id: projectId });
   const { data: contacts } = trpc.contact.getByCompanyId.useQuery(
@@ -108,18 +109,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Project Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card className="bg-white border-slate-200">
-            <CardHeader>
-              <CardTitle className="text-slate-700 text-sm font-medium">Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <span className={project.status === 'active' ? 'bg-blue-900 text-white px-3 py-1 rounded text-sm' : 'bg-slate-200 text-slate-900 px-3 py-1 rounded text-sm'}>
-                {project.status}
-              </span>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-white border-slate-200">
             <CardHeader>
               <CardTitle className="text-slate-700 text-sm font-medium">Hourly Rate</CardTitle>
@@ -142,14 +132,31 @@ export default function ProjectDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-slate-200">
+          <Card
+            className={uninvoicedEntries && uninvoicedEntries.length > 0 ? 'bg-amber-50 border-amber-200 cursor-pointer hover:bg-amber-100 transition-colors' : 'bg-white border-slate-200'}
+            onClick={() => {
+              if (uninvoicedEntries && uninvoicedEntries.length > 0) {
+                const timeEntryIds = uninvoicedEntries.map((e: any) => e.id).join(',');
+                router.push(`/invoices/new?project=${projectId}&timeEntries=${timeEntryIds}`);
+              }
+            }}
+          >
             <CardHeader>
-              <CardTitle className="text-slate-700 text-sm font-medium">Budget</CardTitle>
+              <CardTitle className={uninvoicedEntries && uninvoicedEntries.length > 0 ? 'text-amber-900 text-sm font-medium' : 'text-slate-700 text-sm font-medium'}>
+                Uninvoiced Hours {uninvoicedEntries && uninvoicedEntries.length > 0 && '→'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-slate-900">
-                {project.budget ? `€${Number(project.budget).toFixed(2)}` : '—'}
+              <p className={uninvoicedEntries && uninvoicedEntries.length > 0 ? 'text-2xl font-bold text-amber-900' : 'text-2xl font-bold text-slate-900'}>
+                {uninvoicedEntries && uninvoicedEntries.length > 0
+                  ? `${uninvoicedEntries.reduce((sum: number, e: any) => sum + Number(e.total_hours), 0).toFixed(1)}h`
+                  : '0.0h'}
               </p>
+              {uninvoicedEntries && uninvoicedEntries.length > 0 && (
+                <p className="text-xs text-amber-700 mt-1">
+                  €{(uninvoicedEntries.reduce((sum: number, e: any) => sum + Number(e.total_hours), 0) * Number(project.hourly_rate || 0)).toFixed(2)} • Click to invoice
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -317,7 +324,6 @@ export default function ProjectDetailPage() {
                   <TableRow className="bg-slate-50">
                     <TableHead className="text-slate-900 font-semibold">Invoice #</TableHead>
                     <TableHead className="text-slate-900 font-semibold">Date</TableHead>
-                    <TableHead className="text-slate-900 font-semibold">Status</TableHead>
                     <TableHead className="text-slate-900 font-semibold">Amount</TableHead>
                     <TableHead className="text-right text-slate-900 font-semibold">Actions</TableHead>
                   </TableRow>
@@ -328,11 +334,6 @@ export default function ProjectDetailPage() {
                       <TableCell className="font-medium text-slate-900">{invoice.invoice_number}</TableCell>
                       <TableCell className="text-slate-700">
                         {new Date(invoice.invoice_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <span className={invoice.status === 'paid' ? 'bg-blue-900 text-white px-2 py-1 rounded text-xs' : 'bg-slate-200 text-slate-900 px-2 py-1 rounded text-xs'}>
-                          {invoice.status}
-                        </span>
                       </TableCell>
                       <TableCell className="text-slate-700">€{Number(invoice.total_amount || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-right">
@@ -355,14 +356,7 @@ export default function ProjectDetailPage() {
         {/* Recent Time Entries */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-slate-900">Recent Time Entries ({timeEntries?.length || 0})</CardTitle>
-              {timeEntries && timeEntries.length > 10 && (
-                <Link href={`/time-entries?project=${projectId}`} className="text-sm text-blue-900 hover:underline">
-                  View all →
-                </Link>
-              )}
-            </div>
+            <CardTitle className="text-slate-900">Recent Time Entries ({timeEntries?.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {recentTimeEntries.length > 0 ? (

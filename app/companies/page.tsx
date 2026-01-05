@@ -44,14 +44,12 @@ export default function CompaniesPage() {
                   <TableHead className="text-slate-900 font-semibold">Type</TableHead>
                   <TableHead className="text-slate-900 font-semibold">Email</TableHead>
                   <TableHead className="text-slate-900 font-semibold">Phone</TableHead>
-                  <TableHead className="text-slate-900 font-semibold">Status</TableHead>
-                  <TableHead className="text-right text-slate-900 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {companies?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-slate-500">
+                    <TableCell colSpan={4} className="text-center py-12 text-slate-500">
                       No companies found. Create your first company to get started.
                     </TableCell>
                   </TableRow>
@@ -59,7 +57,7 @@ export default function CompaniesPage() {
                   companies?.map((company) => (
                     <TableRow
                       key={company.id}
-                      className="hover:bg-slate-50 cursor-pointer"
+                      className="cursor-pointer hover:bg-blue-50 transition-colors"
                       onClick={() => window.location.href = `/companies/${company.id}`}
                     >
                       <TableCell className="font-medium text-slate-900">{company.name}</TableCell>
@@ -70,30 +68,6 @@ export default function CompaniesPage() {
                       </TableCell>
                       <TableCell className="text-slate-700">{company.email || '—'}</TableCell>
                       <TableCell className="text-slate-700">{company.phone || '—'}</TableCell>
-                      <TableCell>
-                        {company.is_active ? (
-                          <span className="bg-blue-900 text-white px-2 py-1 rounded text-xs">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs">
-                            Inactive
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-900 hover:bg-slate-100"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/companies/${company.id}`;
-                          }}
-                        >
-                          View
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))
                 )}

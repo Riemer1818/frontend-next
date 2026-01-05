@@ -224,14 +224,13 @@ export default function ContactsPage() {
                   <TableHead className="text-slate-900 font-semibold">Company</TableHead>
                   <TableHead className="text-slate-900 font-semibold">Email</TableHead>
                   <TableHead className="text-slate-900 font-semibold">Phone</TableHead>
-                  <TableHead className="text-slate-900 font-semibold">Status</TableHead>
                   <TableHead className="text-right text-slate-900 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {contacts?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                    <TableCell colSpan={5} className="text-center py-12 text-slate-500">
                       No contacts found. Create your first contact to get started.
                     </TableCell>
                   </TableRow>
@@ -261,17 +260,6 @@ export default function ContactsPage() {
                       </TableCell>
                       <TableCell className="text-slate-700">{contact.email || '—'}</TableCell>
                       <TableCell className="text-slate-700">{contact.phone || '—'}</TableCell>
-                      <TableCell>
-                        {contact.is_active ? (
-                          <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">
-                            Inactive
-                          </Badge>
-                        )}
-                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           {!contact.is_primary && (

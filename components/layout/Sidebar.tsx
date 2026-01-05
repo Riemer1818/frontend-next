@@ -10,7 +10,6 @@ import {
   Wallet,
   PieChart,
   Users,
-  TrendingDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,8 +20,6 @@ const navigation = [
   { name: 'Projects', href: '/projects', icon: FolderKanban },
   { name: 'Time Entries', href: '/time-entries', icon: Clock },
   { name: 'Money', href: '/money', icon: Wallet },
-  { name: 'Reports', href: '/reports', icon: PieChart },
-  { name: 'Tax Settings', href: '/tax', icon: TrendingDown },
 ];
 
 export function Sidebar() {
