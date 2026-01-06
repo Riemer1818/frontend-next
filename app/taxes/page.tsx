@@ -60,7 +60,7 @@ export default function TaxesPage() {
             <p className="text-slate-600 mt-1">Income tax brackets and VAT settlement for the Netherlands</p>
           </div>
           <Button
-            onClick={() => router.push('/tax')}
+            onClick={() => router.push('/tax-configuration')}
             variant="outline"
             className="flex items-center gap-2"
           >
