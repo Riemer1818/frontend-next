@@ -79,8 +79,8 @@ export default function TaxesPage() {
                   <span className="text-sm font-medium text-slate-700">View by:</span>
                   <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'year' | 'quarter')} className="w-[300px]">
                     <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="year" className="text-sm">📅 Full Year</TabsTrigger>
-                      <TabsTrigger value="quarter" className="text-sm">📊 Quarter</TabsTrigger>
+                      <TabsTrigger value="year" className="text-sm">Full Year</TabsTrigger>
+                      <TabsTrigger value="quarter" className="text-sm">Quarter</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
@@ -97,9 +97,9 @@ export default function TaxesPage() {
                       return (
                         <Button
                           key={year}
-                          variant={isSelected ? 'default' : 'outline'}
+                          variant="outline"
                           onClick={() => setSelectedYear(year)}
-                          className={`${isCurrentYear && !isSelected ? 'border-blue-500 border-2' : ''} min-w-[100px]`}
+                          className={`${isSelected ? 'bg-blue-900 text-white border-blue-900 hover:bg-blue-800' : ''} ${isCurrentYear && !isSelected ? 'border-blue-500 border-2' : ''} min-w-[100px]`}
                         >
                           {year}
                           {isCurrentYear && <span className="ml-2 text-xs">(current)</span>}
@@ -122,13 +122,13 @@ export default function TaxesPage() {
                         return (
                           <Button
                             key={q}
-                            variant={isSelected ? 'default' : 'outline'}
+                            variant="outline"
                             onClick={() => {
                               setSelectedQuarter(q);
                               const year = parseInt(q.split('Q')[0]);
                               setSelectedYear(year);
                             }}
-                            className={`${isCurrent && !isSelected ? 'border-blue-500 border-2' : ''}`}
+                            className={`${isSelected ? 'bg-blue-900 text-white border-blue-900 hover:bg-blue-800' : ''} ${isCurrent && !isSelected ? 'border-blue-500 border-2' : ''}`}
                           >
                             {q}
                             {isCurrent && <span className="ml-2 text-xs">(current)</span>}
