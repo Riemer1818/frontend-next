@@ -22,7 +22,6 @@ export default function CompaniesPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Companies</h1>
-            <p className="text-slate-600 mt-1">Manage your clients and suppliers</p>
           </div>
           <Link href="/companies/create">
             <Button className="bg-blue-900 hover:bg-blue-800 text-white">

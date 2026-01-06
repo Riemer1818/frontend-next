@@ -57,7 +57,6 @@ export default function TaxesPage() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Tax Overview</h1>
-            <p className="text-slate-600 mt-1">Income tax brackets and VAT settlement for the Netherlands</p>
           </div>
           <Button
             onClick={() => router.push('/tax-configuration')}

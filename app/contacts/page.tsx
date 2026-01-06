@@ -112,7 +112,6 @@ export default function ContactsPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Contacts</h1>
-            <p className="text-slate-600 mt-1">Manage people within your companies</p>
           </div>
 
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

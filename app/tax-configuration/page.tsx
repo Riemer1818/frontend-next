@@ -70,12 +70,6 @@ export default function TaxConfigPage() {
   return (
     <MainLayout>
       <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Tax Configuration</h1>
-          <p className="text-slate-600 mt-1">
-            Manage your tax benefits and view tax brackets for different years
-          </p>
-        </div>
 
         {/* Year Tabs */}
         <Tabs value={selectedYear} onValueChange={setSelectedYear} className="w-full">
