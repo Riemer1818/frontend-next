@@ -40,10 +40,16 @@ export default function MoneyPage() {
           </div>
           <div className="flex gap-3">
             <button
+              onClick={() => router.push('/btw-declaration')}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
+            >
+              BTW Aangifte
+            </button>
+            <button
               onClick={() => router.push('/taxes')}
               className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 flex items-center gap-2"
             >
-              Tax Settings
+              Taxes
             </button>
             <button
               onClick={() => router.push('/expenses/new')}
