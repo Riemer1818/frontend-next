@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { ArrowLeft, CheckCircle, FileText, Calendar, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileText, Calendar, ExternalLink, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function InvoiceDetailPage() {
@@ -26,6 +26,12 @@ export default function InvoiceDetailPage() {
     },
   });
 
+  const deleteMutation = trpc.invoice.delete.useMutation({
+    onSuccess: () => {
+      router.push('/invoices');
+    },
+  });
+
   const handleMarkAsPaid = () => {
     const paidDate = new Date().toISOString().split('T')[0];
     updateStatusMutation.mutate({
@@ -40,6 +46,12 @@ export default function InvoiceDetailPage() {
       id,
       status: 'sent',
     });
+  };
+
+  const handleDelete = () => {
+    if (confirm('Are you sure you want to delete this invoice? Time entries will be unmarked and available for invoicing again.')) {
+      deleteMutation.mutate({ id });
+    }
   };
 
   if (isLoading) {
@@ -322,6 +334,21 @@ export default function InvoiceDetailPage() {
                   )}
                 </div>
               </div>
+
+              {/* Delete Invoice */}
+              {isDraft && (
+                <div className="pt-4 border-t">
+                  <Button
+                    onClick={handleDelete}
+                    disabled={deleteMutation.isPending}
+                    variant="outline"
+                    className="w-full border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 flex items-center gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Invoice
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

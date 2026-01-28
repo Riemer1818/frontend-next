@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -42,6 +43,7 @@ interface TimeEntryEvent {
     notes?: string;
     objective?: string;
     location?: string;
+    is_wbso?: boolean;
   };
 }
 
@@ -62,6 +64,7 @@ export default function TimeEntriesPage() {
     location: '',
     objective: '',
     notes: '',
+    is_wbso: false,
   });
 
   // Auto-calculate total hours when start/end time changes
@@ -140,7 +143,7 @@ export default function TimeEntriesPage() {
     if (!timeEntries) return [];
     return timeEntries.map((entry: any) => ({
       id: entry.id,
-      title: `${entry.project_name} (${entry.chargeable_hours}h)`,
+      title: `${entry.project_name} (${entry.chargeable_hours}h)${entry.is_wbso ? ' 🔬' : ''}`,
       start: entry.start_time ? new Date(entry.start_time) : new Date(entry.date),
       end: entry.end_time ? new Date(entry.end_time) : new Date(entry.date),
       resource: {
@@ -152,6 +155,7 @@ export default function TimeEntriesPage() {
         notes: entry.notes,
         objective: entry.objective,
         location: entry.location,
+        is_wbso: entry.is_wbso,
       },
     }));
   }, [timeEntries]);
@@ -171,6 +175,7 @@ export default function TimeEntriesPage() {
       location: '',
       objective: '',
       notes: '',
+      is_wbso: false,
     });
     setIsDialogOpen(true);
   }, []);
@@ -192,6 +197,7 @@ export default function TimeEntriesPage() {
         location: entry.location || '',
         objective: entry.objective || '',
         notes: entry.notes || '',
+        is_wbso: entry.is_wbso || false,
       });
     }
     setIsDialogOpen(true);
@@ -212,6 +218,7 @@ export default function TimeEntriesPage() {
       location: '',
       objective: '',
       notes: '',
+      is_wbso: false,
     });
   };
 
@@ -232,6 +239,7 @@ export default function TimeEntriesPage() {
       location: formData.location || undefined,
       objective: formData.objective || undefined,
       notes: formData.notes || undefined,
+      is_wbso: formData.is_wbso,
     };
 
     if (selectedEvent) {
@@ -494,13 +502,33 @@ export default function TimeEntriesPage() {
 
               <div className="grid gap-2">
                 <Label htmlFor="objective">Objective</Label>
-                <Textarea
-                  id="objective"
-                  value={formData.objective}
-                  onChange={(e) => setFormData({ ...formData, objective: e.target.value })}
-                  placeholder="What was the goal of this time entry?"
-                  rows={2}
+                <Select value={formData.objective} onValueChange={(value) => setFormData({ ...formData, objective: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select objective" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="development">Development</SelectItem>
+                    <SelectItem value="research">Research</SelectItem>
+                    <SelectItem value="meeting">Meeting</SelectItem>
+                    <SelectItem value="documentation">Documentation</SelectItem>
+                    <SelectItem value="support">Support</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="administration">Administration</SelectItem>
+                    <SelectItem value="procurement">Procurement</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_wbso"
+                  checked={formData.is_wbso}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_wbso: checked as boolean })}
                 />
+                <Label htmlFor="is_wbso" className="font-normal cursor-pointer">
+                  Counts towards WBSO (R&D tax credit)
+                </Label>
               </div>
 
               <div className="grid gap-2">
