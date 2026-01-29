@@ -24,6 +24,7 @@ export default function CompanyDetailPage() {
   const { data: company, isLoading } = trpc.company.getById.useQuery({ id: companyId });
   const { data: projects } = trpc.project.getAll.useQuery({ clientId: companyId });
   const { data: invoices } = trpc.invoice.getAll.useQuery({ clientId: companyId });
+  const { data: expenses } = trpc.expense.getAll.useQuery({ supplierId: companyId });
   const { data: contacts } = trpc.contact.getByCompanyId.useQuery({ companyId, activeOnly: false });
   const { data: primaryContact } = trpc.contact.getPrimaryByCompanyId.useQuery({ companyId });
 
@@ -255,42 +256,89 @@ export default function CompanyDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Invoices */}
-        <Card className="bg-white border-slate-200">
-          <CardHeader>
-            <CardTitle className="text-slate-900">Invoices ({invoices?.length || 0})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {invoices && invoices.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50">
-                    <TableHead className="text-slate-900 font-semibold">Invoice #</TableHead>
-                    <TableHead className="text-slate-900 font-semibold">Date</TableHead>
-                    <TableHead className="text-slate-900 font-semibold">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoices.map((invoice) => (
-                    <TableRow
-                      key={invoice.id}
-                      className="cursor-pointer hover:bg-blue-50 transition-colors"
-                      onClick={() => router.push(`/invoices/${invoice.id}`)}
-                    >
-                      <TableCell className="font-medium text-slate-900">{invoice.invoice_number}</TableCell>
-                      <TableCell className="text-slate-700">
-                        {new Date(invoice.invoice_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-slate-700">€{Number(invoice.total_amount || 0).toFixed(2)}</TableCell>
+        {/* Invoices (Outgoing - for clients) */}
+        {(company.type === 'client' || company.type === 'both') && (
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-slate-900">Invoices Sent ({invoices?.length || 0})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {invoices && invoices.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="text-slate-900 font-semibold">Invoice #</TableHead>
+                      <TableHead className="text-slate-900 font-semibold">Date</TableHead>
+                      <TableHead className="text-slate-900 font-semibold">Amount</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <p className="text-slate-500 text-sm">No invoices found for this company</p>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {invoices.map((invoice) => (
+                      <TableRow
+                        key={invoice.id}
+                        className="cursor-pointer hover:bg-blue-50 transition-colors"
+                        onClick={() => router.push(`/invoices/${invoice.id}`)}
+                      >
+                        <TableCell className="font-medium text-slate-900">{invoice.invoice_number}</TableCell>
+                        <TableCell className="text-slate-700">
+                          {new Date(invoice.invoice_date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-slate-700">€{Number(invoice.total_amount || 0).toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-slate-500 text-sm">No invoices sent to this company</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Expenses (Incoming - for suppliers) */}
+        {(company.type === 'supplier' || company.type === 'both') && (
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle className="text-slate-900">Expenses from this Supplier ({expenses?.length || 0})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {expenses && expenses.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="text-slate-900 font-semibold">Date</TableHead>
+                      <TableHead className="text-slate-900 font-semibold">Description</TableHead>
+                      <TableHead className="text-slate-900 font-semibold">Amount</TableHead>
+                      <TableHead className="text-slate-900 font-semibold">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {expenses.map((expense) => (
+                      <TableRow
+                        key={expense.id}
+                        className="cursor-pointer hover:bg-blue-50 transition-colors"
+                        onClick={() => router.push(`/expenses/${expense.id}`)}
+                      >
+                        <TableCell className="text-slate-700">
+                          {new Date(expense.invoice_date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-900">{expense.description || '—'}</TableCell>
+                        <TableCell className="text-slate-700">€{Number(expense.total_amount || 0).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant={expense.review_status === 'approved' ? 'default' : 'secondary'}>
+                            {expense.review_status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-slate-500 text-sm">No expenses found from this supplier</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </MainLayout>
   );

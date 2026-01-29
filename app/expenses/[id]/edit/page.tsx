@@ -29,6 +29,7 @@ export default function EditExpensePage() {
     total_amount: 0,
     project_id: null as number | null,
     currency: 'EUR' as string,
+    invoice_date: '',
   });
 
   const [lastCurrency, setLastCurrency] = useState('EUR');
@@ -44,6 +45,7 @@ export default function EditExpensePage() {
         total_amount: parseFloat(expense.original_amount || expense.total_amount) || 0,
         project_id: expense.project_id || null,
         currency: initialCurrency,
+        invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
       });
       setLastCurrency(initialCurrency);
     }
@@ -154,6 +156,17 @@ export default function EditExpensePage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="invoice_date" className="text-slate-900">Invoice Date</Label>
+                <Input
+                  id="invoice_date"
+                  type="date"
+                  value={formData.invoice_date}
+                  onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
+                  className="mt-1 text-slate-900"
+                />
               </div>
 
               <div>

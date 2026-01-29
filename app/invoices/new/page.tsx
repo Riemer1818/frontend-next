@@ -53,8 +53,9 @@ export default function NewInvoicePage() {
 
   // Calculate totals
   const totalHours = selectedTimeEntries.reduce((sum, te) => sum + parseFloat(te.chargeable_hours), 0);
+  const roundedHours = Math.ceil(totalHours); // Round up to whole hours
   const hourlyRate = project?.hourly_rate ? parseFloat(project.hourly_rate) : 0;
-  const subtotal = totalHours * hourlyRate;
+  const subtotal = roundedHours * hourlyRate;
   const taxAmount = subtotal * (taxRate / 100);
   const totalAmount = subtotal + taxAmount;
 
@@ -221,7 +222,7 @@ export default function NewInvoicePage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600">Total Hours:</span>
-                  <span className="font-medium text-slate-900">{totalHours.toFixed(2)}h</span>
+                  <span className="font-medium text-slate-900">{totalHours.toFixed(2)}h → {roundedHours}h</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600">Hourly Rate:</span>

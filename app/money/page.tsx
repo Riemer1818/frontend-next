@@ -7,13 +7,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { TrendingUp, TrendingDown, Receipt, FileText, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Receipt, FileText, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function MoneyPage() {
   const router = useRouter();
   const currentYear = new Date().getFullYear();
   const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
+
+  const [showAllExpenses, setShowAllExpenses] = React.useState(false);
 
   const { data: stats, isLoading: loadingStats } = trpc.reporting.getDashboardStats.useQuery();
   const { data: outstandingInvoices, isLoading: loadingInvoices } = trpc.reporting.getOutstandingInvoices.useQuery();
@@ -325,8 +328,20 @@ export default function MoneyPage() {
 
         {/* All Expenses Table (Recent Activity) */}
         <Card className="bg-white border-slate-200">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-slate-900">Recent Expenses</CardTitle>
+            {allExpenses && allExpenses.length > 10 && (
+              <button
+                onClick={() => setShowAllExpenses(!showAllExpenses)}
+                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+              >
+                {showAllExpenses ? (
+                  <>Show Less <ChevronUp className="h-4 w-4" /></>
+                ) : (
+                  <>Show All ({allExpenses.length}) <ChevronDown className="h-4 w-4" /></>
+                )}
+              </button>
+            )}
           </CardHeader>
           <CardContent>
             {loadingAllExpenses ? (
@@ -334,30 +349,36 @@ export default function MoneyPage() {
             ) : !allExpenses || allExpenses.length === 0 ? (
               <p className="text-slate-500">No recent expenses</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allExpenses.slice(0, 10).map((expense: any) => (
-                    <TableRow
-                      key={expense.id}
-                      className="cursor-pointer hover:bg-blue-50 transition-colors"
-                      onClick={() => router.push(`/expenses/${expense.id}`)}
-                    >
-                      <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
-                      <TableCell className="font-medium">{expense.supplier_name}</TableCell>
-                      <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
-                      <TableCell className="text-right font-medium">€{parseFloat(expense.total_amount).toFixed(2)}</TableCell>
+              <div className="overflow-auto" style={{ maxHeight: showAllExpenses ? 'none' : '500px' }}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Subtotal</TableHead>
+                      <TableHead className="text-right">VAT</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {(showAllExpenses ? allExpenses : allExpenses.slice(0, 10)).map((expense: any) => (
+                      <TableRow
+                        key={expense.id}
+                        className="cursor-pointer hover:bg-blue-50 transition-colors"
+                        onClick={() => router.push(`/expenses/${expense.id}`)}
+                      >
+                        <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell className="font-medium">{expense.supplier_name}</TableCell>
+                        <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
+                        <TableCell className="text-right">€{parseFloat(expense.subtotal || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-slate-600">€{parseFloat(expense.tax_amount || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">€{parseFloat(expense.total_amount).toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

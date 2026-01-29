@@ -43,6 +43,7 @@ export default function ExpenseDetailPage() {
     total_amount: 0,
     project_id: null as number | null,
     currency: 'EUR' as string,
+    invoice_date: '',
   });
 
   // Update editedData when expense loads
@@ -56,6 +57,7 @@ export default function ExpenseDetailPage() {
         total_amount: parseFloat(expense.original_amount || expense.total_amount),
         project_id: expense.project_id || null,
         currency: expense.original_currency || 'EUR',
+        invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
       });
     }
   }, [expense]);
@@ -108,6 +110,7 @@ export default function ExpenseDetailPage() {
         total_amount: parseFloat(expense.original_amount || expense.total_amount),
         project_id: expense.project_id || null,
         currency: expense.original_currency || 'EUR',
+        invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
       });
     }
     setIsEditing(false);
@@ -281,9 +284,20 @@ export default function ExpenseDetailPage() {
               {/* Invoice Date */}
               <div>
                 <label className="text-sm font-medium text-slate-700">Invoice Date</label>
-                <p className="text-slate-900 mt-1">
-                  {format(new Date(expense.invoice_date), 'MMMM dd, yyyy')}
-                </p>
+                {isEditing ? (
+                  <Input
+                    type="date"
+                    value={editedData.invoice_date}
+                    onChange={(e) =>
+                      setEditedData({ ...editedData, invoice_date: e.target.value })
+                    }
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-slate-900 mt-1">
+                    {format(new Date(expense.invoice_date), 'MMMM dd, yyyy')}
+                  </p>
+                )}
               </div>
 
               {/* Due Date */}
@@ -574,17 +588,8 @@ export default function ExpenseDetailPage() {
                   className="w-full h-[600px] border border-slate-200 rounded"
                   title="Invoice PDF"
                 />
-                {uploadedPdf && !expense.invoice_file_base64 && (
-                  <Button
-                    onClick={() => {
-                      console.log('Uploading PDF, length:', uploadedPdf.length);
-                      uploadPdfMutation.mutate({ id, pdfBase64: uploadedPdf });
-                    }}
-                    disabled={uploadPdfMutation.isPending}
-                    className="w-full bg-blue-900 hover:bg-blue-800"
-                  >
-                    {uploadPdfMutation.isPending ? 'Saving PDF...' : 'Save PDF to Database'}
-                  </Button>
+                {uploadPdfMutation.isPending && (
+                  <p className="text-sm text-blue-600 text-center">Saving PDF...</p>
                 )}
                 {uploadPdfMutation.isError && (
                   <p className="text-sm text-red-600 text-center">
@@ -618,6 +623,8 @@ export default function ExpenseDetailPage() {
                           const base64 = reader.result?.toString().split(',')[1];
                           if (base64) {
                             setUploadedPdf(base64);
+                            // Auto-save PDF immediately
+                            uploadPdfMutation.mutate({ id, pdfBase64: base64 });
                           }
                         };
                         reader.readAsDataURL(file);

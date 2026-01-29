@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -186,12 +187,27 @@ export default function EditCompanyPage() {
 
                 <div>
                   <Label htmlFor="country" className="text-slate-900">Country</Label>
-                  <Input
-                    id="country"
-                    value={formData.country}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="mt-1 text-slate-900"
-                  />
+                  <Select
+                    value={formData.country || 'Netherlands'}
+                    onValueChange={(value) => setFormData({ ...formData, country: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Netherlands">🇳🇱 Netherlands</SelectItem>
+                      <SelectItem value="Germany">🇩🇪 Germany (EU)</SelectItem>
+                      <SelectItem value="Belgium">🇧🇪 Belgium (EU)</SelectItem>
+                      <SelectItem value="France">🇫🇷 France (EU)</SelectItem>
+                      <SelectItem value="United Kingdom">🇬🇧 United Kingdom (non-EU)</SelectItem>
+                      <SelectItem value="United States">🇺🇸 United States (non-EU)</SelectItem>
+                      <SelectItem value="Switzerland">🇨🇭 Switzerland (non-EU)</SelectItem>
+                      <SelectItem value="Singapore">🇸🇬 Singapore (non-EU)</SelectItem>
+                      <SelectItem value="Japan">🇯🇵 Japan (non-EU)</SelectItem>
+                      <SelectItem value="Other EU">🇪🇺 Other EU Country</SelectItem>
+                      <SelectItem value="Other non-EU">🌍 Other non-EU Country</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>

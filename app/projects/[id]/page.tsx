@@ -27,6 +27,7 @@ export default function ProjectDetailPage() {
   const { data: uninvoicedEntries } = trpc.timeEntries.getUninvoiced.useQuery({ projectId });
   const { data: invoices } = trpc.invoice.getAll.useQuery({ projectId });
   const { data: monthlyExpenses } = trpc.project.getMonthlyExpenses.useQuery({ id: projectId });
+  const { data: expenses } = trpc.expense.getAll.useQuery({ projectId });
   const { data: contacts } = trpc.contact.getByCompanyId.useQuery(
     { companyId: project?.client_id || 0, activeOnly: false },
     { enabled: !!project?.client_id }
@@ -349,6 +350,51 @@ export default function ProjectDetailPage() {
               </Table>
             ) : (
               <p className="text-slate-500 text-sm">No invoices found for this project</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Expenses */}
+        <Card className="bg-white border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-900">Project Expenses ({expenses?.length || 0})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {expenses && expenses.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead className="text-slate-900 font-semibold">Date</TableHead>
+                    <TableHead className="text-slate-900 font-semibold">Supplier</TableHead>
+                    <TableHead className="text-slate-900 font-semibold">Description</TableHead>
+                    <TableHead className="text-slate-900 font-semibold">Amount</TableHead>
+                    <TableHead className="text-slate-900 font-semibold">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {expenses.map((expense) => (
+                    <TableRow
+                      key={expense.id}
+                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      onClick={() => router.push(`/expenses/${expense.id}`)}
+                    >
+                      <TableCell className="text-slate-700">
+                        {new Date(expense.invoice_date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="font-medium text-slate-900">{expense.supplier_name || '—'}</TableCell>
+                      <TableCell className="text-slate-700">{expense.description || '—'}</TableCell>
+                      <TableCell className="text-slate-700">€{Number(expense.total_amount || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge variant={expense.review_status === 'approved' ? 'default' : 'secondary'}>
+                          {expense.review_status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-slate-500 text-sm">No expenses found for this project</p>
             )}
           </CardContent>
         </Card>
