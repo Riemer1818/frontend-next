@@ -20,6 +20,7 @@ export default function NewExpensePage() {
   const [isExtracting, setIsExtracting] = useState(false);
 
   const { data: projects } = trpc.project.getAll.useQuery({ status: 'active' });
+  const { data: categories } = trpc.expenseCategory.getAll.useQuery();
 
   const [formData, setFormData] = useState({
     supplier_name: '',
@@ -30,6 +31,8 @@ export default function NewExpensePage() {
     total_amount: 0,
     project_id: null as number | null,
     currency: 'EUR' as string,
+    notes: '',
+    category: null as number | null,
   });
 
   const createMutation = trpc.expense.createManual.useMutation({
@@ -40,8 +43,9 @@ export default function NewExpensePage() {
 
   const extractMutation = trpc.expense.extractPdf.useMutation({
     onSuccess: (extracted) => {
+      console.log('✅ PDF extraction successful:', extracted);
       setFormData({
-        ...formData,
+        ...formData,  // Keep existing fields like notes and category
         supplier_name: extracted.supplier_name,
         description: extracted.description || '',
         invoice_date: extracted.invoice_date,
@@ -151,6 +155,11 @@ export default function NewExpensePage() {
                             <span className="text-sm text-slate-600">Extracting invoice data...</span>
                           </div>
                         )}
+                        {!isExtracting && pdfFile && (
+                          <p className="text-sm text-green-600 mt-4">
+                            ✅ Data extracted! Review and click "Create Invoice" to save.
+                          </p>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -239,6 +248,42 @@ export default function NewExpensePage() {
                 </Select>
               </div>
 
+              {/* Category */}
+              <div>
+                <Label htmlFor="category" className="text-slate-900">Category</Label>
+                <Select
+                  value={formData.category?.toString() || 'none'}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value === 'none' ? null : parseInt(value) })
+                  }
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No category</SelectItem>
+                    {categories?.map((category: any) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <Label htmlFor="notes" className="text-slate-900">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="mt-1 text-slate-900"
+                  rows={2}
+                  placeholder="e.g. reis- en verblijfkosten"
+                />
+              </div>
+
               {/* Currency */}
               <div>
                 <Label htmlFor="currency" className="text-slate-900">Currency</Label>
@@ -253,6 +298,7 @@ export default function NewExpensePage() {
                     <SelectItem value="EUR">€ EUR (Euro)</SelectItem>
                     <SelectItem value="USD">$ USD (US Dollar)</SelectItem>
                     <SelectItem value="GBP">£ GBP (British Pound)</SelectItem>
+                    <SelectItem value="INR">₹ INR (Indian Rupee)</SelectItem>
                     <SelectItem value="SGD">S$ SGD (Singapore Dollar)</SelectItem>
                     <SelectItem value="JPY">¥ JPY (Japanese Yen)</SelectItem>
                     <SelectItem value="CHF">CHF (Swiss Franc)</SelectItem>

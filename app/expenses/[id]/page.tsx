@@ -24,6 +24,7 @@ export default function ExpenseDetailPage() {
 
   const { data: expense, isLoading } = trpc.expense.getById.useQuery({ id });
   const { data: projects } = trpc.project.getAll.useQuery({ status: 'active' });
+  const { data: categories } = trpc.expenseCategory.getAll.useQuery();
 
   // Auto-enable edit mode for pending expenses (review mode)
   const isPendingStatus = expense?.review_status === 'pending';
@@ -44,6 +45,8 @@ export default function ExpenseDetailPage() {
     project_id: null as number | null,
     currency: 'EUR' as string,
     invoice_date: '',
+    notes: '',
+    category: null as number | null,
   });
 
   // Update editedData when expense loads
@@ -58,6 +61,8 @@ export default function ExpenseDetailPage() {
         project_id: expense.project_id || null,
         currency: expense.original_currency || 'EUR',
         invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
+        notes: expense.notes || '',
+        category: expense.category_id || null,
       });
     }
   }, [expense]);
@@ -111,6 +116,8 @@ export default function ExpenseDetailPage() {
         project_id: expense.project_id || null,
         currency: expense.original_currency || 'EUR',
         invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
+        notes: expense.notes || '',
+        category: expense.category_id || null,
       });
     }
     setIsEditing(false);
@@ -281,6 +288,53 @@ export default function ExpenseDetailPage() {
                 )}
               </div>
 
+              {/* Category */}
+              <div>
+                <label className="text-sm font-medium text-slate-700">Category</label>
+                {isEditing ? (
+                  <Select
+                    value={editedData.category?.toString() || 'none'}
+                    onValueChange={(value) =>
+                      setEditedData({ ...editedData, category: value === 'none' ? null : parseInt(value) })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No category</SelectItem>
+                      {categories?.map((category: any) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-slate-900 mt-1">
+                    {categories?.find((c: any) => c.id === expense.category_id)?.name || '—'}
+                  </p>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="text-sm font-medium text-slate-700">Notes</label>
+                {isEditing ? (
+                  <Textarea
+                    value={editedData.notes}
+                    onChange={(e) =>
+                      setEditedData({ ...editedData, notes: e.target.value })
+                    }
+                    className="mt-1"
+                    rows={2}
+                    placeholder="e.g. reis- en verblijfkosten"
+                  />
+                ) : (
+                  <p className="text-slate-900 mt-1">{expense.notes || '—'}</p>
+                )}
+              </div>
+
               {/* Invoice Date */}
               <div>
                 <label className="text-sm font-medium text-slate-700">Invoice Date</label>
@@ -325,6 +379,7 @@ export default function ExpenseDetailPage() {
                       <SelectItem value="EUR">€ EUR (Euro)</SelectItem>
                       <SelectItem value="USD">$ USD (US Dollar)</SelectItem>
                       <SelectItem value="GBP">£ GBP (British Pound)</SelectItem>
+                      <SelectItem value="INR">₹ INR (Indian Rupee)</SelectItem>
                       <SelectItem value="SGD">S$ SGD (Singapore Dollar)</SelectItem>
                       <SelectItem value="JPY">¥ JPY (Japanese Yen)</SelectItem>
                       <SelectItem value="CHF">CHF (Swiss Franc)</SelectItem>

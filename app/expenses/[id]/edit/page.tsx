@@ -20,6 +20,7 @@ export default function EditExpensePage() {
 
   const { data: expense, isLoading } = trpc.expense.getById.useQuery({ id: expenseId });
   const { data: projects } = trpc.project.getAll.useQuery({ status: 'active' });
+  const { data: categories } = trpc.expenseCategory.getAll.useQuery();
 
   const [formData, setFormData] = useState({
     supplier_name: '',
@@ -30,6 +31,8 @@ export default function EditExpensePage() {
     project_id: null as number | null,
     currency: 'EUR' as string,
     invoice_date: '',
+    notes: '',
+    category: null as number | null,
   });
 
   const [lastCurrency, setLastCurrency] = useState('EUR');
@@ -46,6 +49,8 @@ export default function EditExpensePage() {
         project_id: expense.project_id || null,
         currency: initialCurrency,
         invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
+        notes: expense.notes || '',
+        category: expense.category_id || null,
       });
       setLastCurrency(initialCurrency);
     }
@@ -64,7 +69,12 @@ export default function EditExpensePage() {
 
   const updateMutation = trpc.expense.update.useMutation({
     onSuccess: () => {
+      console.log('✅ Update successful, redirecting...');
       router.push(`/expenses/${expenseId}`);
+    },
+    onError: (error) => {
+      console.error('❌ Update failed:', error);
+      alert(`Failed to update expense: ${error.message}`);
     },
   });
 
@@ -159,6 +169,40 @@ export default function EditExpensePage() {
               </div>
 
               <div>
+                <Label htmlFor="category" className="text-slate-900">Category</Label>
+                <Select
+                  value={formData.category?.toString() || 'none'}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value === 'none' ? null : parseInt(value) })
+                  }
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No category</SelectItem>
+                    {categories?.map((category: any) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="notes" className="text-slate-900">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="mt-1 text-slate-900"
+                  rows={2}
+                  placeholder="e.g. reis- en verblijfkosten"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="invoice_date" className="text-slate-900">Invoice Date</Label>
                 <Input
                   id="invoice_date"
@@ -182,6 +226,7 @@ export default function EditExpensePage() {
                     <SelectItem value="EUR">€ EUR (Euro)</SelectItem>
                     <SelectItem value="USD">$ USD (US Dollar)</SelectItem>
                     <SelectItem value="GBP">£ GBP (British Pound)</SelectItem>
+                    <SelectItem value="INR">₹ INR (Indian Rupee)</SelectItem>
                     <SelectItem value="SGD">S$ SGD (Singapore Dollar)</SelectItem>
                     <SelectItem value="JPY">¥ JPY (Japanese Yen)</SelectItem>
                     <SelectItem value="CHF">CHF (Swiss Franc)</SelectItem>
