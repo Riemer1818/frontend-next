@@ -34,6 +34,9 @@ export default function ContactDetailPage() {
     { enabled: !!contact?.company_id }
   );
 
+  // Get emails from this contact
+  const { data: emails } = trpc.email.getByContact.useQuery({ contactId });
+
   // Don't show time entries for contacts - time entries are work YOU do, not work contacts do
 
   const deleteMutation = trpc.contact.delete.useMutation({
@@ -215,6 +218,52 @@ export default function ContactDetailPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Emails Section */}
+        <Card className="bg-white border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-900">Emails ({emails?.length || 0})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {emails && emails.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Label</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {emails.map((email: any) => (
+                    <TableRow
+                      key={email.id}
+                      className="cursor-pointer hover:bg-slate-50"
+                      onClick={() => router.push(`/emails/${email.id}`)}
+                    >
+                      <TableCell className="text-sm">
+                        {new Date(email.email_date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {email.subject || '(no subject)'}
+                        {email.has_attachments && <span className="ml-2">📎</span>}
+                      </TableCell>
+                      <TableCell>
+                        {email.label ? (
+                          <Badge variant="secondary">{email.label.replace('_', ' ')}</Badge>
+                        ) : (
+                          <Badge variant="outline">Unlabeled</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-slate-500 text-sm">No emails from this contact</p>
+            )}
+          </CardContent>
+        </Card>
 
       </div>
     </MainLayout>

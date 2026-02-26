@@ -158,25 +158,42 @@ export default function MoneyPage() {
               <p className="text-slate-500">No data available</p>
             ) : (
               <div className="space-y-4">
-                {trendData.map((month: any) => {
-                  const maxValue = Math.max(month.income, month.expenses, 1);
-                  const incomeWidth = (month.income / maxValue) * 100;
-                  const expenseWidth = (month.expenses / maxValue) * 100;
+                {(() => {
+                  // Calculate global max across all months (including uninvoiced)
+                  const globalMax = Math.max(
+                    ...trendData.flatMap((m: any) => [m.income + (m.uninvoiced || 0), m.expenses]),
+                    1
+                  );
 
-                  return (
-                    <div key={month.period} className="space-y-1">
+                  return trendData.map((month: any) => {
+                    const incomeWidth = (month.income / globalMax) * 100;
+                    const uninvoicedWidth = ((month.uninvoiced || 0) / globalMax) * 100;
+                    const totalIncomeWidth = ((month.income + (month.uninvoiced || 0)) / globalMax) * 100;
+                    const expenseWidth = (month.expenses / globalMax) * 100;
+
+                    return (
+                      <div key={month.period} className="space-y-1">
                       <div className="flex justify-between text-xs text-slate-600">
                         <span className="font-medium">{format(new Date(month.period), 'MMM yyyy')}</span>
                         <span className={month.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
                           Profit: €{month.profit.toFixed(0)}
+                          {month.uninvoiced > 0 && <span className="text-green-400 ml-1">(+€{month.uninvoiced.toFixed(0)} uninvoiced)</span>}
                         </span>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <div className="w-20 text-xs text-slate-500">Income</div>
-                          <div className="flex-1 bg-slate-100 rounded-full h-6 overflow-hidden">
+                          <div className="flex-1 bg-slate-100 rounded-full h-6 overflow-hidden relative">
+                            {/* Uninvoiced income (semi-transparent background) */}
+                            {month.uninvoiced > 0 && (
+                              <div
+                                className="bg-green-300 opacity-40 h-full absolute left-0"
+                                style={{ width: `${totalIncomeWidth}%` }}
+                              />
+                            )}
+                            {/* Invoiced income (solid) */}
                             <div
-                              className="bg-green-500 h-full flex items-center justify-end pr-2"
+                              className="bg-green-500 h-full flex items-center justify-end pr-2 relative z-10"
                               style={{ width: `${incomeWidth}%`, minWidth: month.income > 0 ? '40px' : '0' }}
                             >
                               {month.income > 0 && (
@@ -201,7 +218,8 @@ export default function MoneyPage() {
                       </div>
                     </div>
                   );
-                })}
+                  });
+                })()}
               </div>
             )}
           </CardContent>

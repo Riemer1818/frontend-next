@@ -19,15 +19,16 @@ export default function DashboardPage() {
   const { data: stats, isLoading: loadingStats } = trpc.reporting.getDashboardStats.useQuery();
   const { data: outstandingInvoices, isLoading: loadingInvoices } = trpc.reporting.getOutstandingInvoices.useQuery();
   const { data: trendData, isLoading: loadingTrend } = trpc.reporting.getIncomeExpenseTrend.useQuery({ months: 6 });
-  const { data: pendingExpenses, isLoading: loadingExpenses, refetch: refetchExpenses } = trpc.expense.getPending.useQuery();
+  const { data: emailStats, isLoading: loadingEmailStats } = trpc.email.getStats.useQuery();
+  const { data: emails, isLoading: loadingEmails, refetch: refetchEmails } = trpc.email.list.useQuery({ page: 1, pageSize: 10 });
 
-  const checkForInvoices = trpc.invoiceIngestion.processInvoices.useMutation({
+  const fetchEmails = trpc.email.fetchUnread.useMutation({
     onSuccess: (data) => {
       if (data.success) {
-        toast.success('Invoice check completed! Check your pending expenses.');
-        refetchExpenses();
+        toast.success(`Fetched ${data.count} new email(s)!`);
+        refetchEmails();
       } else {
-        toast.error(data.message || 'Failed to check for invoices');
+        toast.error(data.error || 'Failed to fetch emails');
       }
       setIsChecking(false);
     },
@@ -37,10 +38,38 @@ export default function DashboardPage() {
     },
   });
 
-  const handleCheckInvoices = () => {
+  const updateLabel = trpc.email.updateLabel.useMutation({
+    onSuccess: () => {
+      toast.success('Email labeled!');
+      refetchEmails();
+    },
+    onError: (error) => {
+      toast.error(`Error: ${error.message}`);
+    },
+  });
+
+  const deleteEmail = trpc.email.delete.useMutation({
+    onSuccess: () => {
+      toast.success('Email deleted!');
+      refetchEmails();
+    },
+    onError: (error) => {
+      toast.error(`Error: ${error.message}`);
+    },
+  });
+
+  const handleFetchEmails = () => {
     setIsChecking(true);
-    toast.info('Checking for new invoices in email...');
-    checkForInvoices.mutate();
+    toast.info('Fetching unread emails...');
+    fetchEmails.mutate();
+  };
+
+  const handleLabelUpdate = (emailId: number, label: 'incoming_invoice' | 'receipt' | 'newsletter' | 'other') => {
+    updateLabel.mutate({ id: emailId, label });
+  };
+
+  const handleDeleteEmail = (emailId: number) => {
+    deleteEmail.mutate({ id: emailId });
   };
 
   if (loadingStats) {
@@ -64,11 +93,11 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
           </div>
           <Button
-            onClick={handleCheckInvoices}
+            onClick={handleFetchEmails}
             disabled={isChecking}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {isChecking ? 'Checking...' : '📧 Check for Invoices'}
+            {isChecking ? 'Fetching...' : '📧 Fetch New Emails'}
           </Button>
         </div>
 
@@ -247,23 +276,40 @@ export default function DashboardPage() {
                 <p className="text-slate-500">No data available</p>
               ) : (
                 <div className="space-y-4">
-                  {trendData.map((month: any) => {
-                    const maxValue = Math.max(month.income, month.expenses);
-                    const incomeWidth = maxValue > 0 ? (month.income / maxValue) * 100 : 0;
-                    const expenseWidth = maxValue > 0 ? (month.expenses / maxValue) * 100 : 0;
+                  {(() => {
+                    // Calculate global max across all months (including uninvoiced)
+                    const globalMax = Math.max(
+                      ...trendData.flatMap((m: any) => [m.income + (m.uninvoiced || 0), m.expenses]),
+                      1
+                    );
 
-                    return (
-                      <div key={month.period} className="space-y-1">
+                    return trendData.map((month: any) => {
+                      const incomeWidth = (month.income / globalMax) * 100;
+                      const totalIncomeWidth = ((month.income + (month.uninvoiced || 0)) / globalMax) * 100;
+                      const expenseWidth = (month.expenses / globalMax) * 100;
+
+                      return (
+                        <div key={month.period} className="space-y-1">
                         <div className="flex justify-between text-xs text-slate-600">
                           <span className="font-medium">{format(new Date(month.period), 'MMM yyyy')}</span>
-                          <span>Profit: €{month.profit.toFixed(0)}</span>
+                          <span>Profit: €{month.profit.toFixed(0)}
+                            {month.uninvoiced > 0 && <span className="text-green-400 ml-1">(+€{month.uninvoiced.toFixed(0)} uninv.)</span>}
+                          </span>
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <div className="w-16 text-xs text-slate-500">Income</div>
-                            <div className="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden">
+                            <div className="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden relative">
+                              {/* Uninvoiced income (semi-transparent background) */}
+                              {month.uninvoiced > 0 && (
+                                <div
+                                  className="bg-green-300 opacity-40 h-full absolute left-0"
+                                  style={{ width: `${totalIncomeWidth}%` }}
+                                />
+                              )}
+                              {/* Invoiced income (solid) */}
                               <div
-                                className="bg-green-500 h-full flex items-center justify-end pr-2"
+                                className="bg-green-500 h-full flex items-center justify-end pr-2 relative z-10"
                                 style={{ width: `${incomeWidth}%` }}
                               >
                                 {month.income > 0 && (
@@ -288,44 +334,121 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     );
-                  })}
+                    });
+                  })()}
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Fifth Row: Pending Expenses Table */}
+        {/* Fifth Row: Email Inbox */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-900">Expenses Pending Review</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-slate-900">Email Inbox</CardTitle>
+              {emailStats && (
+                <div className="flex gap-4 text-sm">
+                  <span className="text-slate-600">
+                    Total: <span className="font-bold text-slate-900">{emailStats.total}</span>
+                  </span>
+                  <span className="text-slate-600">
+                    Unread: <span className="font-bold text-slate-900">{emailStats.unread}</span>
+                  </span>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            {loadingExpenses ? (
+            {loadingEmails ? (
               <p className="text-slate-500">Loading...</p>
-            ) : !pendingExpenses || pendingExpenses.length === 0 ? (
-              <p className="text-slate-500">No pending expenses to review</p>
+            ) : !emails || emails.emails.length === 0 ? (
+              <p className="text-slate-500">No emails yet. Click "Fetch New Emails" to import from your inbox.</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Label</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendingExpenses.map((expense: any) => (
+                  {emails.emails.map((email: any) => (
                     <TableRow
-                      key={expense.id}
+                      key={email.id}
                       className="cursor-pointer hover:bg-blue-50 transition-colors"
-                      onClick={() => router.push(`/expenses/${expense.id}`)}
+                      onClick={() => router.push(`/emails/${email.id}`)}
                     >
-                      <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
-                      <TableCell className="font-medium">{expense.supplier_name}</TableCell>
-                      <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
-                      <TableCell className="text-right font-medium">€{parseFloat(expense.total_amount).toFixed(2)}</TableCell>
+                      <TableCell className="text-sm">
+                        {format(new Date(email.email_date), 'MMM dd, yyyy')}
+                      </TableCell>
+                      <TableCell className="font-medium max-w-xs truncate">
+                        {email.from_address}
+                      </TableCell>
+                      <TableCell className="max-w-md truncate">
+                        {email.subject || '(no subject)'}
+                        {email.has_attachments && <span className="ml-2 text-xs">📎</span>}
+                      </TableCell>
+                      <TableCell>
+                        {email.label ? (
+                          <Badge variant={
+                            email.label === 'incoming_invoice' ? 'default' :
+                            email.label === 'receipt' ? 'secondary' :
+                            email.label === 'newsletter' ? 'outline' : 'destructive'
+                          }>
+                            {email.label.replace('_', ' ')}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-slate-400">unlabeled</span>
+                        )}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs px-2 py-1"
+                            onClick={() => handleLabelUpdate(email.id, 'incoming_invoice')}
+                          >
+                            Invoice
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs px-2 py-1"
+                            onClick={() => handleLabelUpdate(email.id, 'receipt')}
+                          >
+                            Receipt
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs px-2 py-1"
+                            onClick={() => handleLabelUpdate(email.id, 'newsletter')}
+                          >
+                            Newsletter
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs px-2 py-1"
+                            onClick={() => handleLabelUpdate(email.id, 'other')}
+                          >
+                            Other
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="text-xs px-2 py-1"
+                            onClick={() => handleDeleteEmail(email.id)}
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

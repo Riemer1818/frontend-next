@@ -27,6 +27,7 @@ export default function CompanyDetailPage() {
   const { data: expenses } = trpc.expense.getAll.useQuery({ supplierId: companyId });
   const { data: contacts } = trpc.contact.getByCompanyId.useQuery({ companyId, activeOnly: false });
   const { data: primaryContact } = trpc.contact.getPrimaryByCompanyId.useQuery({ companyId });
+  const { data: emails } = trpc.email.getByCompany.useQuery({ companyId });
 
   const deleteMutation = trpc.company.delete.useMutation({
     onSuccess: () => {
@@ -339,6 +340,56 @@ export default function CompanyDetailPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Emails Section */}
+        <Card className="bg-white border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-900">Emails ({emails?.length || 0})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {emails && emails.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>Label</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {emails.map((email: any) => (
+                    <TableRow
+                      key={email.id}
+                      className="cursor-pointer hover:bg-slate-50"
+                      onClick={() => router.push(`/emails/${email.id}`)}
+                    >
+                      <TableCell className="text-sm">
+                        {new Date(email.email_date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {email.subject || '(no subject)'}
+                        {email.has_attachments && <span className="ml-2">📎</span>}
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-600">
+                        {email.from_address}
+                      </TableCell>
+                      <TableCell>
+                        {email.label ? (
+                          <Badge variant="secondary">{email.label.replace('_', ' ')}</Badge>
+                        ) : (
+                          <Badge variant="outline">Unlabeled</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-slate-500 text-sm">No emails linked to this company</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </MainLayout>
   );
