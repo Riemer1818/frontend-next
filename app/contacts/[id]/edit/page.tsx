@@ -179,7 +179,7 @@ export default function EditContactPage() {
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
                       {companies?.map((company) => (
-                        <SelectItem key={company.id} value={company.id.toString()}>
+                        <SelectItem key={company.id} value={company.id?.toString() ?? ''}>
                           {company.name}
                         </SelectItem>
                       ))}

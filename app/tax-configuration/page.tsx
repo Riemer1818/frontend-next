@@ -117,7 +117,7 @@ export default function TaxConfigPage() {
     );
   }
 
-  const currentConfig = allConfigs?.find(c => c.year.year === Number(selectedYear));
+  const currentConfig = allConfigs?.find((c: any) => c.year.year === Number(selectedYear));
 
   const handleToggleBenefit = (benefitId: number, value: boolean) => {
     toggleBenefit.mutate({
@@ -192,8 +192,8 @@ export default function TaxConfigPage() {
     }
   };
 
-  const zelfstandigenBenefit2025 = allConfigs?.find(c => c.year.year === 2025)?.benefits.find(b => b.benefit_type === 'zelfstandigenaftrek');
-  const zelfstandigenBenefit2026 = allConfigs?.find(c => c.year.year === 2026)?.benefits.find(b => b.benefit_type === 'zelfstandigenaftrek');
+  const zelfstandigenBenefit2025 = allConfigs?.find((c: any) => c.year.year === 2025)?.benefits.find((b: any) => b.benefit_type === 'zelfstandigenaftrek');
+  const zelfstandigenBenefit2026 = allConfigs?.find((c: any) => c.year.year === 2026)?.benefits.find((b: any) => b.benefit_type === 'zelfstandigenaftrek');
   const reduction = zelfstandigenBenefit2025 && zelfstandigenBenefit2026
     ? zelfstandigenBenefit2025.amount! - zelfstandigenBenefit2026.amount!
     : 0;
@@ -205,7 +205,7 @@ export default function TaxConfigPage() {
         {/* Year Tabs */}
         <Tabs value={selectedYear} onValueChange={setSelectedYear} className="w-full">
           <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-            {allConfigs?.map((config) => (
+            {allConfigs?.map((config: any) => (
               <TabsTrigger
                 key={config.year.year}
                 value={String(config.year.year)}
@@ -216,7 +216,7 @@ export default function TaxConfigPage() {
             ))}
           </TabsList>
 
-          {allConfigs?.map((config) => {
+          {allConfigs?.map((config: any) => {
             const isCurrentConfig = config.year.year === Number(selectedYear);
             if (!isCurrentConfig) return null;
 
@@ -230,7 +230,7 @@ export default function TaxConfigPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {config.brackets.map((bracket) => (
+                  {config.brackets.map((bracket: any) => (
                     <div
                       key={bracket.id}
                       className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
@@ -273,7 +273,7 @@ export default function TaxConfigPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {config.benefits.map((benefit) => {
+                  {config.benefits.map((benefit: any) => {
                     const isCoreBenefit = ['zelfstandigenaftrek', 'startersaftrek', 'mkb_winstvrijstelling'].includes(benefit.benefit_type);
 
                     return (
@@ -350,7 +350,7 @@ export default function TaxConfigPage() {
               <CardContent>
                 {taxCredits?.credits && taxCredits.credits.length > 0 ? (
                   <div className="space-y-6">
-                    {taxCredits.credits.map((credit) => (
+                    {taxCredits.credits.map((credit: any) => (
                       <div key={credit.id} className="space-y-3">
                         <div className="flex items-start gap-4">
                           <div className="flex-1">
@@ -390,7 +390,7 @@ export default function TaxConfigPage() {
                               <div className="mt-4 space-y-2">
                                 <p className="text-sm font-medium text-slate-700">Income Brackets:</p>
                                 <div className="space-y-1">
-                                  {taxCredits.arbeidskorting_brackets.map((bracket) => (
+                                  {taxCredits.arbeidskorting_brackets.map((bracket: any) => (
                                     <div
                                       key={bracket.bracket_order}
                                       className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs"

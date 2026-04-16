@@ -312,7 +312,7 @@ export default function ExpenseDetailPage() {
                   </Select>
                 ) : (
                   <p className="text-slate-900 mt-1">
-                    {categories?.find((c: any) => c.id === expense.category_id)?.name || '—'}
+                    {(categories as any)?.find((c: any) => c.id === expense.category_id)?.name || '—'}
                   </p>
                 )}
               </div>

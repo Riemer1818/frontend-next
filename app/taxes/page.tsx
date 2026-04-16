@@ -134,13 +134,13 @@ export default function TaxesPage() {
               {/* Step 2: Deductions */}
               <div className="bg-blue-50 p-4 rounded-lg space-y-2">
                 <p className="font-medium text-blue-900">Deductions</p>
-                {taxCalc?.self_employed_deduction > 0 && (
+                {(taxCalc?.self_employed_deduction ?? 0) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-blue-800">Zelfstandigenaftrek (Self-employed deduction)</span>
                     <span className="font-medium text-blue-900">- €{taxCalc?.self_employed_deduction?.toFixed(2)}</span>
                   </div>
                 )}
-                {taxCalc?.startup_deduction > 0 && (
+                {(taxCalc?.startup_deduction ?? 0) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-blue-800">Startersaftrek (Startup deduction)</span>
                     <span className="font-medium text-blue-900">- €{taxCalc?.startup_deduction?.toFixed(2)}</span>
@@ -199,7 +199,7 @@ export default function TaxesPage() {
                 </div>
 
                 {/* Bracket 2 */}
-                {taxCalc?.tax_bracket_2 > 0 && (
+                {(taxCalc?.tax_bracket_2 ?? 0) > 0 && (
                   <div className="bg-red-50 p-4 rounded-lg">
                     <div className="flex justify-between mb-2">
                       <span className="font-medium text-red-900">Bracket 2 (above €{taxCalc?.bracket_1_limit?.toLocaleString()})</span>
@@ -223,16 +223,16 @@ export default function TaxesPage() {
               </div>
 
               {/* Tax Credits (Heffingskortingen) */}
-              {(taxCalc?.algemene_heffingskorting > 0 || taxCalc?.arbeidskorting > 0) && (
+              {((taxCalc?.algemene_heffingskorting ?? 0) > 0 || (taxCalc?.arbeidskorting ?? 0) > 0) && (
                 <div className="bg-green-50 p-4 rounded-lg space-y-2 mt-4">
                   <p className="font-medium text-green-900">Tax Credits (Heffingskortingen)</p>
-                  {taxCalc?.algemene_heffingskorting > 0 && (
+                  {(taxCalc?.algemene_heffingskorting ?? 0) > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-green-800">Algemene heffingskorting</span>
                       <span className="font-medium text-green-900">- €{taxCalc?.algemene_heffingskorting?.toFixed(2)}</span>
                     </div>
                   )}
-                  {taxCalc?.arbeidskorting > 0 && (
+                  {(taxCalc?.arbeidskorting ?? 0) > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-green-800">Arbeidskorting</span>
                       <span className="font-medium text-green-900">- €{taxCalc?.arbeidskorting?.toFixed(2)}</span>

@@ -152,7 +152,7 @@ export default function EditProjectPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {companies?.map((company) => (
-                        <SelectItem key={company.id} value={company.id.toString()}>
+                        <SelectItem key={company.id} value={company.id?.toString() ?? ''}>
                           {company.name}
                         </SelectItem>
                       ))}

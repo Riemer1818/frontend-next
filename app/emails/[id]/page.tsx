@@ -75,7 +75,7 @@ export default function EmailDetailPage() {
     );
   }
 
-  const getLabelBadge = (label: string | null) => {
+  const getLabelBadge = (label: string | null | undefined) => {
     if (!label) return <Badge variant="outline">Unlabeled</Badge>;
 
     const variants: Record<string, any> = {
@@ -135,7 +135,7 @@ export default function EmailDetailPage() {
               variant="destructive"
               size="sm"
               onClick={handleDelete}
-              disabled={deleteEmail.isLoading}
+              disabled={deleteEmail.isPending}
             >
               Delete Email
             </Button>
@@ -287,25 +287,25 @@ export default function EmailDetailPage() {
               <div className="flex gap-2">
                 <Button
                   onClick={() => handleLabelUpdate('incoming_invoice')}
-                  disabled={updateLabel.isLoading}
+                  disabled={updateLabel.isPending}
                 >
                   Invoice
                 </Button>
                 <Button
                   onClick={() => handleLabelUpdate('receipt')}
-                  disabled={updateLabel.isLoading}
+                  disabled={updateLabel.isPending}
                 >
                   Receipt
                 </Button>
                 <Button
                   onClick={() => handleLabelUpdate('newsletter')}
-                  disabled={updateLabel.isLoading}
+                  disabled={updateLabel.isPending}
                 >
                   Newsletter
                 </Button>
                 <Button
                   onClick={() => handleLabelUpdate('other')}
-                  disabled={updateLabel.isLoading}
+                  disabled={updateLabel.isPending}
                 >
                   Other
                 </Button>

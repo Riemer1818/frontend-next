@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const { data: emails, isLoading: loadingEmails, refetch: refetchEmails } = trpc.email.list.useQuery({ page: 1, pageSize: 10 });
 
   const fetchEmails = trpc.email.fetchUnread.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.success) {
         toast.success(`Fetched ${data.count} new email(s)!`);
         refetchEmails();
@@ -170,7 +170,7 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-white">€{parseFloat(stats?.estimated_income_tax_ytd || '0').toFixed(2)}</p>
+              <p className="text-3xl font-bold text-white">€{parseFloat(String(stats?.estimated_income_tax_ytd || '0')).toFixed(2)}</p>
               <p className="text-sm text-blue-100 mt-1">30% of profit YTD</p>
             </CardContent>
           </Card>

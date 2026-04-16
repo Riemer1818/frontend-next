@@ -36,7 +36,7 @@ export default function NewExpensePage() {
   });
 
   const createMutation = trpc.expense.createManual.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       router.push(`/expenses/${data.id}`);
     },
   });

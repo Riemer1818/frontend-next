@@ -330,7 +330,7 @@ export default function ProjectDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoices.map((invoice) => (
+                  {invoices?.map((invoice: any) => (
                     <TableRow key={invoice.id} className="hover:bg-slate-50">
                       <TableCell className="font-medium text-slate-900">{invoice.invoice_number}</TableCell>
                       <TableCell className="text-slate-700">

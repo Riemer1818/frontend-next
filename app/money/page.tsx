@@ -288,9 +288,9 @@ export default function MoneyPage() {
               <CardTitle className="text-slate-900 flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
                 Expenses Pending Review
-                {stats?.pending_expenses_count > 0 && (
+                {(stats?.pending_expenses_count ?? 0) > 0 && (
                   <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                    {stats.pending_expenses_count}
+                    {stats?.pending_expenses_count}
                   </Badge>
                 )}
               </CardTitle>
@@ -374,6 +374,7 @@ export default function MoneyPage() {
                       <TableHead>Date</TableHead>
                       <TableHead>Supplier</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead>Project</TableHead>
                       <TableHead className="text-right">Subtotal</TableHead>
                       <TableHead className="text-right">VAT</TableHead>
                       <TableHead className="text-right">Total</TableHead>
@@ -389,6 +390,7 @@ export default function MoneyPage() {
                         <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
                         <TableCell className="font-medium">{expense.supplier_name}</TableCell>
                         <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
+                        <TableCell className="text-slate-600">{expense.project_name || '—'}</TableCell>
                         <TableCell className="text-right">€{parseFloat(expense.subtotal || 0).toFixed(2)}</TableCell>
                         <TableCell className="text-right text-slate-600">€{parseFloat(expense.tax_amount || 0).toFixed(2)}</TableCell>
                         <TableCell className="text-right font-medium">€{parseFloat(expense.total_amount).toFixed(2)}</TableCell>

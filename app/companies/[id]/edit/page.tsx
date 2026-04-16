@@ -29,7 +29,7 @@ export default function EditCompanyPage() {
     city: '',
     country: '',
     kvk_number: '',
-    vat_number: '',
+    btw_number: '',
     iban: '',
     notes: '',
     is_active: true,
@@ -47,7 +47,7 @@ export default function EditCompanyPage() {
         city: company.city || '',
         country: company.country || '',
         kvk_number: company.kvk_number || '',
-        vat_number: company.vat_number || '',
+        btw_number: company.btw_number || '',
         iban: company.iban || '',
         notes: company.notes || '',
         is_active: company.is_active ?? true,
@@ -221,11 +221,11 @@ export default function EditCompanyPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="vat_number" className="text-slate-900">VAT Number</Label>
+                  <Label htmlFor="btw_number" className="text-slate-900">VAT Number</Label>
                   <Input
-                    id="vat_number"
-                    value={formData.vat_number}
-                    onChange={(e) => setFormData({ ...formData, vat_number: e.target.value })}
+                    id="btw_number"
+                    value={formData.btw_number}
+                    onChange={(e) => setFormData({ ...formData, btw_number: e.target.value })}
                     className="mt-1 text-slate-900"
                   />
                 </div>

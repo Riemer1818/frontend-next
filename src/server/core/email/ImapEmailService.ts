@@ -1,0 +1,386 @@
+import Imap from 'imap';
+import { simpleParser, ParsedMail } from 'mailparser';
+import { EventEmitter } from 'events';
+
+export interface EmailAttachment {
+  filename: string;
+  mimeType: string;
+  data: Buffer;
+  size: number;
+}
+
+export interface Email {
+  id: string;
+  subject: string;
+  from: string;
+  to: string;
+  cc?: string;
+  bcc?: string;
+  date: Date;
+  body: string;
+  htmlBody?: string;
+  attachments: EmailAttachment[];
+  isRead: boolean;
+}
+
+export interface ImapConfig {
+  user: string;
+  password: string;
+  host: string;
+  port: number;
+  tls: boolean;
+}
+
+/**
+ * IMAP-based email service for neo.space and other IMAP providers
+ * Supports fetching unread emails, marking as read, and extracting attachments
+ */
+export class ImapEmailService extends EventEmitter {
+  private config: ImapConfig;
+  private imap: Imap | null = null;
+
+  constructor(config: ImapConfig) {
+    super();
+    this.config = config;
+  }
+
+  /**
+   * Connect to IMAP server
+   */
+  private connect(): Promise<Imap> {
+    return new Promise((resolve, reject) => {
+      const imapOptions = {
+        user: this.config.user,
+        password: this.config.password,
+        host: this.config.host,
+        port: this.config.port,
+        tls: this.config.tls,
+        tlsOptions: {
+          rejectUnauthorized: false,
+          servername: this.config.host
+        },
+        authTimeout: 10000,
+        connTimeout: 10000
+      };
+
+      const imap = new Imap(imapOptions);
+
+      imap.once('ready', () => {
+        this.imap = imap;
+        resolve(imap);
+      });
+
+      imap.once('error', (err: Error) => {
+        reject(err);
+      });
+
+      imap.connect();
+    });
+  }
+
+  /**
+   * Open mailbox
+   */
+  private openBox(boxName: string = 'INBOX'): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.imap) {
+        reject(new Error('IMAP not connected'));
+        return;
+      }
+
+      this.imap.openBox(boxName, false, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+
+  /**
+   * Fetch unread emails from a specific mailbox
+   */
+  private async fetchUnreadFromBox(boxName: string): Promise<Email[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.imap) {
+        reject(new Error('IMAP not connected'));
+        return;
+      }
+
+      this.imap.openBox(boxName, false, (err) => {
+        if (err) {
+          // Box doesn't exist, return empty array
+          console.log(`Mailbox ${boxName} not found, skipping`);
+          resolve([]);
+          return;
+        }
+
+        // Search for ALL emails (script will skip ones that already exist)
+        this.imap!.search(['ALL'], (err, uids) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          if (!uids || uids.length === 0) {
+            resolve([]);
+            return;
+          }
+
+          const emails: Email[] = [];
+          const parsePromises: Promise<void>[] = [];
+
+          const fetch = this.imap!.fetch(uids, {
+            bodies: '',
+            markSeen: false, // Don't auto-mark as read
+            struct: true,
+          });
+
+          fetch.on('message', (msg: any, seqno: number) => {
+            let actualUid: number | null = null;
+
+            // Get the actual UID from attributes
+            msg.once('attributes', (attrs: any) => {
+              actualUid = attrs.uid;
+            });
+
+            msg.once('body', (stream: any) => {
+              const parsePromise = new Promise<void>((resolveMsg) => {
+                simpleParser(stream, async (err: any, parsed: any) => {
+                  if (err) {
+                    console.error('Error parsing email:', err);
+                    resolveMsg();
+                    return;
+                  }
+
+                  // Use actual UID from IMAP, fallback to seqno (should always have UID)
+                  const uid = actualUid !== null ? String(actualUid) : String(seqno);
+                  emails.push(this.parsedMailToEmail(parsed, uid, false));
+                  resolveMsg();
+                });
+              });
+              parsePromises.push(parsePromise);
+            });
+          });
+
+          fetch.once('error', (err) => {
+            reject(err);
+          });
+
+          fetch.once('end', async () => {
+            // Wait for all email parsing to complete
+            await Promise.all(parsePromises);
+            resolve(emails);
+          });
+        });
+      });
+    });
+  }
+
+  /**
+   * Fetch unread emails from INBOX, Junk, and Spam folders
+   */
+  async fetchUnreadEmails(): Promise<Email[]> {
+    const imap = await this.connect();
+
+    const allEmails: Email[] = [];
+
+    // Fetch from INBOX
+    const inboxEmails = await this.fetchUnreadFromBox('INBOX');
+    allEmails.push(...inboxEmails);
+    console.log(`Found ${inboxEmails.length} unread emails in INBOX`);
+
+    // Fetch from Junk
+    const junkEmails = await this.fetchUnreadFromBox('Junk');
+    allEmails.push(...junkEmails);
+    console.log(`Found ${junkEmails.length} unread emails in Junk`);
+
+    // Fetch from Spam
+    const spamEmails = await this.fetchUnreadFromBox('Spam');
+    allEmails.push(...spamEmails);
+    console.log(`Found ${spamEmails.length} unread emails in Spam`);
+
+    this.disconnect();
+    return allEmails;
+  }
+
+  /**
+   * Fetch emails matching criteria
+   */
+  async fetchEmails(criteria: string[] = ['ALL']): Promise<Email[]> {
+    const imap = await this.connect();
+    await this.openBox();
+
+    return new Promise((resolve, reject) => {
+      if (!this.imap) {
+        reject(new Error('IMAP not connected'));
+        return;
+      }
+
+      this.imap.search(criteria, (err, uids) => {
+        if (err) {
+          this.disconnect();
+          reject(err);
+          return;
+        }
+
+        if (!uids || uids.length === 0) {
+          this.disconnect();
+          resolve([]);
+          return;
+        }
+
+        const emails: Email[] = [];
+        const parsePromises: Promise<void>[] = [];
+
+        const fetch = this.imap!.fetch(uids, {
+          bodies: '',
+          struct: true,
+        });
+
+        fetch.on('message', (msg: any, seqno: number) => {
+          let isRead = false;
+
+          msg.on('attributes', (attrs: any) => {
+            // Check if email has \Seen flag (means it's read)
+            isRead = attrs.flags?.includes('\\Seen') || false;
+          });
+
+          msg.on('body', (stream: any) => {
+            const parsePromise = new Promise<void>((resolveMsg) => {
+              simpleParser(stream, async (err: any, parsed: any) => {
+                if (err) {
+                  console.error('Error parsing email:', err);
+                  resolveMsg();
+                  return;
+                }
+
+                emails.push(this.parsedMailToEmail(parsed, String(seqno), isRead));
+                resolveMsg();
+              });
+            });
+            parsePromises.push(parsePromise);
+          });
+        });
+
+        fetch.once('error', (err) => {
+          this.disconnect();
+          reject(err);
+        });
+
+        fetch.once('end', async () => {
+          // Wait for all email parsing to complete
+          await Promise.all(parsePromises);
+          this.disconnect();
+          resolve(emails);
+        });
+      });
+    });
+  }
+
+  /**
+   * Mark email as read by UID
+   */
+  async markAsRead(uid: string): Promise<void> {
+    console.log(`📧 Marking email UID ${uid} as read...`);
+    const imap = await this.connect();
+    await this.openBox();
+
+    return new Promise((resolve, reject) => {
+      if (!this.imap) {
+        reject(new Error('IMAP not connected'));
+        return;
+      }
+
+      // addFlags expects UID or array of UIDs
+      this.imap.addFlags([uid], ['\\Seen'], (err) => {
+        if (err) {
+          console.error(`❌ Failed to mark UID ${uid} as read:`, err);
+          this.disconnect();
+          reject(err);
+        } else {
+          console.log(`✅ Successfully marked UID ${uid} as read`);
+          this.disconnect();
+          resolve();
+        }
+      });
+    });
+  }
+
+  /**
+   * Convert ParsedMail to Email interface
+   */
+  private parsedMailToEmail(parsed: ParsedMail, id: string, isRead: boolean = false): Email {
+    const attachments: EmailAttachment[] = [];
+
+    if (parsed.attachments) {
+      for (const att of parsed.attachments) {
+        attachments.push({
+          filename: att.filename || 'unnamed',
+          mimeType: att.contentType,
+          data: att.content,
+          size: att.size,
+        });
+      }
+    }
+
+    return {
+      id,
+      subject: parsed.subject || '',
+      from: this.extractEmail(parsed.from),
+      to: this.extractEmail(parsed.to),
+      cc: this.extractEmailList(parsed.cc),
+      bcc: this.extractEmailList(parsed.bcc),
+      date: parsed.date || new Date(),
+      body: parsed.text || '',
+      htmlBody: parsed.html || undefined,
+      attachments,
+      isRead,
+    };
+  }
+
+  /**
+   * Extract email address from address object
+   */
+  private extractEmail(addressObj: any): string {
+    if (!addressObj) return '';
+    if (typeof addressObj === 'string') return addressObj;
+    if (Array.isArray(addressObj) && addressObj.length > 0) {
+      return addressObj[0].address || '';
+    }
+    if (addressObj.value && Array.isArray(addressObj.value)) {
+      return addressObj.value[0]?.address || '';
+    }
+    return '';
+  }
+
+  /**
+   * Extract list of email addresses (for CC/BCC)
+   */
+  private extractEmailList(addressObj: any): string | undefined {
+    if (!addressObj) return undefined;
+    if (typeof addressObj === 'string') return addressObj;
+
+    const emails: string[] = [];
+
+    if (Array.isArray(addressObj)) {
+      for (const addr of addressObj) {
+        if (addr.address) emails.push(addr.address);
+      }
+    } else if (addressObj.value && Array.isArray(addressObj.value)) {
+      for (const addr of addressObj.value) {
+        if (addr.address) emails.push(addr.address);
+      }
+    }
+
+    return emails.length > 0 ? emails.join(', ') : undefined;
+  }
+
+  /**
+   * Disconnect from IMAP server
+   */
+  private disconnect() {
+    if (this.imap) {
+      this.imap.end();
+      this.imap = null;
+    }
+  }
+}

@@ -75,6 +75,7 @@ export default function TimeEntriesPage() {
       const diffMinutes = differenceInMinutes(end, start);
       if (diffMinutes > 0) {
         const hours = (diffMinutes / 60).toFixed(2);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData(prev => ({
           ...prev,
           total_hours: hours,

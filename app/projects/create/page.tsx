@@ -27,7 +27,7 @@ export default function CreateProjectPage() {
   const { data: taxRates } = trpc.reporting.getTaxRates.useQuery();
 
   const createProject = trpc.project.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast.success('Project created successfully');
       router.push(`/projects/${data.id}`);
     },
@@ -95,7 +95,7 @@ export default function CreateProjectPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {clients?.map((client) => (
-                    <SelectItem key={client.id} value={client.id.toString()}>
+                    <SelectItem key={client.id} value={client.id?.toString() ?? ''}>
                       {client.name}
                     </SelectItem>
                   ))}
@@ -147,7 +147,7 @@ export default function CreateProjectPage() {
                       <SelectValue placeholder="Select a tax rate" />
                     </SelectTrigger>
                     <SelectContent>
-                      {taxRates?.map((taxRate) => (
+                      {taxRates?.map((taxRate: any) => (
                         <SelectItem key={taxRate.id} value={taxRate.id.toString()}>
                           {taxRate.name} ({taxRate.rate}%)
                         </SelectItem>

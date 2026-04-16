@@ -25,7 +25,7 @@ export default function BTWDeclarationPage() {
 
   // Get data for selected quarter
   const quarterData = vatSettlement?.find(
-    (q: any) => q.year === selectedYear && q.quarter === selectedQuarter
+    (q: { year: number; quarter: number }) => q.year === selectedYear && q.quarter === selectedQuarter
   );
 
   if (isLoading) {

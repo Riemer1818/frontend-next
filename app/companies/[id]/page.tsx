@@ -158,7 +158,7 @@ export default function CompanyDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-slate-600 mb-1">VAT Number</p>
-                <p className="text-slate-900">{company.vat_number || '—'}</p>
+                <p className="text-slate-900">{company.btw_number || '—'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-600 mb-1">IBAN</p>
@@ -274,7 +274,7 @@ export default function CompanyDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {invoices.map((invoice) => (
+                    {invoices?.map((invoice: any) => (
                       <TableRow
                         key={invoice.id}
                         className="cursor-pointer hover:bg-blue-50 transition-colors"

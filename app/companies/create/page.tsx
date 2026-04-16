@@ -22,7 +22,7 @@ export default function CreateCompanyPage() {
   const [type, setType] = useState<'client' | 'supplier' | 'both'>('client');
 
   const createCompany = trpc.company.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast.success('Company created successfully');
       router.push(`/companies/${data.id}`);
     },
