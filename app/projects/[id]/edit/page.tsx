@@ -97,7 +97,7 @@ export default function EditProjectPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading project...</p>
+          <p className="text-muted-foreground">Loading project...</p>
         </div>
       </MainLayout>
     );
@@ -107,7 +107,7 @@ export default function EditProjectPage() {
     return (
       <MainLayout>
         <div className="p-8">
-          <p className="text-slate-500">Project not found</p>
+          <p className="text-muted-foreground">Project not found</p>
         </div>
       </MainLayout>
     );
@@ -117,38 +117,38 @@ export default function EditProjectPage() {
     <MainLayout>
       <div className="p-8 space-y-6 min-h-screen">
         <div>
-          <Link href={`/projects/${projectId}`} className="text-sm text-slate-600 hover:text-slate-900 mb-2 inline-block">
+          <Link href={`/projects/${projectId}`} className="text-sm text-muted-foreground hover:text-foreground mb-2 inline-block">
             ← Back to Project
           </Link>
-          <h1 className="text-3xl font-bold text-slate-900">Edit Project</h1>
-          <p className="text-slate-600 mt-1">Update project details</p>
+          <h1 className="text-3xl font-bold text-foreground">Edit Project</h1>
+          <p className="text-muted-foreground mt-1">Update project details</p>
         </div>
 
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-slate-900">Project Details</CardTitle>
+            <CardTitle className="text-foreground">Project Details</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-900">Project Name *</Label>
+                  <Label htmlFor="name" className="text-foreground">Project Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleChange('name', e.target.value)}
                     required
-                    className="text-slate-900"
+                    className="text-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="client_id" className="text-slate-900">Client *</Label>
+                  <Label htmlFor="client_id" className="text-foreground">Client *</Label>
                   <Select
                     value={formData.client_id}
                     onValueChange={(value) => handleChange('client_id', value)}
                   >
-                    <SelectTrigger className="text-slate-900">
+                    <SelectTrigger className="text-foreground">
                       <SelectValue placeholder="Select a client" />
                     </SelectTrigger>
                     <SelectContent>
@@ -162,24 +162,24 @@ export default function EditProjectPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="hourly_rate" className="text-slate-900">Hourly Rate (€)</Label>
+                  <Label htmlFor="hourly_rate" className="text-foreground">Hourly Rate (€)</Label>
                   <Input
                     id="hourly_rate"
                     type="number"
                     step="0.01"
                     value={formData.hourly_rate}
                     onChange={(e) => handleChange('hourly_rate', e.target.value)}
-                    className="text-slate-900"
+                    className="text-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="status" className="text-slate-900">Status</Label>
+                  <Label htmlFor="status" className="text-foreground">Status</Label>
                   <Select
                     value={formData.status}
                     onValueChange={(value) => handleChange('status', value)}
                   >
-                    <SelectTrigger className="text-slate-900">
+                    <SelectTrigger className="text-foreground">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -192,55 +192,55 @@ export default function EditProjectPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="start_date" className="text-slate-900">Start Date</Label>
+                  <Label htmlFor="start_date" className="text-foreground">Start Date</Label>
                   <Input
                     id="start_date"
                     type="date"
                     value={formData.start_date}
                     onChange={(e) => handleChange('start_date', e.target.value)}
-                    className="text-slate-900"
+                    className="text-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="end_date" className="text-slate-900">End Date</Label>
+                  <Label htmlFor="end_date" className="text-foreground">End Date</Label>
                   <Input
                     id="end_date"
                     type="date"
                     value={formData.end_date}
                     onChange={(e) => handleChange('end_date', e.target.value)}
-                    className="text-slate-900"
+                    className="text-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="color" className="text-slate-900">Project Color</Label>
+                  <Label htmlFor="color" className="text-foreground">Project Color</Label>
                   <Input
                     id="color"
                     type="color"
                     value={formData.color}
                     onChange={(e) => handleChange('color', e.target.value)}
-                    className="text-slate-900"
+                    className="text-foreground"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-slate-900">Description</Label>
+                <Label htmlFor="description" className="text-foreground">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleChange('description', e.target.value)}
                   rows={4}
                   placeholder="Project description..."
-                  className="text-slate-900"
+                  className="text-foreground"
                 />
               </div>
 
               <div className="flex gap-3 pt-4">
                 <Button
                   type="submit"
-                  className="bg-blue-900 hover:bg-blue-800 text-white"
+                  className="bg-primary hover:bg-primary/90 text-white"
                   disabled={updateMutation.isPending}
                 >
                   {updateMutation.isPending ? 'Saving...' : 'Save Changes'}

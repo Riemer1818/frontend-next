@@ -56,7 +56,7 @@ export default function InvoiceDetailPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </MainLayout>
     );
@@ -66,7 +66,7 @@ export default function InvoiceDetailPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Invoice not found</p>
+          <p className="text-muted-foreground">Invoice not found</p>
         </div>
       </MainLayout>
     );
@@ -86,17 +86,17 @@ export default function InvoiceDetailPage() {
       return <Badge variant="destructive">Overdue</Badge>;
     }
     if (isSent) {
-      return <Badge className="bg-blue-600">Sent</Badge>;
+      return <Badge className="bg-primary">Sent</Badge>;
     }
     if (isCancelled) {
-      return <Badge variant="outline" className="bg-slate-200 text-slate-700">Cancelled</Badge>;
+      return <Badge variant="outline" className="bg-muted text-foreground">Cancelled</Badge>;
     }
     return <Badge variant="outline">Draft</Badge>;
   };
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -110,8 +110,8 @@ export default function InvoiceDetailPage() {
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">{invoice.invoice_number}</h1>
-              <p className="text-slate-600 mt-1">
+              <h1 className="text-3xl font-bold text-foreground">{invoice.invoice_number}</h1>
+              <p className="text-muted-foreground mt-1">
                 {invoice.client_name || `Client ID: ${invoice.client_id}`}
               </p>
             </div>
@@ -133,33 +133,33 @@ export default function InvoiceDetailPage() {
               {/* Client & Project Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-slate-700">Client</label>
+                  <label className="text-sm font-medium text-foreground">Client</label>
                   <Link
                     href={`/companies/${invoice.client_id}`}
-                    className="text-blue-900 hover:underline font-medium mt-1 flex items-center gap-1"
+                    className="text-primary hover:underline font-medium mt-1 flex items-center gap-1"
                   >
                     {invoice.client_name || `Client ID: ${invoice.client_id}`}
                     <ExternalLink className="h-3 w-3" />
                   </Link>
                   {invoice.client_email && (
-                    <p className="text-sm text-slate-600 mt-1">{invoice.client_email}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{invoice.client_email}</p>
                   )}
                   {invoice.client_phone && (
-                    <p className="text-sm text-slate-600">{invoice.client_phone}</p>
+                    <p className="text-sm text-muted-foreground">{invoice.client_phone}</p>
                   )}
                 </div>
                 {invoice.project_id && (
                   <div>
-                    <label className="text-sm font-medium text-slate-700">Project</label>
+                    <label className="text-sm font-medium text-foreground">Project</label>
                     <Link
                       href={`/projects/${invoice.project_id}`}
-                      className="text-blue-900 hover:underline font-medium mt-1 flex items-center gap-1"
+                      className="text-primary hover:underline font-medium mt-1 flex items-center gap-1"
                     >
                       {invoice.project_name || `Project ID: ${invoice.project_id}`}
                       <ExternalLink className="h-3 w-3" />
                     </Link>
                     {invoice.project_description && (
-                      <p className="text-sm text-slate-600 mt-1 line-clamp-2">
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {invoice.project_description}
                       </p>
                     )}
@@ -170,26 +170,26 @@ export default function InvoiceDetailPage() {
               {/* Dates */}
               <div className="grid grid-cols-3 gap-4 pt-4 border-t">
                 <div>
-                  <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     Invoice Date
                   </label>
-                  <p className="text-slate-900 mt-1">
+                  <p className="text-foreground mt-1">
                     {format(new Date(invoice.invoice_date), 'MMM dd, yyyy')}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     Due Date
                   </label>
-                  <p className="text-slate-900 mt-1">
+                  <p className="text-foreground mt-1">
                     {format(new Date(invoice.due_date), 'MMM dd, yyyy')}
                   </p>
                 </div>
                 {invoice.paid_date && (
                   <div>
-                    <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-1">
                       <CheckCircle className="h-4 w-4 text-green-600" />
                       Paid Date
                     </label>
@@ -203,8 +203,8 @@ export default function InvoiceDetailPage() {
               {/* Description */}
               {invoice.description && (
                 <div className="pt-4 border-t">
-                  <label className="text-sm font-medium text-slate-700">Description</label>
-                  <p className="text-slate-900 mt-1">{invoice.description}</p>
+                  <label className="text-sm font-medium text-foreground">Description</label>
+                  <p className="text-foreground mt-1">{invoice.description}</p>
                 </div>
               )}
 
@@ -212,20 +212,20 @@ export default function InvoiceDetailPage() {
               <div className="pt-4 border-t">
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-slate-700">Subtotal</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-foreground">Subtotal</span>
+                    <span className="font-medium text-foreground">
                       €{parseFloat(invoice.subtotal).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-700">VAT ({invoice.tax_rate}%)</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-foreground">VAT ({invoice.tax_rate}%)</span>
+                    <span className="font-medium text-foreground">
                       €{parseFloat(invoice.tax_amount).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between pt-3 border-t">
-                    <span className="text-lg font-bold text-slate-900">Total Amount</span>
-                    <span className="text-2xl font-bold text-slate-900">
+                    <span className="text-lg font-bold text-foreground">Total Amount</span>
+                    <span className="text-2xl font-bold text-foreground">
                       €{parseFloat(invoice.total_amount).toFixed(2)}
                     </span>
                   </div>
@@ -233,7 +233,7 @@ export default function InvoiceDetailPage() {
               </div>
 
               {/* Additional Info */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t text-xs text-slate-500">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t text-xs text-muted-foreground">
                 <div>
                   <span className="font-medium">Created:</span>{' '}
                   {format(new Date(invoice.created_at), 'MMM dd, yyyy HH:mm')}
@@ -269,7 +269,7 @@ export default function InvoiceDetailPage() {
                 <Button
                   onClick={handleMarkAsSent}
                   disabled={updateStatusMutation.isPending}
-                  className="w-full bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                  className="w-full bg-primary hover:bg-primary/90 flex items-center gap-2"
                 >
                   <FileText className="h-4 w-4" />
                   Mark as Sent
@@ -302,8 +302,8 @@ export default function InvoiceDetailPage() {
               <div className="pt-4 border-t">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Days since issue:</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-muted-foreground">Days since issue:</span>
+                    <span className="font-medium text-foreground">
                       {Math.floor(
                         (new Date().getTime() - new Date(invoice.invoice_date).getTime()) /
                           (1000 * 60 * 60 * 24)
@@ -312,7 +312,7 @@ export default function InvoiceDetailPage() {
                   </div>
                   {!isPaid && (
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Days until due:</span>
+                      <span className="text-muted-foreground">Days until due:</span>
                       <span
                         className={`font-medium ${
                           Math.floor(
@@ -320,7 +320,7 @@ export default function InvoiceDetailPage() {
                               (1000 * 60 * 60 * 24)
                           ) < 0
                             ? 'text-red-600'
-                            : 'text-slate-900'
+                            : 'text-foreground'
                         }`}
                       >
                         {Math.floor(
@@ -353,7 +353,7 @@ export default function InvoiceDetailPage() {
 
         {/* PDF Preview */}
         {invoice.pdf_file && (
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
@@ -361,7 +361,7 @@ export default function InvoiceDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-slate-100 rounded-lg overflow-hidden border border-slate-300" style={{ height: '800px' }}>
+              <div className="bg-secondary rounded-lg overflow-hidden border border-border" style={{ height: '800px' }}>
                 <iframe
                   src={`data:application/pdf;base64,${Buffer.from(invoice.pdf_file).toString('base64')}`}
                   className="w-full h-full"
@@ -382,7 +382,7 @@ export default function InvoiceDetailPage() {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                   }}
-                  className="bg-blue-900 hover:bg-blue-800"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   Download PDF
                 </Button>

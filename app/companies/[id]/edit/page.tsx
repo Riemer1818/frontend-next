@@ -89,7 +89,7 @@ export default function EditCompanyPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </MainLayout>
     );
@@ -99,7 +99,7 @@ export default function EditCompanyPage() {
     return (
       <MainLayout>
         <div className="p-8">
-          <p className="text-slate-500">Company not found</p>
+          <p className="text-muted-foreground">Company not found</p>
         </div>
       </MainLayout>
     );
@@ -107,41 +107,41 @@ export default function EditCompanyPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div>
-          <Link href={`/companies/${companyId}`} className="text-sm text-slate-600 hover:text-slate-900 mb-2 inline-block">
+          <Link href={`/companies/${companyId}`} className="text-sm text-muted-foreground hover:text-foreground mb-2 inline-block">
             ← Back to Company
           </Link>
-          <h1 className="text-3xl font-bold text-slate-900">Edit Company</h1>
-          <p className="text-slate-600 mt-1">Update company information</p>
+          <h1 className="text-3xl font-bold text-foreground">Edit Company</h1>
+          <p className="text-muted-foreground mt-1">Update company information</p>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-900">Company Information</CardTitle>
+              <CardTitle className="text-foreground">Company Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-slate-900 mb-1">Company Name *</label>
+                  <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1">Company Name *</label>
                   <input
                     id="name"
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-900"
+                    className="w-full px-3 py-2 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-slate-900 mb-1">Type *</label>
+                  <label htmlFor="type" className="block text-sm font-medium text-foreground mb-1">Type *</label>
                   <select
                     id="type"
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                    className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md"
+                    className="mt-1 w-full px-3 py-2 border border-border rounded-md"
                     required
                   >
                     <option value="client">Client</option>
@@ -151,58 +151,58 @@ export default function EditCompanyPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email" className="text-slate-900">Email</Label>
+                  <Label htmlFor="email" className="text-foreground">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="mt-1 text-slate-900"
+                    className="mt-1 text-foreground"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="phone" className="text-slate-900">Phone</Label>
+                  <Label htmlFor="phone" className="text-foreground">Phone</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="mt-1 text-slate-900"
+                    className="mt-1 text-foreground"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <Label htmlFor="street_address" className="text-slate-900">Street Address</Label>
+                  <Label htmlFor="street_address" className="text-foreground">Street Address</Label>
                   <Input
                     id="street_address"
                     value={formData.street_address}
                     onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
-                    className="mt-1 text-slate-900"
+                    className="mt-1 text-foreground"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="postal_code" className="text-slate-900">Postal Code</Label>
+                  <Label htmlFor="postal_code" className="text-foreground">Postal Code</Label>
                   <Input
                     id="postal_code"
                     value={formData.postal_code}
                     onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                    className="mt-1 text-slate-900"
+                    className="mt-1 text-foreground"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="city" className="text-slate-900">City</Label>
+                  <Label htmlFor="city" className="text-foreground">City</Label>
                   <Input
                     id="city"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="mt-1 text-slate-900"
+                    className="mt-1 text-foreground"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="country" className="text-slate-900">Country</Label>
+                  <Label htmlFor="country" className="text-foreground">Country</Label>
                   <Select
                     value={formData.country || 'Netherlands'}
                     onValueChange={(value) => setFormData({ ...formData, country: value })}
@@ -227,42 +227,42 @@ export default function EditCompanyPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="kvk_number" className="text-slate-900">KVK Number</Label>
+                  <Label htmlFor="kvk_number" className="text-foreground">KVK Number</Label>
                   <Input
                     id="kvk_number"
                     value={formData.kvk_number}
                     onChange={(e) => setFormData({ ...formData, kvk_number: e.target.value })}
-                    className="mt-1 text-slate-900"
+                    className="mt-1 text-foreground"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="btw_number" className="text-slate-900">VAT Number</Label>
+                  <Label htmlFor="btw_number" className="text-foreground">VAT Number</Label>
                   <Input
                     id="btw_number"
                     value={formData.btw_number}
                     onChange={(e) => setFormData({ ...formData, btw_number: e.target.value })}
-                    className="mt-1 text-slate-900"
+                    className="mt-1 text-foreground"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="iban" className="text-slate-900">IBAN</Label>
+                  <Label htmlFor="iban" className="text-foreground">IBAN</Label>
                   <Input
                     id="iban"
                     value={formData.iban}
                     onChange={(e) => setFormData({ ...formData, iban: e.target.value })}
-                    className="mt-1 text-slate-900"
+                    className="mt-1 text-foreground"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <Label htmlFor="notes" className="text-slate-900">Notes</Label>
+                  <Label htmlFor="notes" className="text-foreground">Notes</Label>
                   <Textarea
                     id="notes"
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="mt-1 text-slate-900"
+                    className="mt-1 text-foreground"
                     rows={3}
                   />
                 </div>
@@ -273,9 +273,9 @@ export default function EditCompanyPage() {
                       type="checkbox"
                       checked={formData.is_active}
                       onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      className="rounded border-slate-300"
+                      className="rounded border-border"
                     />
-                    <span className="text-slate-900">Active</span>
+                    <span className="text-foreground">Active</span>
                   </label>
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function EditCompanyPage() {
               <div className="flex gap-2 pt-4">
                 <Button
                   type="submit"
-                  className="bg-blue-900 hover:bg-blue-800 text-white"
+                  className="bg-primary hover:bg-primary/90 text-white"
                   disabled={updateMutation.isPending}
                 >
                   {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -291,7 +291,7 @@ export default function EditCompanyPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="text-slate-900 hover:bg-slate-100"
+                  className="text-foreground hover:bg-secondary"
                   onClick={() => router.push(`/companies/${companyId}`)}
                 >
                   Cancel

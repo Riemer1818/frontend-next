@@ -1,117 +1,208 @@
 @import "tailwindcss";
 
-:root {
-  --background: 255 255 255; /* white */
-  --foreground: 15 23 42; /* slate-900 */
+@custom-variant dark (&:is(.dark *));
 
-  /* Button colors - using blue-900 for primary */
-  --primary: 30 58 138; /* blue-900 */
-  --primary-foreground: 255 255 255; /* white */
-
-  /* Other UI colors */
-  --secondary: 241 245 249; /* slate-100 */
-  --secondary-foreground: 15 23 42; /* slate-900 */
-
-  --muted: 241 245 249; /* slate-100 */
-  --muted-foreground: 100 116 139; /* slate-500 */
-
-  --accent: 241 245 249; /* slate-100 */
-  --accent-foreground: 15 23 42; /* slate-900 */
-
-  --destructive: 239 68 68; /* red-500 */
-  --destructive-foreground: 255 255 255; /* white */
-
-  --border: 226 232 240; /* slate-200 */
-  --input: 226 232 240; /* slate-200 */
-  --ring: 59 130 246; /* blue-500 */
-}
+/* ============================================================
+   Brand Tokens — Construction Theme
+   Precision Build Co. inspired earthy tones, professional aesthetic
+   ============================================================ */
 
 @theme inline {
-  --color-background: rgb(var(--background));
-  --color-foreground: rgb(var(--foreground));
-
-  --color-primary: rgb(var(--primary));
-  --color-primary-foreground: rgb(var(--primary-foreground));
-
-  --color-secondary: rgb(var(--secondary));
-  --color-secondary-foreground: rgb(var(--secondary-foreground));
-
-  --color-muted: rgb(var(--muted));
-  --color-muted-foreground: rgb(var(--muted-foreground));
-
-  --color-accent: rgb(var(--accent));
-  --color-accent-foreground: rgb(var(--accent-foreground));
-
-  --color-destructive: rgb(var(--destructive));
-  --color-destructive-foreground: rgb(var(--destructive-foreground));
-
-  --color-border: rgb(var(--border));
-  --color-input: rgb(var(--input));
-  --color-ring: rgb(var(--ring));
-
+  /* shadcn/ui system tokens */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  /* === Construction Brand Colors === */
+  --color-rust:          #c44b2a;
+  --color-rust-light:    #d66b4a;
+  --color-steel:         #5a6268;
+  --color-steel-light:   #7a8288;
+  --color-concrete:      #9ca3af;
+  --color-sand:          #f4a460;
+  --color-sand-light:    #f7b87a;
+  --color-amber:         #d97706;
+  --color-brand-dark:    #1b1b1b;
+  --color-brand-surface: #242424;
+  --color-brand-muted:   #6b6b6b;
+  --color-brand-muted-light: #a8a8a8;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.375rem;
+  /* shadcn/ui semantic tokens mapped to construction brand - LIGHT MODE */
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #c44b2a;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #000000;
+  --muted: #f5f5f5;
+  --muted-foreground: #6b6b6b;
+  --accent: #d97706;
+  --accent-foreground: #ffffff;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.08);
+  --ring: #c44b2a;
+  --sidebar: #f5f5f5;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #c44b2a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f0f0;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar-ring: #c44b2a;
+}
+
+.dark {
+  /* DARK MODE - Construction theme with true black background */
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #1a1a1a;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+  --primary: #d66b4a;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #a8a8a8;
+  --accent: #f7b87a;
+  --accent-foreground: #000000;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #d66b4a;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #d66b4a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: #d66b4a;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Heading baseline */
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  /* Body text */
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Accessible focus style */
+  :focus-visible {
+    outline: 2px solid var(--color-rust);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Buttons and links: disable tap highlight, enable touch manipulation */
+  a, button, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Stat numbers: prevent layout shift during animation */
+  [data-stat] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Smooth scrolling for anchor links */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-body {
+/* ============================================================
+   Brand Gradient Utilities — Construction Theme
+   ============================================================ */
+.gradient-hero {
+  background-color: #3a2313;
+  background-image: url('/patroon.svg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+.gradient-brand {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Override ALL grey text colors to black for readability */
-.text-slate-300,
-.text-slate-400,
-.text-slate-500,
-.text-slate-600,
-.text-slate-700,
-.text-gray-300,
-.text-gray-400,
-.text-gray-500,
-.text-gray-600,
-.text-gray-700 {
-  color: #000000 !important;
-}
-
-/* Force black text in tables */
-table,
-table td,
-table th,
-table tbody,
-table thead {
-  color: #000000 !important;
-}
-
-/* Force black text in inputs and textareas */
-input,
-textarea,
-select {
-  color: #000000 !important;
-}
-
-/* Force black text in all common text elements */
-p, span, div, label, a {
-  color: inherit;
-}
-
-body {
-  color: #000000 !important;
-}
-
-/* Exception: Keep sidebar text white */
-.bg-slate-900,
-.bg-slate-900 * {
-  color: white !important;
-}
-
-.bg-slate-900 .text-slate-300,
-.bg-slate-900 .text-slate-400 {
-  color: rgb(203 213 225) !important; /* slate-300 */
+.gradient-text {
+  background: linear-gradient(135deg, #c44b2a 0%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

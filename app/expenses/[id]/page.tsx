@@ -146,7 +146,7 @@ export default function ExpenseDetailPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </MainLayout>
     );
@@ -156,7 +156,7 @@ export default function ExpenseDetailPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Expense not found</p>
+          <p className="text-muted-foreground">Expense not found</p>
         </div>
       </MainLayout>
     );
@@ -167,7 +167,7 @@ export default function ExpenseDetailPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -181,8 +181,8 @@ export default function ExpenseDetailPage() {
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Expense Details</h1>
-              <p className="text-slate-600 mt-1">
+              <h1 className="text-3xl font-bold text-foreground">Expense Details</h1>
+              <p className="text-muted-foreground mt-1">
                 {expense.supplier_name} • {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
               </p>
             </div>
@@ -190,7 +190,7 @@ export default function ExpenseDetailPage() {
           <div className="flex gap-2">
             {!isPendingStatus && (
               <Button
-                className="bg-blue-900 hover:bg-blue-800 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 onClick={() => router.push(`/expenses/${id}/edit`)}
               >
                 Edit
@@ -224,7 +224,7 @@ export default function ExpenseDetailPage() {
             <CardContent className="space-y-4">
               {/* Supplier Name */}
               <div>
-                <label className="text-sm font-medium text-slate-700">Supplier</label>
+                <label className="text-sm font-medium text-foreground">Supplier</label>
                 {isEditing ? (
                   <Input
                     value={editedData.supplier_name}
@@ -234,13 +234,13 @@ export default function ExpenseDetailPage() {
                     className="mt-1"
                   />
                 ) : (
-                  <p className="text-slate-900 mt-1">{expense.supplier_name}</p>
+                  <p className="text-foreground mt-1">{expense.supplier_name}</p>
                 )}
               </div>
 
               {/* Description */}
               <div>
-                <label className="text-sm font-medium text-slate-700">Description</label>
+                <label className="text-sm font-medium text-foreground">Description</label>
                 {isEditing ? (
                   <Textarea
                     value={editedData.description}
@@ -251,13 +251,13 @@ export default function ExpenseDetailPage() {
                     rows={3}
                   />
                 ) : (
-                  <p className="text-slate-900 mt-1">{expense.description || '—'}</p>
+                  <p className="text-foreground mt-1">{expense.description || '—'}</p>
                 )}
               </div>
 
               {/* Project */}
               <div>
-                <label className="text-sm font-medium text-slate-700">Project</label>
+                <label className="text-sm font-medium text-foreground">Project</label>
                 {isEditing ? (
                   <Select
                     value={editedData.project_id.toString() || 'none'}
@@ -278,7 +278,7 @@ export default function ExpenseDetailPage() {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-slate-900 mt-1">
+                  <p className="text-foreground mt-1">
                     {expense.project_name || '—'}
                   </p>
                 )}
@@ -286,7 +286,7 @@ export default function ExpenseDetailPage() {
 
               {/* Category */}
               <div>
-                <label className="text-sm font-medium text-slate-700">Category</label>
+                <label className="text-sm font-medium text-foreground">Category</label>
                 {isEditing ? (
                   <Select
                     value={editedData.category.toString() || 'none'}
@@ -307,7 +307,7 @@ export default function ExpenseDetailPage() {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-slate-900 mt-1">
+                  <p className="text-foreground mt-1">
                     {(categories as any).find((c: any) => c.id === expense.category_id).name || '—'}
                   </p>
                 )}
@@ -315,7 +315,7 @@ export default function ExpenseDetailPage() {
 
               {/* Notes */}
               <div>
-                <label className="text-sm font-medium text-slate-700">Notes</label>
+                <label className="text-sm font-medium text-foreground">Notes</label>
                 {isEditing ? (
                   <Textarea
                     value={editedData.notes}
@@ -327,13 +327,13 @@ export default function ExpenseDetailPage() {
                     placeholder="e.g. reis- en verblijfkosten"
                   />
                 ) : (
-                  <p className="text-slate-900 mt-1">{expense.notes || '—'}</p>
+                  <p className="text-foreground mt-1">{expense.notes || '—'}</p>
                 )}
               </div>
 
               {/* Invoice Date */}
               <div>
-                <label className="text-sm font-medium text-slate-700">Invoice Date</label>
+                <label className="text-sm font-medium text-foreground">Invoice Date</label>
                 {isEditing ? (
                   <Input
                     type="date"
@@ -344,7 +344,7 @@ export default function ExpenseDetailPage() {
                     className="mt-1"
                   />
                 ) : (
-                  <p className="text-slate-900 mt-1">
+                  <p className="text-foreground mt-1">
                     {format(new Date(expense.invoice_date), 'MMMM dd, yyyy')}
                   </p>
                 )}
@@ -353,8 +353,8 @@ export default function ExpenseDetailPage() {
               {/* Due Date */}
               {expense.due_date && (
                 <div>
-                  <label className="text-sm font-medium text-slate-700">Due Date</label>
-                  <p className="text-slate-900 mt-1">
+                  <label className="text-sm font-medium text-foreground">Due Date</label>
+                  <p className="text-foreground mt-1">
                     {format(new Date(expense.due_date), 'MMMM dd, yyyy')}
                   </p>
                 </div>
@@ -363,7 +363,7 @@ export default function ExpenseDetailPage() {
               {/* Currency Selector - Only in edit mode */}
               {isEditing && (
                 <div className="pt-4 border-t">
-                  <label className="text-sm font-medium text-slate-700">Currency</label>
+                  <label className="text-sm font-medium text-foreground">Currency</label>
                   <Select
                     value={editedData.currency}
                     onValueChange={(value) => setEditedData({ ...editedData, currency: value })}
@@ -389,7 +389,7 @@ export default function ExpenseDetailPage() {
               {/* Amounts */}
               <div className="grid grid-cols-3 gap-4 pt-4 border-t">
                 <div>
-                  <label className="text-sm font-medium text-slate-700">Subtotal</label>
+                  <label className="text-sm font-medium text-foreground">Subtotal</label>
                   {isEditing ? (
                     <div className="flex items-center gap-2 mt-1">
                       <Input
@@ -400,21 +400,21 @@ export default function ExpenseDetailPage() {
                           setEditedData({ ...editedData, subtotal: parseFloat(e.target.value) })
                         }
                       />
-                      <span className="text-slate-600 min-w-[3rem] text-sm">{editedData.currency}</span>
+                      <span className="text-muted-foreground min-w-[3rem] text-sm">{editedData.currency}</span>
                     </div>
                   ) : (
                     <div className="mt-1">
                       {expense.original_currency && expense.original_currency !== 'EUR' ? (
                         <>
-                          <p className="text-lg font-bold text-slate-900">
+                          <p className="text-lg font-bold text-foreground">
                             {expense.original_currency} {(expense.original_subtotal || 0).toFixed(2)}
                           </p>
-                          <p className="text-xs text-slate-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             ≈ €{(expense.subtotal || 0).toFixed(2)}
                           </p>
                         </>
                       ) : (
-                        <p className="text-lg font-bold text-slate-900">
+                        <p className="text-lg font-bold text-foreground">
                           €{(expense.subtotal || 0).toFixed(2)}
                         </p>
                       )}
@@ -422,7 +422,7 @@ export default function ExpenseDetailPage() {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-700">VAT</label>
+                  <label className="text-sm font-medium text-foreground">VAT</label>
                   {isEditing ? (
                     <div className="flex items-center gap-2 mt-1">
                       <Input
@@ -433,21 +433,21 @@ export default function ExpenseDetailPage() {
                           setEditedData({ ...editedData, tax_amount: parseFloat(e.target.value) })
                         }
                       />
-                      <span className="text-slate-600 min-w-[3rem] text-sm">{editedData.currency}</span>
+                      <span className="text-muted-foreground min-w-[3rem] text-sm">{editedData.currency}</span>
                     </div>
                   ) : (
                     <div className="mt-1">
                       {expense.original_currency && expense.original_currency !== 'EUR' ? (
                         <>
-                          <p className="text-lg font-bold text-slate-900">
+                          <p className="text-lg font-bold text-foreground">
                             {expense.original_currency} {(expense.original_tax_amount || 0).toFixed(2)}
                           </p>
-                          <p className="text-xs text-slate-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             ≈ €{(expense.tax_amount || 0).toFixed(2)}
                           </p>
                         </>
                       ) : (
-                        <p className="text-lg font-bold text-slate-900">
+                        <p className="text-lg font-bold text-foreground">
                           €{(expense.tax_amount || 0).toFixed(2)}
                         </p>
                       )}
@@ -455,7 +455,7 @@ export default function ExpenseDetailPage() {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-700">Total</label>
+                  <label className="text-sm font-medium text-foreground">Total</label>
                   {isEditing ? (
                     <div className="flex items-center gap-2 mt-1">
                       <Input
@@ -466,21 +466,21 @@ export default function ExpenseDetailPage() {
                           setEditedData({ ...editedData, total_amount: parseFloat(e.target.value) })
                         }
                       />
-                      <span className="text-slate-600 min-w-[3rem] text-sm">{editedData.currency}</span>
+                      <span className="text-muted-foreground min-w-[3rem] text-sm">{editedData.currency}</span>
                     </div>
                   ) : (
                     <div className="mt-1">
                       {expense.original_currency && expense.original_currency !== 'EUR' ? (
                         <>
-                          <p className="text-xl font-bold text-slate-900">
+                          <p className="text-xl font-bold text-foreground">
                             {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
                           </p>
-                          <p className="text-xs text-slate-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             ≈ €{expense.total_amount.toFixed(2)} @ {(expense.exchange_rate || 1).toFixed(4)}
                           </p>
                         </>
                       ) : (
-                        <p className="text-xl font-bold text-slate-900">
+                        <p className="text-xl font-bold text-foreground">
                           €{expense.total_amount.toFixed(2)}
                         </p>
                       )}
@@ -491,22 +491,22 @@ export default function ExpenseDetailPage() {
 
               {/* Currency Conversion Info - Show after approval */}
               {!isEditing && expense.original_currency && expense.original_currency !== 'EUR' && (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                <div className="p-4 bg-background border border-border rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-slate-700">Currency Conversion</p>
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-sm font-medium text-foreground">Currency Conversion</p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         Exchange rate from {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-slate-900">
+                      <p className="text-2xl font-bold text-foreground">
                         {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
                       </p>
-                      <p className="text-sm text-slate-600 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         = €{expense.total_amount.toFixed(2)}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         @ {(expense.exchange_rate || 1).toFixed(4)}
                       </p>
                     </div>
@@ -517,16 +517,16 @@ export default function ExpenseDetailPage() {
               {/* Currency Info */}
               {expense.original_currency && expense.original_currency !== 'EUR' && (
                 <div className="pt-4 border-t">
-                  <label className="text-sm font-medium text-slate-700">Currency Conversion</label>
+                  <label className="text-sm font-medium text-foreground">Currency Conversion</label>
                   <div className="mt-2 space-y-1 text-sm">
-                    <p className="text-slate-700">
+                    <p className="text-foreground">
                       <span className="font-medium">Original:</span> {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
                     </p>
-                    <p className="text-slate-700">
+                    <p className="text-foreground">
                       <span className="font-medium">Rate:</span> {(expense.exchange_rate || 1).toFixed(4)}
                     </p>
                     {expense.exchange_rate_date && (
-                      <p className="text-slate-500 text-xs">
+                      <p className="text-muted-foreground text-xs">
                         Rate from {format(new Date(expense.exchange_rate_date), 'MMM dd, yyyy')}
                       </p>
                     )}
@@ -537,8 +537,8 @@ export default function ExpenseDetailPage() {
               {/* Payment Status */}
               {expense.payment_status && (
                 <div className="pt-4 border-t">
-                  <label className="text-sm font-medium text-slate-700">Payment Status</label>
-                  <p className="text-slate-900 mt-1 capitalize">{expense.payment_status}</p>
+                  <label className="text-sm font-medium text-foreground">Payment Status</label>
+                  <p className="text-foreground mt-1 capitalize">{expense.payment_status}</p>
                 </div>
               )}
             </CardContent>
@@ -600,7 +600,7 @@ export default function ExpenseDetailPage() {
         </div>
 
         {/* PDF Viewer */}
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Invoice Document</span>
@@ -611,10 +611,10 @@ export default function ExpenseDetailPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-700">
+                    <p className="text-sm font-medium text-foreground">
                       {expense.invoice_file_name || 'Invoice Document'}
                     </p>
-                    <p className="text-xs text-slate-500 capitalize">
+                    <p className="text-xs text-muted-foreground capitalize">
                       {expense.invoice_file_type}
                     </p>
                   </div>
@@ -622,7 +622,7 @@ export default function ExpenseDetailPage() {
                 </div>
                 <iframe
                   src={`data:${expense.invoice_file_type};base64,${expense.invoice_file}`}
-                  className="w-full h-[600px] border border-slate-200 rounded"
+                  className="w-full h-[600px] border border-border rounded"
                   title={expense.invoice_file_name || 'Invoice'}
                 />
               </div>
@@ -630,11 +630,11 @@ export default function ExpenseDetailPage() {
               <div className="space-y-4">
                 <iframe
                   src={`data:application/pdf;base64,${uploadedPdf || expense.invoice_file_base64}`}
-                  className="w-full h-[600px] border border-slate-200 rounded"
+                  className="w-full h-[600px] border border-border rounded"
                   title="Invoice PDF"
                 />
                 {uploadPdfMutation.isPending && (
-                  <p className="text-sm text-blue-600 text-center">Saving PDF...</p>
+                  <p className="text-sm text-primary text-center">Saving PDF...</p>
                 )}
                 {uploadPdfMutation.isError && (
                   <p className="text-sm text-red-600 text-center">
@@ -647,13 +647,13 @@ export default function ExpenseDetailPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex flex-col items-center justify-center h-[300px] bg-slate-50 rounded border-2 border-dashed border-slate-300">
+                <div className="flex flex-col items-center justify-center h-[300px] bg-background rounded border-2 border-dashed border-border">
                   <FileText className="h-12 w-12 text-slate-400 mb-2" />
-                  <p className="text-slate-600 font-medium">No PDF attached</p>
-                  <p className="text-sm text-slate-500 mt-1">Upload a PDF to view it here</p>
+                  <p className="text-muted-foreground font-medium">No PDF attached</p>
+                  <p className="text-sm text-muted-foreground mt-1">Upload a PDF to view it here</p>
                 </div>
                 <div>
-                  <label htmlFor="pdf-upload" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="pdf-upload" className="block text-sm font-medium text-foreground mb-2">
                     Upload Invoice PDF
                   </label>
                   <input
@@ -675,12 +675,12 @@ export default function ExpenseDetailPage() {
                         reader.readAsDataURL(file);
                       }
                     }}
-                    className="block w-full text-sm text-slate-500
+                    className="block w-full text-sm text-muted-foreground
                       file:mr-4 file:py-2 file:px-4
                       file:rounded-md file:border-0
                       file:text-sm file:font-semibold
-                      file:bg-blue-50 file:text-blue-700
-                      hover:file:bg-blue-100
+                      file:bg-secondary file:text-primary
+                      hover:file:bg-secondary hover:file:text-foreground
                       cursor-pointer"
                   />
                 </div>

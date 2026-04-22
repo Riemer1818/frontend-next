@@ -19,17 +19,17 @@ export default function ProjectsPage() {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+        <div className="p-8 space-y-6 bg-background min-h-screen">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-slate-900">Projects</h1>
+            <h1 className="text-3xl font-bold text-foreground">Projects</h1>
             <Link href="/projects/create">
-              <Button className="bg-blue-900 hover:bg-blue-800 text-white">
+              <Button className="bg-primary hover:bg-primary/90 text-white">
                 New Project
               </Button>
             </Link>
           </div>
           <div className="flex justify-center py-12">
-            <p className="text-slate-500">Loading projects...</p>
+            <p className="text-muted-foreground">Loading projects...</p>
           </div>
         </div>
       </MainLayout>
@@ -39,11 +39,11 @@ export default function ProjectsPage() {
   if (error) {
     return (
       <MainLayout>
-        <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+        <div className="p-8 space-y-6 bg-background min-h-screen">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-slate-900">Projects</h1>
+            <h1 className="text-3xl font-bold text-foreground">Projects</h1>
             <Link href="/projects/create">
-              <Button className="bg-blue-900 hover:bg-blue-800 text-white">
+              <Button className="bg-primary hover:bg-primary/90 text-white">
                 New Project
               </Button>
             </Link>
@@ -60,10 +60,10 @@ export default function ProjectsPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Projects</h1>
+            <h1 className="text-3xl font-bold text-foreground">Projects</h1>
           </div>
           <Link href="/projects/create">
             <Button className="bg-blue-900 hover:bg-blue-800 text-white">
@@ -72,20 +72,20 @@ export default function ProjectsPage() {
           </Link>
         </div>
 
-        <div className="border border-slate-200 rounded-lg bg-white">
+        <div className="border border-border rounded-lg bg-card">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="text-slate-900 font-semibold">Name</TableHead>
-                <TableHead className="text-slate-900 font-semibold">Client</TableHead>
-                <TableHead className="text-slate-900 font-semibold">Budget</TableHead>
-                <TableHead className="text-slate-900 font-semibold">Start Date</TableHead>
+              <TableRow className="bg-background">
+                <TableHead className="text-foreground font-semibold">Name</TableHead>
+                <TableHead className="text-foreground font-semibold">Client</TableHead>
+                <TableHead className="text-foreground font-semibold">Budget</TableHead>
+                <TableHead className="text-foreground font-semibold">Start Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {projectsArray.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12 text-slate-500">
+                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
                     No projects found. Create your first project to get started.
                   </TableCell>
                 </TableRow>
@@ -93,15 +93,15 @@ export default function ProjectsPage() {
                 projectsArray.map((project: any) => (
                   <TableRow
                     key={project.id}
-                    className="cursor-pointer hover:bg-blue-50 transition-colors"
+                    className="cursor-pointer hover:bg-secondary hover:text-foreground transition-colors"
                     onClick={() => window.location.href = `/projects/${project.id}`}
                   >
-                    <TableCell className="font-medium text-slate-900">{project.name}</TableCell>
-                    <TableCell className="text-slate-700">{project.client_name || '—'}</TableCell>
-                    <TableCell className="text-slate-700">
+                    <TableCell className="font-medium text-foreground">{project.name}</TableCell>
+                    <TableCell className="text-foreground">{project.client_name || '—'}</TableCell>
+                    <TableCell className="text-foreground">
                       {project.budget ? `€${Number(project.budget).toFixed(2)}` : '—'}
                     </TableCell>
-                    <TableCell className="text-slate-700">
+                    <TableCell className="text-foreground">
                       {project.start_date ? new Date(project.start_date).toLocaleDateString() : '—'}
                     </TableCell>
                   </TableRow>

@@ -317,7 +317,7 @@ export default function TimeEntriesPage() {
           border-bottom: 2px solid #e2e8f0 !important;
         }
         .rbc-toolbar button {
-          color: #1e3a8a !important;
+          color: hsl(var(--primary)) !important;
           border: 1px solid #cbd5e1 !important;
           border-radius: 6px !important;
           padding: 6px 12px !important;
@@ -327,14 +327,14 @@ export default function TimeEntriesPage() {
           background-color: #f1f5f9 !important;
         }
         .rbc-toolbar button.rbc-active {
-          background-color: #1e3a8a !important;
+          background-color: hsl(var(--primary)) !important;
           color: white !important;
         }
       `}</style>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Time Entries</h1>
+            <h1 className="text-3xl font-bold text-foreground">Time Entries</h1>
           </div>
           <Button
             onClick={() => {
@@ -345,17 +345,17 @@ export default function TimeEntriesPage() {
               });
               setIsDialogOpen(true);
             }}
-            className="bg-blue-900 hover:bg-blue-800 text-white"
+            className="bg-primary hover:bg-primary/90 text-white"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Time Entry
           </Button>
         </div>
 
-        <Card className="p-6 bg-white">
+        <Card className="p-6 bg-card">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <p className="text-slate-500">Loading calendar...</p>
+              <p className="text-muted-foreground">Loading calendar...</p>
             </div>
           ) : (
             <Calendar
@@ -374,7 +374,7 @@ export default function TimeEntriesPage() {
               eventPropGetter={eventStyleGetter}
               selectable
               popup
-              className="bg-white"
+              className="bg-card"
             />
           )}
         </Card>
@@ -409,7 +409,7 @@ export default function TimeEntriesPage() {
                 <div className="border rounded-md p-3 max-h-32 overflow-y-auto space-y-2">
                   {contactsArray.length > 0 ? (
                     contactsArray.map((contact: any) => (
-                      <label key={contact.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                      <label key={contact.id} className="flex items-center gap-2 cursor-pointer hover:bg-background p-1 rounded">
                         <input
                           type="checkbox"
                           checked={formData.contact_ids.includes(contact.id)}
@@ -420,7 +420,7 @@ export default function TimeEntriesPage() {
                               setFormData({ ...formData, contact_ids: formData.contact_ids.filter(id => id !== contact.id) });
                             }
                           }}
-                          className="rounded border-slate-300"
+                          className="rounded border-border"
                         />
                         <span className="text-sm">
                           {contact.first_name} {contact.last_name} {contact.company_name && `(${contact.company_name})`}
@@ -428,7 +428,7 @@ export default function TimeEntriesPage() {
                       </label>
                     ))
                   ) : (
-                    <p className="text-sm text-slate-500">No contacts available</p>
+                    <p className="text-sm text-muted-foreground">No contacts available</p>
                   )}
                 </div>
               </div>
@@ -584,7 +584,7 @@ export default function TimeEntriesPage() {
                 <Button
                   onClick={handleSubmit}
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="bg-blue-900 hover:bg-blue-800"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   {selectedEvent ? 'Update' : 'Create'}
                 </Button>

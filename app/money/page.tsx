@@ -34,7 +34,7 @@ export default function MoneyPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </MainLayout>
     );
@@ -52,10 +52,10 @@ export default function MoneyPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Money Dashboard</h1>
+            <h1 className="text-3xl font-bold text-foreground">Money Dashboard</h1>
           </div>
           <div className="flex gap-3">
             <button
@@ -72,14 +72,14 @@ export default function MoneyPage() {
             </button>
             <button
               onClick={() => router.push('/expenses/new')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 hover:text-primary-foreground flex items-center gap-2"
             >
               <Receipt className="h-5 w-5" />
               Add Expense
             </button>
             <button
               onClick={() => router.push('/invoices/new')}
-              className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 flex items-center gap-2"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 hover:text-primary-foreground flex items-center gap-2"
             >
               <FileText className="h-5 w-5" />
               Build Invoice
@@ -90,34 +90,34 @@ export default function MoneyPage() {
         {/* VAT & Tax Overview (Top Row) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* VAT to Pay This Quarter */}
-          <Card className="bg-blue-900 border-blue-900">
+          <Card className="bg-primary border-primary">
             <CardHeader>
-              <CardTitle className="text-white text-sm font-medium">
+              <CardTitle className="text-primary-foreground text-sm font-medium">
                 VAT to Pay (Q{currentQuarter} {currentYear})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-white">€{stats.vat_this_quarter.toFixed(2)}</p>
-              <p className="text-sm text-blue-100 mt-1">Total outstanding: €{stats.vat_to_pay_total.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-primary-foreground">€{stats.vat_this_quarter.toFixed(2)}</p>
+              <p className="text-sm text-primary-foreground/80 mt-1">Total outstanding: €{stats.vat_to_pay_total.toFixed(2)}</p>
             </CardContent>
           </Card>
 
           {/* Income vs Expenses This Month */}
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-700 text-sm font-medium">This Month</CardTitle>
+              <CardTitle className="text-foreground text-sm font-medium">This Month</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-green-600" />
                     Income
                   </span>
                   <span className="font-bold text-green-600">€{stats.income_this_month.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
                     <TrendingDown className="h-4 w-4 text-red-600" />
                     Expenses
                   </span>
@@ -125,8 +125,8 @@ export default function MoneyPage() {
                 </div>
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">Profit</span>
-                    <span className="text-xl font-bold text-slate-900">€{stats.profit_this_month.toFixed(2)}</span>
+                    <span className="text-sm font-medium text-foreground">Profit</span>
+                    <span className="text-xl font-bold text-foreground">€{stats.profit_this_month.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -134,24 +134,24 @@ export default function MoneyPage() {
           </Card>
 
           {/* Year to Date Summary */}
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-700 text-sm font-medium">Year to Date</CardTitle>
+              <CardTitle className="text-foreground text-sm font-medium">Year to Date</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Income</span>
-                  <span className="font-bold text-slate-900">€{stats.income_ytd.toFixed(2)}</span>
+                  <span className="text-sm text-muted-foreground">Income</span>
+                  <span className="font-bold text-foreground">€{stats.income_ytd.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Expenses</span>
-                  <span className="font-bold text-slate-900">€{stats.expenses_ytd.toFixed(2)}</span>
+                  <span className="text-sm text-muted-foreground">Expenses</span>
+                  <span className="font-bold text-foreground">€{stats.expenses_ytd.toFixed(2)}</span>
                 </div>
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">Profit</span>
-                    <span className="text-xl font-bold text-slate-900">€{stats.profit_ytd.toFixed(2)}</span>
+                    <span className="text-sm font-medium text-foreground">Profit</span>
+                    <span className="text-xl font-bold text-foreground">€{stats.profit_ytd.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -160,18 +160,18 @@ export default function MoneyPage() {
         </div>
 
         {/* Income/Expense Trend Chart */}
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-slate-900 flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
               Income vs Expenses Trend (Last 6 Months)
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loadingTrend ? (
-              <p className="text-slate-500">Loading...</p>
+              <p className="text-muted-foreground">Loading...</p>
             ) : trendDataArray.length === 0 ? (
-              <p className="text-slate-500">No data available</p>
+              <p className="text-muted-foreground">No data available</p>
             ) : (
               <div className="space-y-4">
                 {(() => {
@@ -189,7 +189,7 @@ export default function MoneyPage() {
 
                     return (
                       <div key={month.period} className="space-y-1">
-                      <div className="flex justify-between text-xs text-slate-600">
+                      <div className="flex justify-between text-xs text-muted-foreground">
                         <span className="font-medium">{format(new Date(month.period), 'MMM yyyy')}</span>
                         <span className={month.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
                           Profit: €{month.profit.toFixed(0)}
@@ -198,8 +198,8 @@ export default function MoneyPage() {
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <div className="w-20 text-xs text-slate-500">Income</div>
-                          <div className="flex-1 bg-slate-100 rounded-full h-6 overflow-hidden relative">
+                          <div className="w-20 text-xs text-muted-foreground">Income</div>
+                          <div className="flex-1 bg-secondary rounded-full h-6 overflow-hidden relative">
                             {/* Uninvoiced income (semi-transparent background) */}
                             {month.uninvoiced > 0 && (
                               <div
@@ -219,8 +219,8 @@ export default function MoneyPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-20 text-xs text-slate-500">Expenses</div>
-                          <div className="flex-1 bg-slate-100 rounded-full h-6 overflow-hidden">
+                          <div className="w-20 text-xs text-muted-foreground">Expenses</div>
+                          <div className="flex-1 bg-secondary rounded-full h-6 overflow-hidden">
                             <div
                               className="bg-red-500 h-full flex items-center justify-end pr-2"
                               style={{ width: `${expenseWidth}%`, minWidth: month.expenses > 0 ? '40px' : '0' }}
@@ -244,29 +244,29 @@ export default function MoneyPage() {
         {/* Invoices & Expenses Side by Side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Outstanding Invoices */}
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-900 flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Outstanding Invoices
               </CardTitle>
             </CardHeader>
             <CardContent>
               {loadingInvoices ? (
-                <p className="text-slate-500">Loading...</p>
+                <p className="text-muted-foreground">Loading...</p>
               ) : outstandingInvoicesArray.length === 0 ? (
-                <p className="text-slate-500">No outstanding invoices</p>
+                <p className="text-muted-foreground">No outstanding invoices</p>
               ) : (
                 <div className="space-y-3">
                   {outstandingInvoicesArray.slice(0, 5).map((invoice: any) => (
                     <div
                       key={invoice.id}
-                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-3 bg-background rounded-lg hover:bg-secondary transition-colors cursor-pointer"
                       onClick={() => router.push(`/invoices/${invoice.id}`)}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-slate-900">
+                          <span className="font-medium text-foreground">
                             {invoice.invoice_number}
                           </span>
                           {invoice.urgency === 'overdue' && (
@@ -276,19 +276,19 @@ export default function MoneyPage() {
                             <Badge className="text-xs bg-orange-500">Due Soon</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-slate-600">{invoice.client_name}</p>
-                        <p className="text-xs text-slate-500">Due: {format(new Date(invoice.due_date), 'MMM dd, yyyy')}</p>
+                        <p className="text-sm text-muted-foreground">{invoice.client_name}</p>
+                        <p className="text-xs text-muted-foreground">Due: {format(new Date(invoice.due_date), 'MMM dd, yyyy')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-slate-900">€{invoice.total_amount.toFixed(2)}</p>
-                        <p className="text-xs text-blue-600 mt-1">View →</p>
+                        <p className="font-bold text-foreground">€{invoice.total_amount.toFixed(2)}</p>
+                        <p className="text-xs text-primary mt-1">View →</p>
                       </div>
                     </div>
                   ))}
                   <div className="pt-2 border-t">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-slate-700">Total Outstanding</span>
-                      <span className="text-lg font-bold text-slate-900">
+                      <span className="text-sm font-medium text-foreground">Total Outstanding</span>
+                      <span className="text-lg font-bold text-foreground">
                         €{outstandingInvoicesArray.reduce((sum: number, inv: any) => sum + inv.total_amount, 0).toFixed(2)}
                       </span>
                     </div>
@@ -299,9 +299,9 @@ export default function MoneyPage() {
           </Card>
 
           {/* Pending Expenses for Review */}
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-900 flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
                 Expenses Pending Review
                 {stats.pending_expenses_count > 0 && (
@@ -313,10 +313,10 @@ export default function MoneyPage() {
             </CardHeader>
             <CardContent>
               {loadingExpenses ? (
-                <p className="text-slate-500">Loading...</p>
+                <p className="text-muted-foreground">Loading...</p>
               ) : pendingExpensesArray.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-slate-500">✓ No expenses pending review</p>
+                  <p className="text-muted-foreground">✓ No expenses pending review</p>
                   <p className="text-sm text-slate-400 mt-1">All caught up!</p>
                 </div>
               ) : (
@@ -330,26 +330,26 @@ export default function MoneyPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4 text-yellow-600" />
-                          <span className="font-medium text-slate-900">
+                          <span className="font-medium text-foreground">
                             {expense.supplier_name}
                           </span>
                           <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
                             Review
                           </Badge>
                         </div>
-                        <p className="text-sm text-slate-600 ml-6">{expense.description || 'No description'}</p>
-                        <p className="text-xs text-slate-500 ml-6">{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</p>
+                        <p className="text-sm text-muted-foreground ml-6">{expense.description || 'No description'}</p>
+                        <p className="text-xs text-muted-foreground ml-6">{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-slate-900">€{parseFloat(expense.total_amount).toFixed(2)}</p>
-                        <p className="text-xs text-blue-600 mt-1">Review →</p>
+                        <p className="font-bold text-foreground">€{parseFloat(expense.total_amount).toFixed(2)}</p>
+                        <p className="text-xs text-primary mt-1">Review →</p>
                       </div>
                     </div>
                   ))}
                   <div className="pt-2 border-t border-yellow-200">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-slate-700">Total Pending</span>
-                      <span className="text-lg font-bold text-slate-900">
+                      <span className="text-sm font-medium text-foreground">Total Pending</span>
+                      <span className="text-lg font-bold text-foreground">
                         €{stats.pending_expenses_amount.toFixed(2)}
                       </span>
                     </div>
@@ -361,13 +361,13 @@ export default function MoneyPage() {
         </div>
 
         {/* All Expenses Table (Recent Activity) */}
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-slate-900">Recent Expenses</CardTitle>
+            <CardTitle className="text-foreground">Recent Expenses</CardTitle>
             {allExpensesArray.length > 10 && (
               <button
                 onClick={() => setShowAllExpenses(!showAllExpenses)}
-                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                className="flex items-center gap-2 text-sm text-primary hover:text-primary/90 hover:text-foreground"
               >
                 {showAllExpenses ? (
                   <>Show Less <ChevronUp className="h-4 w-4" /></>
@@ -379,9 +379,9 @@ export default function MoneyPage() {
           </CardHeader>
           <CardContent>
             {loadingAllExpenses ? (
-              <p className="text-slate-500">Loading...</p>
+              <p className="text-muted-foreground">Loading...</p>
             ) : allExpensesArray.length === 0 ? (
-              <p className="text-slate-500">No recent expenses</p>
+              <p className="text-muted-foreground">No recent expenses</p>
             ) : (
               <div className="overflow-auto" style={{ maxHeight: showAllExpenses ? 'none' : '500px' }}>
                 <Table>
@@ -400,15 +400,15 @@ export default function MoneyPage() {
                     {(showAllExpenses ? allExpensesArray : allExpensesArray.slice(0, 10)).map((expense: any) => (
                       <TableRow
                         key={expense.id}
-                        className="cursor-pointer hover:bg-blue-50 transition-colors"
+                        className="cursor-pointer hover:bg-secondary hover:text-foreground transition-colors"
                         onClick={() => router.push(`/expenses/${expense.id}`)}
                       >
                         <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
                         <TableCell className="font-medium">{expense.supplier_name}</TableCell>
                         <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
-                        <TableCell className="text-slate-600">—</TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
                         <TableCell className="text-right">€{(expense.subtotal_amount || 0).toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-slate-600">€{(expense.vat_amount || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">€{(expense.vat_amount || 0).toFixed(2)}</TableCell>
                         <TableCell className="text-right font-medium">€{expense.total_amount.toFixed(2)}</TableCell>
                       </TableRow>
                     ))}

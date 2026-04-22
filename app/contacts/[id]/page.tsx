@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Mail, Phone, Building2, Briefcase } from 'lucide-react';
+import EmbeddedGraph from '@/components/graph/EmbeddedGraph';
 
 export default function ContactDetailPage() {
   const params = useParams();
@@ -54,7 +55,7 @@ export default function ContactDetailPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading contact details...</p>
+          <p className="text-muted-foreground">Loading contact details...</p>
         </div>
       </MainLayout>
     );
@@ -64,7 +65,7 @@ export default function ContactDetailPage() {
     return (
       <MainLayout>
         <div className="p-8">
-          <p className="text-slate-500">Contact not found</p>
+          <p className="text-muted-foreground">Contact not found</p>
         </div>
       </MainLayout>
     );
@@ -72,32 +73,32 @@ export default function ContactDetailPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div className="flex justify-between items-center">
           <div>
-            <Link href="/contacts" className="text-sm text-slate-600 hover:text-slate-900 mb-2 inline-block">
+            <Link href="/contacts" className="text-sm text-muted-foreground hover:text-foreground mb-2 inline-block">
               ← Back to Contacts
             </Link>
-            <h1 className="text-3xl font-bold text-slate-900">
+            <h1 className="text-3xl font-bold text-foreground">
               {contact.first_name} {contact.last_name}
             </h1>
             {contact.description && (
-              <p className="text-slate-600 mt-1">{contact.description}</p>
+              <p className="text-muted-foreground mt-1">{contact.description}</p>
             )}
             {contact.role && (
-              <p className="text-slate-500 text-sm mt-1">{contact.role}</p>
+              <p className="text-muted-foreground text-sm mt-1">{contact.role}</p>
             )}
           </div>
           <div className="flex gap-2">
             <Button
-              className="bg-blue-900 hover:bg-blue-800 text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
               onClick={() => router.push(`/contacts/${contactId}/edit`)}
             >
               Edit
             </Button>
             <Button
               variant="ghost"
-              className="text-slate-900 hover:bg-slate-100"
+              className="text-foreground hover:bg-secondary"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >
@@ -108,17 +109,17 @@ export default function ContactDetailPage() {
 
         {/* Contact Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-900">Contact Information</CardTitle>
+              <CardTitle className="text-foreground">Contact Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {contact.email && (
                 <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 text-slate-500" />
+                  <Mail className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-slate-500">Email</p>
-                    <a href={`mailto:${contact.email}`} className="text-blue-900 hover:underline">
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <a href={`mailto:${contact.email}`} className="text-primary hover:underline">
                       {contact.email}
                     </a>
                   </div>
@@ -127,10 +128,10 @@ export default function ContactDetailPage() {
 
               {contact.phone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-slate-500" />
+                  <Phone className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-slate-500">Phone</p>
-                    <a href={`tel:${contact.phone}`} className="text-blue-900 hover:underline">
+                    <p className="text-xs text-muted-foreground">Phone</p>
+                    <a href={`tel:${contact.phone}`} className="text-primary hover:underline">
                       {contact.phone}
                     </a>
                   </div>
@@ -139,13 +140,13 @@ export default function ContactDetailPage() {
 
               {contact.company_id && company && (
                 <div className="flex items-center gap-3">
-                  <Building2 className="h-4 w-4 text-slate-500" />
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-slate-500">Company</p>
-                    <Link href={`/companies/${contact.company_id}`} className="text-blue-900 hover:underline flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground">Company</p>
+                    <Link href={`/companies/${contact.company_id}`} className="text-primary hover:underline flex items-center gap-2">
                       {company.name}
                       {contact.is_primary && (
-                        <Badge className="bg-blue-900 text-white text-xs">Primary</Badge>
+                        <Badge className="bg-primary text-white text-xs">Primary</Badge>
                       )}
                     </Link>
                   </div>
@@ -154,60 +155,77 @@ export default function ContactDetailPage() {
 
               {contact.notes && (
                 <div>
-                  <p className="text-xs text-slate-500 mb-1">Notes</p>
-                  <p className="text-slate-700 whitespace-pre-wrap">{contact.notes}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                  <p className="text-foreground whitespace-pre-wrap">{contact.notes}</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-900">Associated Data</CardTitle>
+              <CardTitle className="text-foreground">Associated Data</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {contact.company_id && (
                 <>
                   <div className="flex items-center gap-3">
-                    <Briefcase className="h-4 w-4 text-slate-500" />
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-slate-500">Company Projects</p>
-                      <p className="text-2xl font-bold text-slate-900">{projects.length || 0}</p>
+                      <p className="text-xs text-muted-foreground">Company Projects</p>
+                      <p className="text-2xl font-bold text-foreground">{projects.length || 0}</p>
                     </div>
                   </div>
                 </>
               )}
 
               {!contact.company_id && (
-                <p className="text-slate-500 text-sm">This contact is not associated with any company.</p>
+                <p className="text-muted-foreground text-sm">This contact is not associated with any company.</p>
               )}
             </CardContent>
           </Card>
         </div>
 
+        {/* Relationship Graph */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-foreground">Network Graph</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EmbeddedGraph
+              entityId={contactId.toString()}
+              entityType="contact"
+              height="500px"
+              degrees={2}
+              showControls={true}
+              showLegend={true}
+            />
+          </CardContent>
+        </Card>
+
         {/* Projects */}
         {contact.company_id && projects && projects.length > 0 && (
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-900">Associated Projects</CardTitle>
+              <CardTitle className="text-foreground">Associated Projects</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50">
-                    <TableHead className="text-slate-900 font-semibold">Project</TableHead>
-                    <TableHead className="text-slate-900 font-semibold">Hourly Rate</TableHead>
+                  <TableRow className="bg-background">
+                    <TableHead className="text-foreground font-semibold">Project</TableHead>
+                    <TableHead className="text-foreground font-semibold">Hourly Rate</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {projects.map((project: any) => (
                     <TableRow
                       key={project.id}
-                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      className="cursor-pointer hover:bg-secondary hover:text-foreground transition-colors"
                       onClick={() => router.push(`/projects/${project.id}`)}
                     >
-                      <TableCell className="font-medium text-slate-900">{project.name}</TableCell>
-                      <TableCell className="text-slate-700">
+                      <TableCell className="font-medium text-foreground">{project.name}</TableCell>
+                      <TableCell className="text-foreground">
                         €{Number(project.hourly_rate || 0).toFixed(2)}
                       </TableCell>
                     </TableRow>
@@ -219,9 +237,9 @@ export default function ContactDetailPage() {
         )}
 
         {/* Emails Section */}
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-slate-900">Emails ({emails.length || 0})</CardTitle>
+            <CardTitle className="text-foreground">Emails ({emails.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {emails && emails.length > 0 ? (
@@ -237,7 +255,7 @@ export default function ContactDetailPage() {
                   {emails.map((email: any) => (
                     <TableRow
                       key={email.id}
-                      className="cursor-pointer hover:bg-slate-50"
+                      className="cursor-pointer hover:bg-background"
                       onClick={() => router.push(`/emails/${email.id}`)}
                     >
                       <TableCell className="text-sm">
@@ -259,7 +277,7 @@ export default function ContactDetailPage() {
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-slate-500 text-sm">No emails from this contact</p>
+              <p className="text-muted-foreground text-sm">No emails from this contact</p>
             )}
           </CardContent>
         </Card>

@@ -104,7 +104,7 @@ export default function EditContactPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading contact...</p>
+          <p className="text-muted-foreground">Loading contact...</p>
         </div>
       </MainLayout>
     );
@@ -114,7 +114,7 @@ export default function EditContactPage() {
     return (
       <MainLayout>
         <div className="p-8">
-          <p className="text-slate-500">Contact not found</p>
+          <p className="text-muted-foreground">Contact not found</p>
         </div>
       </MainLayout>
     );
@@ -124,16 +124,16 @@ export default function EditContactPage() {
     <MainLayout>
       <div className="p-8 space-y-6 min-h-screen">
         <div>
-          <Link href={`/contacts/${contactId}`} className="text-sm text-slate-600 hover:text-slate-900 mb-2 inline-block">
+          <Link href={`/contacts/${contactId}`} className="text-sm text-muted-foreground hover:text-foreground mb-2 inline-block">
             ← Back to Contact
           </Link>
-          <h1 className="text-3xl font-bold text-slate-900">Edit Contact</h1>
-          <p className="text-slate-600 mt-1">Update contact details</p>
+          <h1 className="text-3xl font-bold text-foreground">Edit Contact</h1>
+          <p className="text-muted-foreground mt-1">Update contact details</p>
         </div>
 
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-slate-900">Contact Details</CardTitle>
+            <CardTitle className="text-foreground">Contact Details</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -169,7 +169,7 @@ export default function EditContactPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="company_id">Primary Company (Optional)</Label>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Currently single company only. Multi-company associations coming soon.
                   </p>
                   <Select
@@ -244,7 +244,7 @@ export default function EditContactPage() {
                     id="is_primary"
                     checked={formData.is_primary}
                     onChange={(e) => handleChange('is_primary', e.target.checked)}
-                    className="rounded border-slate-300"
+                    className="rounded border-border"
                   />
                   <Label htmlFor="is_primary" className="cursor-pointer">
                     Set as primary contact (if company selected)
@@ -266,7 +266,7 @@ export default function EditContactPage() {
               <div className="flex gap-3 pt-4">
                 <Button
                   type="submit"
-                  className="bg-blue-900 hover:bg-blue-800 text-white"
+                  className="bg-primary hover:bg-primary/90 text-white"
                   disabled={updateMutation.isPending}
                 >
                   {updateMutation.isPending ? 'Saving...' : 'Save Changes'}

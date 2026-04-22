@@ -9,8 +9,8 @@ export default function ReportsPage() {
     <MainLayout>
       <div className="p-8 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Reports</h1>
-          <p className="text-slate-500 mt-1">Financial reports and analytics</p>
+          <h1 className="text-3xl font-bold text-foreground">Reports</h1>
+          <p className="text-muted-foreground mt-1">Financial reports and analytics</p>
         </div>
 
         <Card>
@@ -21,10 +21,10 @@ export default function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-600">
+            <p className="text-muted-foreground">
               This page will include P&L reports, VAT summaries, and financial charts with Recharts.
             </p>
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               Additional reporting endpoints needed in backend tRPC router.
             </p>
           </CardContent>

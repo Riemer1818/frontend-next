@@ -28,7 +28,7 @@ export default function TaxesPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </MainLayout>
     );
@@ -36,10 +36,10 @@ export default function TaxesPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Tax Overview</h1>
+            <h1 className="text-3xl font-bold text-foreground">Tax Overview</h1>
           </div>
           <Button
             onClick={() => router.push('/tax-configuration')}
@@ -52,10 +52,10 @@ export default function TaxesPage() {
         </div>
 
         {/* Year Selection */}
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-slate-700 min-w-[80px]">Select Year:</span>
+              <span className="text-sm font-medium text-foreground min-w-[80px]">Select Year:</span>
               <div className="flex gap-2 flex-wrap">
                 {availableYears.map((year) => {
                   const isCurrentYear = year === new Date().getFullYear();
@@ -65,7 +65,7 @@ export default function TaxesPage() {
                       key={year}
                       variant="outline"
                       onClick={() => setSelectedYear(year)}
-                      className={`${isSelected ? 'bg-blue-900 text-white border-blue-900 hover:bg-blue-800' : ''} ${isCurrentYear && !isSelected ? 'border-blue-500 border-2' : ''} min-w-[100px]`}
+                      className={`${isSelected ? 'bg-primary text-white border-primary hover:bg-primary/90' : ''} ${isCurrentYear && !isSelected ? 'border-primary border-2' : ''} min-w-[100px]`}
                     >
                       {year}
                       {isCurrentYear && <span className="ml-2 text-xs">(current)</span>}
@@ -78,23 +78,23 @@ export default function TaxesPage() {
         </Card>
             {/* Tax Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-700 text-sm font-medium">Gross Profit</CardTitle>
+              <CardTitle className="text-foreground text-sm font-medium">Gross Profit</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-slate-900">€{taxCalc.gross_profit.toFixed(2) || '0.00'}</p>
-              <p className="text-sm text-slate-500 mt-1">Revenue - Expenses</p>
+              <p className="text-3xl font-bold text-foreground">€{taxCalc.gross_profit.toFixed(2) || '0.00'}</p>
+              <p className="text-sm text-muted-foreground mt-1">Revenue - Expenses</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-700 text-sm font-medium">Taxable Income</CardTitle>
+              <CardTitle className="text-foreground text-sm font-medium">Taxable Income</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-slate-900">€{taxCalc.taxable_income.toFixed(2) || '0.00'}</p>
-              <p className="text-sm text-slate-500 mt-1">After deductions</p>
+              <p className="text-3xl font-bold text-foreground">€{taxCalc.taxable_income.toFixed(2) || '0.00'}</p>
+              <p className="text-sm text-muted-foreground mt-1">After deductions</p>
             </CardContent>
           </Card>
 
@@ -120,9 +120,9 @@ export default function TaxesPage() {
         </div>
 
         {/* Income Tax Breakdown */}
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-slate-900">Income Tax Calculation Breakdown</CardTitle>
+            <CardTitle className="text-foreground">Income Tax Calculation Breakdown</CardTitle>
             <CardDescription>Dutch tax brackets for {currentYear}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -130,31 +130,31 @@ export default function TaxesPage() {
               {/* Step 1: Gross Profit */}
               <div className="flex justify-between items-center py-3 border-b">
                 <div>
-                  <p className="font-medium text-slate-900">Gross Profit</p>
-                  <p className="text-sm text-slate-600">Total revenue minus expenses (excl. VAT)</p>
+                  <p className="font-medium text-foreground">Gross Profit</p>
+                  <p className="text-sm text-muted-foreground">Total revenue minus expenses (excl. VAT)</p>
                 </div>
-                <p className="text-lg font-bold text-slate-900">€{taxCalc.gross_profit.toFixed(2)}</p>
+                <p className="text-lg font-bold text-foreground">€{taxCalc.gross_profit.toFixed(2)}</p>
               </div>
 
               {/* Step 2: Deductions */}
-              <div className="bg-blue-50 p-4 rounded-lg space-y-2">
-                <p className="font-medium text-blue-900">Deductions</p>
+              <div className="bg-secondary p-4 rounded-lg space-y-2">
+                <p className="font-medium text-primary">Deductions</p>
                 {(taxCalc.self_employed_deduction ?? 0) > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-blue-800">Zelfstandigenaftrek (Self-employed deduction)</span>
-                    <span className="font-medium text-blue-900">- €{taxCalc.self_employed_deduction.toFixed(2)}</span>
+                    <span className="text-primary">Zelfstandigenaftrek (Self-employed deduction)</span>
+                    <span className="font-medium text-primary">- €{taxCalc.self_employed_deduction.toFixed(2)}</span>
                   </div>
                 )}
                 {(taxCalc.startup_deduction ?? 0) > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-blue-800">Startersaftrek (Startup deduction)</span>
-                    <span className="font-medium text-blue-900">- €{taxCalc.startup_deduction.toFixed(2)}</span>
+                    <span className="text-primary">Startersaftrek (Startup deduction)</span>
+                    <span className="font-medium text-primary">- €{taxCalc.startup_deduction.toFixed(2)}</span>
                   </div>
                 )}
                 {taxCalc.custom_benefits.map((benefit: any, index: number) => (
                   <div key={index} className="flex justify-between text-sm">
-                    <span className="text-blue-800">{benefit.name}</span>
-                    <span className="font-medium text-blue-900">- €{benefit.amount.toFixed(2)}</span>
+                    <span className="text-primary">{benefit.name}</span>
+                    <span className="font-medium text-primary">- €{benefit.amount.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -162,9 +162,9 @@ export default function TaxesPage() {
               {/* Step 3: After Deductions */}
               <div className="flex justify-between items-center py-3 border-b">
                 <div>
-                  <p className="font-medium text-slate-900">Profit After Deductions</p>
+                  <p className="font-medium text-foreground">Profit After Deductions</p>
                 </div>
-                <p className="text-lg font-bold text-slate-900">€{taxCalc.profit_after_deductions.toFixed(2)}</p>
+                <p className="text-lg font-bold text-foreground">€{taxCalc.profit_after_deductions.toFixed(2)}</p>
               </div>
 
               {/* Step 4: MKB Exemption */}
@@ -181,15 +181,15 @@ export default function TaxesPage() {
               {/* Step 5: Taxable Income */}
               <div className="flex justify-between items-center py-3 border-b border-slate-900">
                 <div>
-                  <p className="font-bold text-slate-900">Taxable Income</p>
-                  <p className="text-sm text-slate-600">Amount subject to income tax</p>
+                  <p className="font-bold text-foreground">Taxable Income</p>
+                  <p className="text-sm text-muted-foreground">Amount subject to income tax</p>
                 </div>
-                <p className="text-xl font-bold text-slate-900">€{taxCalc.taxable_income.toFixed(2)}</p>
+                <p className="text-xl font-bold text-foreground">€{taxCalc.taxable_income.toFixed(2)}</p>
               </div>
 
               {/* Tax Brackets */}
               <div className="space-y-3 mt-6">
-                <p className="font-medium text-slate-900">Tax Calculation by Bracket:</p>
+                <p className="font-medium text-foreground">Tax Calculation by Bracket:</p>
 
                 {/* Bracket 1 */}
                 <div className="bg-orange-50 p-4 rounded-lg">

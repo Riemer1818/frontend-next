@@ -126,13 +126,13 @@ export default function NewExpensePage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div>
-          <Link href="/money" className="text-sm text-slate-600 hover:text-slate-900 mb-2 inline-block">
+          <Link href="/money" className="text-sm text-muted-foreground hover:text-foreground mb-2 inline-block">
             ← Back to Money Dashboard
           </Link>
-          <h1 className="text-3xl font-bold text-slate-900">Add Incoming Invoice</h1>
-          <p className="text-slate-600 mt-1">Upload a PDF or enter details manually</p>
+          <h1 className="text-3xl font-bold text-foreground">Add Incoming Invoice</h1>
+          <p className="text-muted-foreground mt-1">Upload a PDF or enter details manually</p>
         </div>
 
         {/* Upload Method Selector */}
@@ -141,48 +141,48 @@ export default function NewExpensePage() {
             onClick={() => setUploadMethod('pdf')}
             className={`flex-1 p-4 rounded-lg border-2 transition ${
               uploadMethod === 'pdf'
-                ? 'border-blue-900 bg-blue-50'
-                : 'border-slate-200 bg-white hover:border-slate-300'
+                ? 'border-primary bg-secondary'
+                : 'border-border bg-card hover:border-border'
             }`}
           >
-            <Upload className="h-8 w-8 mx-auto mb-2 text-blue-900" />
-            <p className="font-medium text-slate-900">Upload PDF</p>
-            <p className="text-sm text-slate-600 mt-1">Auto-extract invoice data</p>
+            <Upload className="h-8 w-8 mx-auto mb-2 text-primary" />
+            <p className="font-medium text-foreground">Upload PDF</p>
+            <p className="text-sm text-muted-foreground mt-1">Auto-extract invoice data</p>
           </button>
 
           <button
             onClick={() => setUploadMethod('manual')}
             className={`flex-1 p-4 rounded-lg border-2 transition ${
               uploadMethod === 'manual'
-                ? 'border-blue-900 bg-blue-50'
-                : 'border-slate-200 bg-white hover:border-slate-300'
+                ? 'border-primary bg-secondary'
+                : 'border-border bg-card hover:border-border'
             }`}
           >
-            <FileText className="h-8 w-8 mx-auto mb-2 text-blue-900" />
-            <p className="font-medium text-slate-900">Manual Entry</p>
-            <p className="text-sm text-slate-600 mt-1">Fill out form manually</p>
+            <FileText className="h-8 w-8 mx-auto mb-2 text-primary" />
+            <p className="font-medium text-foreground">Manual Entry</p>
+            <p className="text-sm text-muted-foreground mt-1">Fill out form manually</p>
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-900">Invoice Details</CardTitle>
+              <CardTitle className="text-foreground">Invoice Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* PDF Upload */}
               {uploadMethod === 'pdf' && (
-                <div className="border-2 border-dashed border-slate-300 rounded-lg p-8">
+                <div className="border-2 border-dashed border-border rounded-lg p-8">
                   <div className="text-center">
                     {pdfFile ? (
                       <div>
-                        <FileText className="h-12 w-12 mx-auto mb-4 text-blue-900" />
-                        <p className="text-sm font-medium text-slate-900">{pdfFile.name}</p>
-                        <p className="text-xs text-slate-500 mt-1">{(pdfFile.size / 1024).toFixed(1)} KB</p>
+                        <FileText className="h-12 w-12 mx-auto mb-4 text-primary" />
+                        <p className="text-sm font-medium text-foreground">{pdfFile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{(pdfFile.size / 1024).toFixed(1)} KB</p>
                         {isExtracting && (
                           <div className="flex items-center justify-center gap-2 mt-4">
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-900" />
-                            <span className="text-sm text-slate-600">Extracting invoice data...</span>
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            <span className="text-sm text-muted-foreground">Extracting invoice data...</span>
                           </div>
                         )}
                         {!isExtracting && pdfFile && (
@@ -202,8 +202,8 @@ export default function NewExpensePage() {
                     ) : (
                       <label htmlFor="pdf-upload" className="cursor-pointer">
                         <Upload className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                        <p className="text-sm font-medium text-slate-700">Click to upload PDF</p>
-                        <p className="text-xs text-slate-500 mt-1">or drag and drop</p>
+                        <p className="text-sm font-medium text-foreground">Click to upload PDF</p>
+                        <p className="text-xs text-muted-foreground mt-1">or drag and drop</p>
                         <input
                           id="pdf-upload"
                           type="file"
@@ -219,45 +219,45 @@ export default function NewExpensePage() {
 
               {/* Supplier */}
               <div>
-                <Label htmlFor="supplier_name" className="text-slate-900">Supplier</Label>
+                <Label htmlFor="supplier_name" className="text-foreground">Supplier</Label>
                 <Input
                   id="supplier_name"
                   type="text"
                   value={formData.supplier_name}
                   onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                  className="mt-1 text-slate-900"
+                  className="mt-1 text-foreground"
                   required
                 />
               </div>
 
               {/* Description */}
               <div>
-                <Label htmlFor="description" className="text-slate-900">Description</Label>
+                <Label htmlFor="description" className="text-foreground">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="mt-1 text-slate-900"
+                  className="mt-1 text-foreground"
                   rows={3}
                 />
               </div>
 
               {/* Invoice Date */}
               <div>
-                <Label htmlFor="invoice_date" className="text-slate-900">Invoice Date</Label>
+                <Label htmlFor="invoice_date" className="text-foreground">Invoice Date</Label>
                 <Input
                   id="invoice_date"
                   type="date"
                   value={formData.invoice_date}
                   onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
-                  className="mt-1 text-slate-900"
+                  className="mt-1 text-foreground"
                   required
                 />
               </div>
 
               {/* Project */}
               <div>
-                <Label htmlFor="project_id" className="text-slate-900">Project</Label>
+                <Label htmlFor="project_id" className="text-foreground">Project</Label>
                 <Select
                   value={formData.project_id.toString() || 'none'}
                   onValueChange={(value) =>
@@ -280,7 +280,7 @@ export default function NewExpensePage() {
 
               {/* Category */}
               <div>
-                <Label htmlFor="category" className="text-slate-900">Category</Label>
+                <Label htmlFor="category" className="text-foreground">Category</Label>
                 <Select
                   value={formData.category.toString() || 'none'}
                   onValueChange={(value) =>
@@ -303,12 +303,12 @@ export default function NewExpensePage() {
 
               {/* Notes */}
               <div>
-                <Label htmlFor="notes" className="text-slate-900">Notes</Label>
+                <Label htmlFor="notes" className="text-foreground">Notes</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="mt-1 text-slate-900"
+                  className="mt-1 text-foreground"
                   rows={2}
                   placeholder="e.g. reis- en verblijfkosten"
                 />
@@ -316,7 +316,7 @@ export default function NewExpensePage() {
 
               {/* Currency */}
               <div>
-                <Label htmlFor="currency" className="text-slate-900">Currency</Label>
+                <Label htmlFor="currency" className="text-foreground">Currency</Label>
                 <Select
                   value={formData.currency}
                   onValueChange={(value) => setFormData({ ...formData, currency: value })}
@@ -341,7 +341,7 @@ export default function NewExpensePage() {
               {/* Amounts */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="subtotal" className="text-slate-900">Subtotal</Label>
+                  <Label htmlFor="subtotal" className="text-foreground">Subtotal</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
                       id="subtotal"
@@ -349,15 +349,15 @@ export default function NewExpensePage() {
                       step="0.01"
                       value={formData.subtotal}
                       onChange={(e) => setFormData({ ...formData, subtotal: parseFloat(e.target.value) || 0 })}
-                      className="text-slate-900"
+                      className="text-foreground"
                       required
                     />
-                    <span className="text-slate-600 min-w-[3rem] text-sm">{formData.currency}</span>
+                    <span className="text-muted-foreground min-w-[3rem] text-sm">{formData.currency}</span>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="tax_amount" className="text-slate-900">VAT</Label>
+                  <Label htmlFor="tax_amount" className="text-foreground">VAT</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
                       id="tax_amount"
@@ -365,14 +365,14 @@ export default function NewExpensePage() {
                       step="0.01"
                       value={formData.tax_amount}
                       onChange={(e) => setFormData({ ...formData, tax_amount: parseFloat(e.target.value) || 0 })}
-                      className="text-slate-900"
+                      className="text-foreground"
                     />
-                    <span className="text-slate-600 min-w-[3rem] text-sm">{formData.currency}</span>
+                    <span className="text-muted-foreground min-w-[3rem] text-sm">{formData.currency}</span>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="total_amount" className="text-slate-900">Total</Label>
+                  <Label htmlFor="total_amount" className="text-foreground">Total</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
                       id="total_amount"
@@ -380,10 +380,10 @@ export default function NewExpensePage() {
                       step="0.01"
                       value={formData.total_amount}
                       onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) || 0 })}
-                      className="text-slate-900"
+                      className="text-foreground"
                       required
                     />
-                    <span className="text-slate-600 min-w-[3rem] text-sm">{formData.currency}</span>
+                    <span className="text-muted-foreground min-w-[3rem] text-sm">{formData.currency}</span>
                   </div>
                 </div>
               </div>
@@ -400,7 +400,7 @@ export default function NewExpensePage() {
             </Button>
             <Button
               type="submit"
-              className="bg-blue-900 hover:bg-blue-800 text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
               disabled={createExpenseMutation.isPending}
             >
               {createExpenseMutation.isPending ? 'Creating...' : 'Create Invoice'}

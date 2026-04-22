@@ -66,7 +66,7 @@ export default function VATPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </MainLayout>
     );
@@ -74,7 +74,7 @@ export default function VATPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         {/* Header */}
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-4">
@@ -87,8 +87,8 @@ export default function VATPage() {
               Back to Money
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">BTW Aangifte</h1>
-              <p className="text-slate-600 mt-1">Quarterly VAT Declaration</p>
+              <h1 className="text-3xl font-bold text-foreground">BTW Aangifte</h1>
+              <p className="text-muted-foreground mt-1">Quarterly VAT Declaration</p>
             </div>
           </div>
           <Button
@@ -102,18 +102,18 @@ export default function VATPage() {
         </div>
 
         {/* Period Selector */}
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-slate-700">Year:</span>
+                <span className="text-sm font-medium text-foreground">Year:</span>
                 <div className="flex gap-2">
                   {availableYears.map((year) => (
                     <Button
                       key={year}
                       variant="outline"
                       onClick={() => setSelectedYear(year)}
-                      className={selectedYear === year ? 'bg-blue-900 text-white border-blue-900' : ''}
+                      className={selectedYear === year ? 'bg-primary text-white border-primary' : ''}
                     >
                       {year}
                     </Button>
@@ -122,14 +122,14 @@ export default function VATPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-slate-700">Quarter:</span>
+                <span className="text-sm font-medium text-foreground">Quarter:</span>
                 <div className="flex gap-2">
                   {availableQuarters.map((q) => (
                     <Button
                       key={q}
                       variant="outline"
                       onClick={() => setSelectedQuarter(q)}
-                      className={selectedQuarter === q ? 'bg-blue-900 text-white border-blue-900' : ''}
+                      className={selectedQuarter === q ? 'bg-primary text-white border-primary' : ''}
                     >
                       Q{q}
                     </Button>
@@ -142,35 +142,35 @@ export default function VATPage() {
 
         {/* VAT Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-slate-700">VAT Collected (Sales)</CardTitle>
+              <CardTitle className="text-sm font-medium text-foreground">VAT Collected (Sales)</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-green-600">€{vatCollected.toFixed(2)}</p>
-              <p className="text-sm text-slate-500 mt-1">{quarterInvoices.length} invoices</p>
+              <p className="text-sm text-muted-foreground mt-1">{quarterInvoices.length} invoices</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-slate-700">VAT Paid (Expenses)</CardTitle>
+              <CardTitle className="text-sm font-medium text-foreground">VAT Paid (Expenses)</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-blue-600">€{vatPaid.toFixed(2)}</p>
-              <p className="text-sm text-slate-500 mt-1">{quarterExpenses.length} expenses</p>
+              <p className="text-sm text-muted-foreground mt-1">{quarterExpenses.length} expenses</p>
             </CardContent>
           </Card>
 
           <Card className={vatToPay > 0 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-slate-700">VAT to Pay/Refund</CardTitle>
+              <CardTitle className="text-sm font-medium text-foreground">VAT to Pay/Refund</CardTitle>
             </CardHeader>
             <CardContent>
               <p className={`text-2xl font-bold ${vatToPay > 0 ? 'text-orange-600' : 'text-green-600'}`}>
                 €{Math.abs(vatToPay).toFixed(2)}
               </p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {vatToPay > 0 ? 'To pay to tax office' : 'Refund from tax office'}
               </p>
             </CardContent>
@@ -179,17 +179,17 @@ export default function VATPage() {
 
         {/* Current Quarter Reference */}
         {selectedYear === currentYear && (
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-secondary border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-900">Current Quarter (Q{currentQuarter} {currentYear})</p>
-                  <p className="text-sm text-blue-700 mt-1">VAT to Pay: €{stats?.vat_this_quarter?.toFixed(2) || '0.00'}</p>
+                  <p className="text-sm font-medium text-primary">Current Quarter (Q{currentQuarter} {currentYear})</p>
+                  <p className="text-sm text-primary mt-1">VAT to Pay: €{stats?.vat_this_quarter?.toFixed(2) || '0.00'}</p>
                 </div>
                 {selectedQuarter !== currentQuarter && (
                   <Button
                     onClick={() => setSelectedQuarter(currentQuarter)}
-                    className="bg-blue-900 hover:bg-blue-800"
+                    className="bg-primary hover:bg-primary/90"
                   >
                     View Current Quarter
                   </Button>
@@ -200,7 +200,7 @@ export default function VATPage() {
         )}
 
         {/* Invoice Breakdown */}
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle>Quarter Invoices</CardTitle>
           </CardHeader>
@@ -208,26 +208,26 @@ export default function VATPage() {
             {quarterInvoices.length > 0 ? (
               <div className="space-y-2">
                 {quarterInvoices.map((invoice: any) => (
-                  <div key={invoice.id} className="flex justify-between items-center p-3 bg-slate-50 rounded">
+                  <div key={invoice.id} className="flex justify-between items-center p-3 bg-background rounded">
                     <div>
-                      <p className="font-medium text-slate-900">{invoice.invoice_number}</p>
-                      <p className="text-sm text-slate-600">{new Date(invoice.invoice_date).toLocaleDateString()}</p>
+                      <p className="font-medium text-foreground">{invoice.invoice_number}</p>
+                      <p className="text-sm text-muted-foreground">{new Date(invoice.invoice_date).toLocaleDateString()}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-slate-900">€{invoice.total_amount?.toFixed(2)}</p>
-                      <p className="text-sm text-slate-600">VAT: €{(invoice.total_amount * 0.21 / 1.21).toFixed(2)}</p>
+                      <p className="font-medium text-foreground">€{invoice.total_amount?.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">VAT: €{(invoice.total_amount * 0.21 / 1.21).toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-slate-500 text-center py-4">No invoices for this quarter</p>
+              <p className="text-muted-foreground text-center py-4">No invoices for this quarter</p>
             )}
           </CardContent>
         </Card>
 
         {/* Expense Breakdown */}
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle>Quarter Expenses</CardTitle>
           </CardHeader>
@@ -235,20 +235,20 @@ export default function VATPage() {
             {quarterExpenses.length > 0 ? (
               <div className="space-y-2">
                 {quarterExpenses.map((expense: any) => (
-                  <div key={expense.id} className="flex justify-between items-center p-3 bg-slate-50 rounded">
+                  <div key={expense.id} className="flex justify-between items-center p-3 bg-background rounded">
                     <div>
-                      <p className="font-medium text-slate-900">{expense.supplier_name || expense.description || 'Expense'}</p>
-                      <p className="text-sm text-slate-600">{new Date(expense.invoice_date).toLocaleDateString()}</p>
+                      <p className="font-medium text-foreground">{expense.supplier_name || expense.description || 'Expense'}</p>
+                      <p className="text-sm text-muted-foreground">{new Date(expense.invoice_date).toLocaleDateString()}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-slate-900">€{expense.total_amount?.toFixed(2)}</p>
-                      <p className="text-sm text-slate-600">VAT: €{expense.tax_amount?.toFixed(2) || '0.00'}</p>
+                      <p className="font-medium text-foreground">€{expense.total_amount?.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">VAT: €{expense.tax_amount?.toFixed(2) || '0.00'}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-slate-500 text-center py-4">No expenses for this quarter</p>
+              <p className="text-muted-foreground text-center py-4">No expenses for this quarter</p>
             )}
           </CardContent>
         </Card>

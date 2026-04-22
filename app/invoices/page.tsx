@@ -9,8 +9,8 @@ export default function InvoicesPage() {
     <MainLayout>
       <div className="p-8 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Invoices</h1>
-          <p className="text-slate-500 mt-1">Manage outgoing invoices</p>
+          <h1 className="text-3xl font-bold text-foreground">Invoices</h1>
+          <p className="text-muted-foreground mt-1">Manage outgoing invoices</p>
         </div>
 
         <Card>
@@ -21,10 +21,10 @@ export default function InvoicesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-600">
+            <p className="text-muted-foreground">
               This page will include invoice creation, editing, and status management.
             </p>
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               Backend tRPC router for invoices needs to be created first.
             </p>
           </CardContent>

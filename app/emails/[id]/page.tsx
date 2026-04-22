@@ -51,7 +51,7 @@ export default function EmailDetailPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </MainLayout>
     );
@@ -61,7 +61,7 @@ export default function EmailDetailPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Email not found</p>
+          <p className="text-muted-foreground">Email not found</p>
         </div>
       </MainLayout>
     );
@@ -86,7 +86,7 @@ export default function EmailDetailPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -100,8 +100,8 @@ export default function EmailDetailPage() {
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Email Details</h1>
-              <p className="text-slate-600 mt-1">
+              <h1 className="text-3xl font-bold text-foreground">Email Details</h1>
+              <p className="text-muted-foreground mt-1">
                 {format(new Date(email.email_date), 'MMM dd, yyyy HH:mm')}
               </p>
             </div>
@@ -130,26 +130,26 @@ export default function EmailDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-slate-600">Subject</label>
-              <p className="text-lg font-semibold text-slate-900">{email.subject || '(no subject)'}</p>
+              <label className="text-sm font-medium text-muted-foreground">Subject</label>
+              <p className="text-lg font-semibold text-foreground">{email.subject || '(no subject)'}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-slate-600">From</label>
-                <p className="text-slate-900">{email.from_address}</p>
+                <label className="text-sm font-medium text-muted-foreground">From</label>
+                <p className="text-foreground">{email.from_address}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-600">To</label>
-                <p className="text-slate-900">{email.to_address || '—'}</p>
+                <label className="text-sm font-medium text-muted-foreground">To</label>
+                <p className="text-foreground">{email.to_address || '—'}</p>
               </div>
 
               {/* CC address not tracked in new schema */}
 
               <div>
-                <label className="text-sm font-medium text-slate-600">Date</label>
-                <p className="text-slate-900">
+                <label className="text-sm font-medium text-muted-foreground">Date</label>
+                <p className="text-foreground">
                   {format(new Date(email.email_date), 'PPPP p')}
                 </p>
               </div>
@@ -159,7 +159,7 @@ export default function EmailDetailPage() {
 
             <div className="pt-4 border-t space-y-3">
               <div>
-                <label className="text-sm font-medium text-slate-600">Linked Company</label>
+                <label className="text-sm font-medium text-muted-foreground">Linked Company</label>
                 {email.linked_company_id ? (
                   <div className="mt-2 flex gap-2 items-center">
                     <Link href={`/companies/${email.linked_company_id}`}>
@@ -198,7 +198,7 @@ export default function EmailDetailPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-600">Linked Contact</label>
+                <label className="text-sm font-medium text-muted-foreground">Linked Contact</label>
                 {email.linked_contact_id ? (
                   <div className="mt-2 flex gap-2 items-center">
                     <Link href={`/contacts/${email.linked_contact_id}`}>
@@ -288,11 +288,11 @@ export default function EmailDetailPage() {
                 dangerouslySetInnerHTML={{ __html: email.body_html }}
               />
             ) : email.body_text ? (
-              <pre className="whitespace-pre-wrap font-sans text-sm text-slate-900">
+              <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">
                 {email.body_text}
               </pre>
             ) : (
-              <p className="text-slate-500">No email body content</p>
+              <p className="text-muted-foreground">No email body content</p>
             )}
           </CardContent>
         </Card>
@@ -311,13 +311,13 @@ export default function EmailDetailPage() {
                 {email.attachments.map((attachment: any) => (
                   <div
                     key={attachment.id}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border"
+                    className="flex items-center justify-between p-3 bg-background rounded-lg border"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-slate-600" />
+                      <FileText className="h-5 w-5 text-muted-foreground" />
                       <div>
-                        <p className="font-medium text-slate-900">{attachment.filename}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="font-medium text-foreground">{attachment.filename}</p>
+                        <p className="text-xs text-muted-foreground">
                           {attachment.mime_type} • {(attachment.file_size / 1024).toFixed(1)} KB
                         </p>
                       </div>

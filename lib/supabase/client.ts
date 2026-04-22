@@ -1,16 +1,30 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { SupabaseClient } from '@supabase/supabase-js';
 
-// TEMPORARILY using service role key to bypass RLS during testing
-// TODO: Switch back to ANON key once auth is configured
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwbGRvb2Vlb2phb2RuenNkbWdiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzgyNzkzNiwiZXhwIjoyMDg5NDAzOTM2fQ.ByBKUwuZSA10dTfWNkzyf3NdH1aX9aXHU3w7WqvQoCw';
-
-// Create a new client every time to ensure we always use the latest key
+// In dev mode with bypass, use service role key to bypass RLS
+// In production, use anon key with proper authentication
 export function getSupabaseClient() {
-  console.log('[Supabase Client] Creating browser client with service role key');
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL');
+  }
+
+  // DEV BYPASS: Use service role key to bypass RLS when auth is disabled
+  const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === 'true';
+  const supabaseKey = devBypass
+    ? process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
+    : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseKey) {
+    throw new Error('Missing Supabase key');
+  }
+
+  if (devBypass) {
+    console.log('🔓 DEV MODE: Using service role key to bypass RLS');
+  }
+
   return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    SERVICE_ROLE_KEY
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseKey
   );
 }
 

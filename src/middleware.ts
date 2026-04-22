@@ -1,21 +1,33 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  // TEMPORARILY DISABLED FOR TESTING - Re-enable after configuring auth!
-  // The Supabase client needs authenticated sessions for RLS to work properly
+// Roles that can access backoffice
+const BACKOFFICE_ROLES = ['accountant', 'editor', 'admin', 'riemer'];
 
-  const response = NextResponse.next({
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
-  // TODO: Re-enable this once SMTP is configured and you can log in
-  // For now, allowing unauthenticated access for testing the migration
+  // DEV BYPASS MODE - Only for local development!
+  const devBypass = process.env.DEV_BYPASS_AUTH === 'true';
+  if (devBypass) {
+    const devRole = process.env.DEV_USER_ROLE || 'riemer';
+    console.log(`🔓 DEV MODE: Bypassing auth as role "${devRole}"`);
 
-  /* AUTH DISABLED - UNCOMMENT TO RE-ENABLE:
+    // Check if dev role can access backoffice
+    if (!BACKOFFICE_ROLES.includes(devRole)) {
+      return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_MAIN_SITE_URL || 'http://localhost:3000'));
+    }
 
+    // Attach role to response headers for use in components
+    response.headers.set('x-user-role', devRole);
+    return response;
+  }
+
+  // PRODUCTION AUTH
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -60,18 +72,13 @@ export async function middleware(request: NextRequest) {
     .eq('user_id', session.user.id)
     .single();
 
-  // Roles that can access backoffice
-  const backofficeRoles = ['accountant', 'editor', 'admin', 'riemer'];
-
   // No profile or insufficient role - access denied, redirect to main site
-  if (!profile || !backofficeRoles.includes(profile.role)) {
+  if (!profile || !BACKOFFICE_ROLES.includes(profile.role)) {
     return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_MAIN_SITE_URL || 'http://localhost:3000'));
   }
 
   // Attach role to response headers for use in components
   response.headers.set('x-user-role', profile.role);
-
-  */
 
   return response;
 }

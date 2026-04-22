@@ -113,10 +113,10 @@ export default function ContactsPage() {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
-          <h1 className="text-3xl font-bold text-slate-900">Contacts</h1>
+        <div className="p-8 space-y-6 bg-background min-h-screen">
+          <h1 className="text-3xl font-bold text-foreground">Contacts</h1>
           <div className="flex justify-center py-12">
-            <p className="text-slate-500">Loading contacts...</p>
+            <p className="text-muted-foreground">Loading contacts...</p>
           </div>
         </div>
       </MainLayout>
@@ -126,8 +126,8 @@ export default function ContactsPage() {
   if (error) {
     return (
       <MainLayout>
-        <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
-          <h1 className="text-3xl font-bold text-slate-900">Contacts</h1>
+        <div className="p-8 space-y-6 bg-background min-h-screen">
+          <h1 className="text-3xl font-bold text-foreground">Contacts</h1>
           <div className="flex justify-center py-12">
             <p className="text-red-500">Error loading contacts: {error.message}</p>
           </div>
@@ -138,15 +138,15 @@ export default function ContactsPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Contacts</h1>
+            <h1 className="text-3xl font-bold text-foreground">Contacts</h1>
           </div>
 
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-900 hover:bg-blue-800 text-white">
+              <Button className="bg-primary hover:bg-primary/90 text-white">
                 Add Contact
               </Button>
             </DialogTrigger>
@@ -211,7 +211,7 @@ export default function ContactsPage() {
                       type="checkbox"
                       id="is_primary"
                       name="is_primary"
-                      className="rounded border-slate-300"
+                      className="rounded border-border"
                     />
                     <Label htmlFor="is_primary" className="cursor-pointer">
                       Set as primary contact (if company selected)
@@ -228,7 +228,7 @@ export default function ContactsPage() {
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-blue-900 hover:bg-blue-800"
+                    className="bg-primary hover:bg-primary/90"
                     disabled={createContact.isPending}
                   >
                     {createContact.isPending ? 'Creating...' : 'Create Contact'}
@@ -239,58 +239,58 @@ export default function ContactsPage() {
           </Dialog>
         </div>
 
-        <div className="border border-slate-200 rounded-lg bg-white">
+        <div className="border border-border rounded-lg bg-card">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="text-slate-900 font-semibold">Name</TableHead>
-                <TableHead className="text-slate-900 font-semibold">Description</TableHead>
-                <TableHead className="text-slate-900 font-semibold">Company</TableHead>
-                <TableHead className="text-slate-900 font-semibold">Email</TableHead>
-                <TableHead className="text-slate-900 font-semibold">Phone</TableHead>
-                <TableHead className="text-right text-slate-900 font-semibold">Actions</TableHead>
+              <TableRow className="bg-background">
+                <TableHead className="text-foreground font-semibold">Name</TableHead>
+                <TableHead className="text-foreground font-semibold">Description</TableHead>
+                <TableHead className="text-foreground font-semibold">Company</TableHead>
+                <TableHead className="text-foreground font-semibold">Email</TableHead>
+                <TableHead className="text-foreground font-semibold">Phone</TableHead>
+                <TableHead className="text-right text-foreground font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {contactsArray.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-slate-500">
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                     No contacts found. Create your first contact to get started.
                   </TableCell>
                 </TableRow>
               ) : (
                 contactsArray.map((contact: any) => (
-                    <TableRow key={contact.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => window.location.href = `/contacts/${contact.id}`}>
-                      <TableCell className="font-medium text-slate-900">
+                    <TableRow key={contact.id} className="hover:bg-background cursor-pointer" onClick={() => window.location.href = `/contacts/${contact.id}`}>
+                      <TableCell className="font-medium text-foreground">
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
-                            <Link href={`/contacts/${contact.id}`} className="text-blue-900 hover:underline">
+                            <Link href={`/contacts/${contact.id}`} className="text-primary hover:underline">
                               {contact.first_name} {contact.last_name}
                             </Link>
                             {contact.is_primary && (
-                              <Badge variant="default" className="bg-blue-900 text-white text-xs">
+                              <Badge variant="default" className="bg-primary text-white text-xs">
                                 Primary
                               </Badge>
                             )}
                           </div>
                           {contact.role && (
-                            <span className="text-xs text-slate-500">{contact.role}</span>
+                            <span className="text-xs text-muted-foreground">{contact.role}</span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-slate-700">{contact.description || '—'}</TableCell>
-                      <TableCell className="text-slate-700">
+                      <TableCell className="text-foreground">{contact.description || '—'}</TableCell>
+                      <TableCell className="text-foreground">
                         {contact.company_name || '—'}
                       </TableCell>
-                      <TableCell className="text-slate-700">{contact.email || '—'}</TableCell>
-                      <TableCell className="text-slate-700">{contact.phone || '—'}</TableCell>
+                      <TableCell className="text-foreground">{contact.email || '—'}</TableCell>
+                      <TableCell className="text-foreground">{contact.phone || '—'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           {!contact.is_primary && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-slate-900 hover:bg-slate-100"
+                              className="text-foreground hover:bg-secondary"
                               onClick={() => handleSetPrimary(contact.id)}
                               disabled={setPrimary.isPending}
                             >

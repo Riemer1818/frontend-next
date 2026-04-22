@@ -50,7 +50,7 @@ export default function TaxConfigPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </MainLayout>
     );
@@ -178,10 +178,10 @@ export default function TaxConfigPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Tax Configuration</h1>
-          <p className="text-slate-600 mt-1">Configure tax brackets, benefits, and credits</p>
+          <h1 className="text-3xl font-bold text-foreground">Tax Configuration</h1>
+          <p className="text-muted-foreground mt-1">Configure tax brackets, benefits, and credits</p>
         </div>
 
         {/* Year Tabs */}
@@ -205,9 +205,9 @@ export default function TaxConfigPage() {
             return (
               <TabsContent key={config.year.year} value={String(config.year.year)} className="space-y-6 mt-6">
                 {/* Tax Brackets */}
-                <Card className="bg-white border-slate-200">
+                <Card className="bg-card border-border">
                   <CardHeader>
-                    <CardTitle className="text-slate-900">Income Tax Brackets ({config.year.year})</CardTitle>
+                    <CardTitle className="text-foreground">Income Tax Brackets ({config.year.year})</CardTitle>
                     <CardDescription>Inkomstenbelasting schijven</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -215,17 +215,17 @@ export default function TaxConfigPage() {
                       {config.brackets?.map((bracket: any) => (
                         <div
                           key={bracket.id}
-                          className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
+                          className="flex items-center justify-between p-4 bg-background rounded-lg"
                         >
                           <div className="flex-1">
-                            <p className="font-medium text-slate-900">
+                            <p className="font-medium text-foreground">
                               Bracket {bracket.bracket_order}
                             </p>
-                            <p className="text-sm text-slate-600">
+                            <p className="text-sm text-muted-foreground">
                               €{bracket.income_from.toLocaleString()} - {bracket.income_to ? `€${bracket.income_to.toLocaleString()}` : 'unlimited'}
                             </p>
                           </div>
-                          <Badge className="bg-blue-100 text-blue-800 text-lg px-4 py-2">
+                          <Badge className="bg-secondary text-foreground text-lg px-4 py-2">
                             {bracket.rate}%
                           </Badge>
                         </div>
@@ -235,11 +235,11 @@ export default function TaxConfigPage() {
                 </Card>
 
                 {/* Tax Benefits */}
-                <Card className="bg-white border-slate-200">
+                <Card className="bg-card border-border">
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-slate-900">Tax Benefits & Deductions ({config.year.year})</CardTitle>
+                        <CardTitle className="text-foreground">Tax Benefits & Deductions ({config.year.year})</CardTitle>
                         <CardDescription>
                           Ondernemersaftrekposten - Select which benefits apply to your situation
                         </CardDescription>
@@ -270,7 +270,7 @@ export default function TaxConfigPage() {
                               <div className="flex items-center justify-between">
                                 <Label
                                   htmlFor={`benefit-${benefit.id}`}
-                                  className="text-base font-medium text-slate-900 cursor-pointer"
+                                  className="text-base font-medium text-foreground cursor-pointer"
                                 >
                                   {benefit.name}
                                 </Label>
@@ -278,12 +278,12 @@ export default function TaxConfigPage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleEditBenefit(benefit)}
-                                  className="text-slate-600 hover:text-slate-700 hover:bg-slate-50"
+                                  className="text-muted-foreground hover:text-foreground hover:bg-background"
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
                               </div>
-                              <p className="text-sm text-slate-600 mt-1">{benefit.description}</p>
+                              <p className="text-sm text-muted-foreground mt-1">{benefit.description}</p>
 
                               <div className="mt-2 flex flex-wrap items-center gap-2">
                                 {benefit.amount && (
@@ -303,7 +303,7 @@ export default function TaxConfigPage() {
                                   </Badge>
                                 )}
                                 {benefit.max_usage_count && (
-                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  <Badge variant="outline" className="bg-secondary text-foreground border-border">
                                     Max {benefit.max_usage_count}x usage
                                   </Badge>
                                 )}
@@ -318,9 +318,9 @@ export default function TaxConfigPage() {
                 </Card>
 
                 {/* Tax Credits */}
-                <Card className="bg-white border-slate-200">
+                <Card className="bg-card border-border">
                   <CardHeader>
-                    <CardTitle className="text-slate-900">Tax Credits / Heffingskortingen ({config.year.year})</CardTitle>
+                    <CardTitle className="text-foreground">Tax Credits / Heffingskortingen ({config.year.year})</CardTitle>
                     <CardDescription>
                       Tax credits that reduce your payable tax after calculation
                     </CardDescription>
@@ -333,15 +333,15 @@ export default function TaxConfigPage() {
                             <div className="flex items-start gap-4">
                               <div className="flex-1">
                                 <div className="flex items-center justify-between">
-                                  <p className="text-base font-medium text-slate-900">
+                                  <p className="text-base font-medium text-foreground">
                                     {credit.name}
                                   </p>
-                                  <Badge className={credit.is_enabled ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-600"}>
+                                  <Badge className={credit.is_enabled ? "bg-green-100 text-green-800" : "bg-secondary text-muted-foreground"}>
                                     {credit.is_enabled ? 'Enabled' : 'Disabled'}
                                   </Badge>
                                 </div>
                                 {credit.description && (
-                                  <p className="text-sm text-slate-600 mt-1">{credit.description}</p>
+                                  <p className="text-sm text-muted-foreground mt-1">{credit.description}</p>
                                 )}
 
                                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -366,17 +366,17 @@ export default function TaxConfigPage() {
                                 {/* Show arbeidskorting brackets if this is arbeidskorting */}
                                 {credit.credit_type === 'arbeidskorting' && taxCreditsData?.arbeidskorting_brackets && taxCreditsData.arbeidskorting_brackets.length > 0 && (
                                   <div className="mt-4 space-y-2">
-                                    <p className="text-sm font-medium text-slate-700">Income Brackets:</p>
+                                    <p className="text-sm font-medium text-foreground">Income Brackets:</p>
                                     <div className="space-y-1">
                                       {taxCreditsData.arbeidskorting_brackets?.map((bracket: any) => (
                                         <div
                                           key={bracket.bracket_order}
-                                          className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs"
+                                          className="flex items-center justify-between p-2 bg-background rounded text-xs"
                                         >
-                                          <span className="text-slate-600">
+                                          <span className="text-muted-foreground">
                                             €{bracket.income_from.toLocaleString()} - {bracket.income_to ? `€${bracket.income_to.toLocaleString()}` : '∞'}
                                           </span>
-                                          <span className="text-slate-900 font-medium">
+                                          <span className="text-foreground font-medium">
                                             {bracket.rate && bracket.rate !== 0 ? `${bracket.rate}%` : ''}
                                             {bracket.base_amount && ` (base: €${bracket.base_amount.toLocaleString()})`}
                                             {bracket.rate_applies_to_excess && ' on excess'}
@@ -393,7 +393,7 @@ export default function TaxConfigPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-500">No tax credits configured for {config.year.year}</p>
+                      <p className="text-sm text-muted-foreground">No tax credits configured for {config.year.year}</p>
                     )}
                   </CardContent>
                 </Card>

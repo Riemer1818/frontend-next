@@ -13,8 +13,8 @@ export default function ExpenseReviewPage() {
     <MainLayout>
       <div className="p-8 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Review Expenses</h1>
-          <p className="text-slate-500 mt-1">Approve or reject incoming invoices</p>
+          <h1 className="text-3xl font-bold text-foreground">Review Expenses</h1>
+          <p className="text-muted-foreground mt-1">Approve or reject incoming invoices</p>
         </div>
 
         <Card>
@@ -25,13 +25,13 @@ export default function ExpenseReviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-600">
+            <p className="text-muted-foreground">
               This page will include the expense approval workflow shown in the handoff document.
             </p>
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               Backend tRPC router for incoming invoices needs to be created first.
             </p>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               See the complete implementation in the handoff document section 3.3.
             </p>
           </CardContent>

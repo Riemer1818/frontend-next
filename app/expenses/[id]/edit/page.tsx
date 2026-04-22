@@ -97,7 +97,7 @@ export default function EditExpensePage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </MainLayout>
     );
@@ -107,7 +107,7 @@ export default function EditExpensePage() {
     return (
       <MainLayout>
         <div className="p-8">
-          <p className="text-slate-500">Expense not found</p>
+          <p className="text-muted-foreground">Expense not found</p>
         </div>
       </MainLayout>
     );
@@ -115,45 +115,45 @@ export default function EditExpensePage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div>
-          <Link href={`/expenses/${expenseId}`} className="text-sm text-slate-600 hover:text-slate-900 mb-2 inline-block">
+          <Link href={`/expenses/${expenseId}`} className="text-sm text-muted-foreground hover:text-foreground mb-2 inline-block">
             ← Back to Expense
           </Link>
-          <h1 className="text-3xl font-bold text-slate-900">Edit Expense</h1>
-          <p className="text-slate-600 mt-1">Update expense information</p>
+          <h1 className="text-3xl font-bold text-foreground">Edit Expense</h1>
+          <p className="text-muted-foreground mt-1">Update expense information</p>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <Card className="bg-white border-slate-200">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-slate-900">Expense Information</CardTitle>
+              <CardTitle className="text-foreground">Expense Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="supplier_name" className="text-slate-900">Supplier</Label>
+                <Label htmlFor="supplier_name" className="text-foreground">Supplier</Label>
                 <Input
                   id="supplier_name"
                   type="text"
                   value={formData.supplier_name}
                   onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                  className="mt-1 text-slate-900"
+                  className="mt-1 text-foreground"
                 />
               </div>
 
               <div>
-                <Label htmlFor="description" className="text-slate-900">Description</Label>
+                <Label htmlFor="description" className="text-foreground">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="mt-1 text-slate-900"
+                  className="mt-1 text-foreground"
                   rows={3}
                 />
               </div>
 
               <div>
-                <Label htmlFor="project_id" className="text-slate-900">Project</Label>
+                <Label htmlFor="project_id" className="text-foreground">Project</Label>
                 <Select
                   value={formData.project_id.toString() || 'none'}
                   onValueChange={(value) =>
@@ -175,7 +175,7 @@ export default function EditExpensePage() {
               </div>
 
               <div>
-                <Label htmlFor="category" className="text-slate-900">Category</Label>
+                <Label htmlFor="category" className="text-foreground">Category</Label>
                 <Select
                   value={formData.category.toString() || 'none'}
                   onValueChange={(value) =>
@@ -197,30 +197,30 @@ export default function EditExpensePage() {
               </div>
 
               <div>
-                <Label htmlFor="notes" className="text-slate-900">Notes</Label>
+                <Label htmlFor="notes" className="text-foreground">Notes</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="mt-1 text-slate-900"
+                  className="mt-1 text-foreground"
                   rows={2}
                   placeholder="e.g. reis- en verblijfkosten"
                 />
               </div>
 
               <div>
-                <Label htmlFor="invoice_date" className="text-slate-900">Invoice Date</Label>
+                <Label htmlFor="invoice_date" className="text-foreground">Invoice Date</Label>
                 <Input
                   id="invoice_date"
                   type="date"
                   value={formData.invoice_date}
                   onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
-                  className="mt-1 text-slate-900"
+                  className="mt-1 text-foreground"
                 />
               </div>
 
               <div>
-                <Label htmlFor="currency" className="text-slate-900">Currency</Label>
+                <Label htmlFor="currency" className="text-foreground">Currency</Label>
                 <Select
                   value={formData.currency}
                   onValueChange={handleCurrencyChange}
@@ -244,7 +244,7 @@ export default function EditExpensePage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="subtotal" className="text-slate-900">Subtotal</Label>
+                  <Label htmlFor="subtotal" className="text-foreground">Subtotal</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
                       id="subtotal"
@@ -252,14 +252,14 @@ export default function EditExpensePage() {
                       step="0.01"
                       value={formData.subtotal}
                       onChange={(e) => setFormData({ ...formData, subtotal: parseFloat(e.target.value) })}
-                      className="text-slate-900"
+                      className="text-foreground"
                     />
-                    <span className="text-slate-600 min-w-[3rem] text-sm">{formData.currency}</span>
+                    <span className="text-muted-foreground min-w-[3rem] text-sm">{formData.currency}</span>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="tax_amount" className="text-slate-900">VAT</Label>
+                  <Label htmlFor="tax_amount" className="text-foreground">VAT</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
                       id="tax_amount"
@@ -267,14 +267,14 @@ export default function EditExpensePage() {
                       step="0.01"
                       value={formData.tax_amount}
                       onChange={(e) => setFormData({ ...formData, tax_amount: parseFloat(e.target.value) })}
-                      className="text-slate-900"
+                      className="text-foreground"
                     />
-                    <span className="text-slate-600 min-w-[3rem] text-sm">{formData.currency}</span>
+                    <span className="text-muted-foreground min-w-[3rem] text-sm">{formData.currency}</span>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="total_amount" className="text-slate-900">Total</Label>
+                  <Label htmlFor="total_amount" className="text-foreground">Total</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
                       id="total_amount"
@@ -282,31 +282,31 @@ export default function EditExpensePage() {
                       step="0.01"
                       value={formData.total_amount}
                       onChange={(e) => setFormData({ ...formData, total_amount: parseFloat(e.target.value) })}
-                      className="text-slate-900"
+                      className="text-foreground"
                     />
-                    <span className="text-slate-600 min-w-[3rem] text-sm">{formData.currency}</span>
+                    <span className="text-muted-foreground min-w-[3rem] text-sm">{formData.currency}</span>
                   </div>
                 </div>
               </div>
 
               {expense.original_currency && expense.original_currency !== 'EUR' && (
-                <div className="p-4 bg-slate-100 border border-slate-300 rounded-lg">
-                  <p className="text-sm font-medium text-slate-700 mb-2">Current Conversion</p>
+                <div className="p-4 bg-secondary border border-border rounded-lg">
+                  <p className="text-sm font-medium text-foreground mb-2">Current Conversion</p>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-lg font-bold text-slate-900">
+                      <p className="text-lg font-bold text-foreground">
                         {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         Rate: {/* Exchange rate calculation not in new schema */}
                       </p>
                     </div>
-                    <div className="text-slate-500 text-xl">=</div>
+                    <div className="text-muted-foreground text-xl">=</div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-slate-900">
+                      <p className="text-lg font-bold text-foreground">
                         €{(expense.total_amount || 0).toFixed(2)}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
                       </p>
                     </div>
@@ -326,7 +326,7 @@ export default function EditExpensePage() {
             </Button>
             <Button
               type="submit"
-              className="bg-blue-900 hover:bg-blue-800 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={updateMutation.isPending}
             >
               {updateMutation.isPending ? 'Saving...' : 'Save Changes'}

@@ -98,7 +98,7 @@ export default function NewInvoicePage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-slate-500">Project not found</p>
+          <p className="text-muted-foreground">Project not found</p>
         </div>
       </MainLayout>
     );
@@ -106,7 +106,7 @@ export default function NewInvoicePage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -120,8 +120,8 @@ export default function NewInvoicePage() {
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Create Invoice</h1>
-              <p className="text-slate-600 mt-1">
+              <h1 className="text-3xl font-bold text-foreground">Create Invoice</h1>
+              <p className="text-muted-foreground mt-1">
                 {project.name} - {project.client_name}
               </p>
             </div>
@@ -138,30 +138,30 @@ export default function NewInvoicePage() {
             <CardContent className="space-y-6">
               {/* Time Entries Summary */}
               <div>
-                <Label className="text-sm font-medium text-slate-700">Time Entries</Label>
+                <Label className="text-sm font-medium text-foreground">Time Entries</Label>
                 <div className="mt-2 border rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-100">
+                    <thead className="bg-secondary">
                       <tr>
-                        <th className="text-left p-3 font-medium text-slate-700">Date</th>
-                        <th className="text-left p-3 font-medium text-slate-700">Description</th>
-                        <th className="text-right p-3 font-medium text-slate-700">Hours</th>
-                        <th className="text-right p-3 font-medium text-slate-700">Amount</th>
+                        <th className="text-left p-3 font-medium text-foreground">Date</th>
+                        <th className="text-left p-3 font-medium text-foreground">Description</th>
+                        <th className="text-right p-3 font-medium text-foreground">Hours</th>
+                        <th className="text-right p-3 font-medium text-foreground">Amount</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {selectedTimeEntries.map((entry: any) => (
-                        <tr key={entry.id} className="bg-white">
-                          <td className="p-3 text-slate-600">
+                        <tr key={entry.id} className="bg-card">
+                          <td className="p-3 text-muted-foreground">
                             {format(new Date(entry.date), 'dd MMM yyyy')}
                           </td>
-                          <td className="p-3 text-slate-900">
+                          <td className="p-3 text-foreground">
                             {entry.notes || 'Werkzaamheden'}
                           </td>
-                          <td className="p-3 text-right text-slate-900">
+                          <td className="p-3 text-right text-foreground">
                             {parseFloat(entry.chargeable_hours).toFixed(2)}h
                           </td>
-                          <td className="p-3 text-right text-slate-900">
+                          <td className="p-3 text-right text-foreground">
                             €{(parseFloat(entry.chargeable_hours) * hourlyRate).toFixed(2)}
                           </td>
                         </tr>
@@ -217,31 +217,31 @@ export default function NewInvoicePage() {
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">Time Entries:</span>
-                  <span className="font-medium text-slate-900">{selectedTimeEntries.length}</span>
+                  <span className="text-muted-foreground">Time Entries:</span>
+                  <span className="font-medium text-foreground">{selectedTimeEntries.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">Total Hours:</span>
-                  <span className="font-medium text-slate-900">{totalHours.toFixed(2)}h → {roundedHours}h</span>
+                  <span className="text-muted-foreground">Total Hours:</span>
+                  <span className="font-medium text-foreground">{totalHours.toFixed(2)}h → {roundedHours}h</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">Hourly Rate:</span>
-                  <span className="font-medium text-slate-900">€{hourlyRate.toFixed(2)}/h</span>
+                  <span className="text-muted-foreground">Hourly Rate:</span>
+                  <span className="font-medium text-foreground">€{hourlyRate.toFixed(2)}/h</span>
                 </div>
               </div>
 
               <div className="pt-3 border-t space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-slate-700">Subtotal</span>
-                  <span className="font-medium text-slate-900">€{subtotal.toFixed(2)}</span>
+                  <span className="text-foreground">Subtotal</span>
+                  <span className="font-medium text-foreground">€{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-700">VAT ({taxRate}%)</span>
-                  <span className="font-medium text-slate-900">€{taxAmount.toFixed(2)}</span>
+                  <span className="text-foreground">VAT ({taxRate}%)</span>
+                  <span className="font-medium text-foreground">€{taxAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-3 border-t">
-                  <span className="text-lg font-bold text-slate-900">Total</span>
-                  <span className="text-2xl font-bold text-slate-900">
+                  <span className="text-lg font-bold text-foreground">Total</span>
+                  <span className="text-2xl font-bold text-foreground">
                     €{totalAmount.toFixed(2)}
                   </span>
                 </div>
@@ -250,7 +250,7 @@ export default function NewInvoicePage() {
               <Button
                 onClick={handleCreate}
                 disabled={createMutation.isPending || generatePdfMutation.isPending || selectedTimeEntries.length === 0}
-                className="w-full bg-blue-900 hover:bg-blue-800 flex items-center gap-2 mt-6"
+                className="w-full bg-primary hover:bg-primary/90 flex items-center gap-2 mt-6"
               >
                 {(createMutation.isPending || generatePdfMutation.isPending) ? (
                   <>

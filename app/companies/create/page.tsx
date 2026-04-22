@@ -57,19 +57,19 @@ export default function CreateCompanyPage() {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+      <div className="p-8 space-y-6 bg-background min-h-screen">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             onClick={() => router.push('/companies')}
-            className="text-slate-600 hover:text-slate-900"
+            className="text-muted-foreground hover:text-foreground"
           >
             ← Back
           </Button>
-          <h1 className="text-3xl font-bold text-slate-900">Create New Company</h1>
+          <h1 className="text-3xl font-bold text-foreground">Create New Company</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="max-w-2xl space-y-6 bg-white p-6 rounded-lg border border-slate-200">
+        <form onSubmit={handleSubmit} className="max-w-2xl space-y-6 bg-card p-6 rounded-lg border border-border">
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="type">Company Type *</Label>
@@ -106,8 +106,8 @@ export default function CreateCompanyPage() {
               </div>
             </div>
 
-            <div className="border-t border-slate-200 my-4 pt-4">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Address</h3>
+            <div className="border-t border-border my-4 pt-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Address</h3>
 
               <div className="grid gap-4">
                 <div className="grid gap-2">
@@ -133,8 +133,8 @@ export default function CreateCompanyPage() {
               </div>
             </div>
 
-            <div className="border-t border-slate-200 my-4 pt-4">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Business Details</h3>
+            <div className="border-t border-border my-4 pt-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Business Details</h3>
 
               <div className="grid gap-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -171,7 +171,7 @@ export default function CreateCompanyPage() {
             </Button>
             <Button
               type="submit"
-              className="bg-blue-900 hover:bg-blue-800"
+              className="bg-primary hover:bg-primary/90"
               disabled={createCompany.isPending}
             >
               {createCompany.isPending ? 'Creating...' : 'Create Company'}
