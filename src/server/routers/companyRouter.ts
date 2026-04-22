@@ -69,17 +69,17 @@ const companyRouter = router({
     .input(z.object({
       type: z.enum(['client', 'supplier', 'both']),
       name: z.string().min(1).max(255),
-      main_contact_person: z.string().max(255).optional(),
+      main_contact_person: z.string().max(255).optional().or(z.literal('')),
       email: z.string().email().optional().or(z.literal('')),
-      phone: z.string().max(50).optional(),
-      street_address: z.string().max(255).optional(),
-      postal_code: z.string().max(20).optional(),
-      city: z.string().max(100).optional(),
-      country: z.string().max(100).optional(),
-      btw_number: z.string().max(50).optional(),
-      kvk_number: z.string().max(50).optional(),
-      iban: z.string().max(34).optional(),
-      notes: z.string().optional(),
+      phone: z.string().max(50).optional().or(z.literal('')),
+      street_address: z.string().max(255).optional().or(z.literal('')),
+      postal_code: z.string().max(20).optional().or(z.literal('')),
+      city: z.string().max(100).optional().or(z.literal('')),
+      country: z.string().max(100).optional().or(z.literal('')),
+      btw_number: z.string().max(50).optional().or(z.literal('')),
+      kvk_number: z.string().max(50).optional().or(z.literal('')),
+      iban: z.string().max(34).optional().or(z.literal('')),
+      notes: z.string().optional().or(z.literal('')),
       is_active: z.boolean().default(true),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -115,17 +115,17 @@ const companyRouter = router({
       data: z.object({
         type: z.enum(['client', 'supplier', 'both']).optional(),
         name: z.string().min(1).max(255).optional(),
-        main_contact_person: z.string().max(255).optional(),
+        main_contact_person: z.string().max(255).optional().or(z.literal('')),
         email: z.string().email().optional().or(z.literal('')),
-        phone: z.string().max(50).optional(),
-        street_address: z.string().max(255).optional(),
-        postal_code: z.string().max(20).optional(),
-        city: z.string().max(100).optional(),
-        country: z.string().max(100).optional(),
-        btw_number: z.string().max(50).optional(),
-        kvk_number: z.string().max(50).optional(),
-        iban: z.string().max(34).optional(),
-        notes: z.string().optional(),
+        phone: z.string().max(50).optional().or(z.literal('')),
+        street_address: z.string().max(255).optional().or(z.literal('')),
+        postal_code: z.string().max(20).optional().or(z.literal('')),
+        city: z.string().max(100).optional().or(z.literal('')),
+        country: z.string().max(100).optional().or(z.literal('')),
+        btw_number: z.string().max(50).optional().or(z.literal('')),
+        kvk_number: z.string().max(50).optional().or(z.literal('')),
+        iban: z.string().max(34).optional().or(z.literal('')),
+        notes: z.string().optional().or(z.literal('')),
         is_active: z.boolean().optional(),
       }),
     }))
@@ -170,6 +170,40 @@ const companyRouter = router({
 
       if (error) throw error;
       return { success: true };
+    }),
+
+  // Find or create a company by name
+  findOrCreate: publicProcedure
+    .input(z.object({
+      name: z.string().min(1),
+      type: z.enum(['client', 'supplier', 'both']).default('supplier'),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // First, try to find existing company by name
+      const { data: existing } = await ctx.supabase
+        .from('backoffice_companies')
+        .select('id, name, type')
+        .ilike('name', input.name)
+        .limit(1)
+        .single();
+
+      if (existing) {
+        return existing;
+      }
+
+      // If not found, create new company
+      const { data: newCompany, error } = await ctx.supabase
+        .from('backoffice_companies')
+        .insert([{
+          name: input.name,
+          type: input.type,
+          is_active: true,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return newCompany;
     }),
 });
 

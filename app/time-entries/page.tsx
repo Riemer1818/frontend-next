@@ -3,7 +3,9 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addMonths, subMonths, startOfMonth, endOfMonth, differenceInMinutes } from 'date-fns';
-import { trpc } from '@/lib/trpc';
+import { useTimeEntriesByDateRange, useCreateTimeEntry, useUpdateTimeEntry, useDeleteTimeEntry } from '@/lib/supabase/time-entries';
+import { useProjects } from '@/lib/supabase/projects';
+import { useContactsWithCompany } from '@/lib/supabase/contacts';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -96,70 +98,52 @@ export default function TimeEntriesPage() {
     };
   }, [currentDate]);
 
-  // Fetch time entries
-  const { data: timeEntries, isLoading, refetch } = trpc.timeEntries.getByDateRange.useQuery(dateRange);
+  // Fetch time entries using date range hook
+  const { data: timeEntries, isLoading, error: timeEntriesError, refetch } = useTimeEntriesByDateRange(dateRange.startDate, dateRange.endDate);
 
   // Fetch projects for dropdown
-  const { data: projects } = trpc.project.getAll.useQuery();
+  const { data: projects } = useProjects();
 
   // Fetch contacts for dropdown
-  const { data: contacts } = trpc.contact.getAllWithCompany.useQuery();
+  const { data: contacts } = useContactsWithCompany();
+
+  const timeEntriesArray = timeEntries || [];
+  const projectsArray = projects || [];
+  const contactsArray = contacts || [];
 
   // Mutations
-  const createMutation = trpc.timeEntries.create.useMutation({
-    onSuccess: () => {
-      toast.success('Time entry created successfully');
-      refetch();
-      closeDialog();
-    },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`);
-    },
-  });
+  const createMutation = useCreateTimeEntry();
 
-  const updateMutation = trpc.timeEntries.update.useMutation({
-    onSuccess: () => {
-      toast.success('Time entry updated successfully');
-      refetch();
-      closeDialog();
-    },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`);
-    },
-  });
+  const updateMutation = useUpdateTimeEntry();
 
-  const deleteMutation = trpc.timeEntries.delete.useMutation({
-    onSuccess: () => {
-      toast.success('Time entry deleted successfully');
-      refetch();
-      closeDialog();
-    },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`);
-    },
-  });
+  const deleteMutation = useDeleteTimeEntry();
 
   // Convert time entries to calendar events
   const events: TimeEntryEvent[] = useMemo(() => {
-    if (!timeEntries) return [];
-    return timeEntries.map((entry: any) => ({
-      id: entry.id,
-      title: `${entry.project_name} (${entry.chargeable_hours}h)${entry.is_wbso ? ' 🔬' : ''}`,
-      start: entry.start_time ? new Date(entry.start_time) : new Date(entry.date),
-      end: entry.end_time ? new Date(entry.end_time) : new Date(entry.date),
-      resource: {
-        project_id: entry.project_id,
-        project_name: entry.project_name,
-        project_color: entry.project_color || '#1e3a8a',
-        total_hours: entry.total_hours,
-        chargeable_hours: entry.chargeable_hours,
-        notes: entry.notes,
-        objective: entry.objective,
-        location: entry.location,
-        is_wbso: entry.is_wbso,
-      },
-    }));
-  }, [timeEntries]);
+    return timeEntriesArray.map((entry: any) => {
+      // Handle both nested and flat project data
+      const projectName = entry.projects?.name || entry.project_name || 'Unknown Project';
+      const projectColor = entry.projects?.color || entry.project_color || '#1e3a8a';
+
+      return {
+        id: entry.id,
+        title: `${projectName} (${entry.chargeable_hours || 0}h)${entry.is_wbso ? ' 🔬' : ''}`,
+        start: entry.start_time ? new Date(entry.start_time) : new Date(entry.date),
+        end: entry.end_time ? new Date(entry.end_time) : new Date(entry.date),
+        resource: {
+          project_id: entry.project_id,
+          project_name: projectName,
+          project_color: projectColor,
+          total_hours: entry.total_hours || 0,
+          chargeable_hours: entry.chargeable_hours || 0,
+          notes: entry.notes,
+          objective: entry.objective,
+          location: entry.location,
+          is_wbso: entry.is_wbso || false,
+        },
+      };
+    });
+  }, [timeEntriesArray]);
 
   // Handle slot selection (clicking on empty calendar slot)
   const handleSelectSlot = useCallback((slotInfo: any) => {
@@ -185,16 +169,21 @@ export default function TimeEntriesPage() {
   const handleSelectEvent = useCallback((event: TimeEntryEvent) => {
     setSelectedEvent(event);
     setSelectedSlot(null);
-    const entry = timeEntries?.find((e: any) => e.id === event.id);
+    const entry = timeEntriesArray.find((e: any) => e.id === event.id);
     if (entry) {
+      // Handle nested contacts structure from Supabase join
+      const contactIds = Array.isArray(entry.contacts)
+        ? entry.contacts.map((c: any) => c.contacts?.id || c.contact_id).filter(Boolean)
+        : [];
+
       setFormData({
         project_id: entry.project_id.toString(),
-        contact_ids: entry.contacts?.map((c: any) => c.id) || [],
+        contact_ids: contactIds,
         date: format(new Date(entry.date), 'yyyy-MM-dd'),
         start_time: entry.start_time ? format(new Date(entry.start_time), "yyyy-MM-dd'T'HH:mm") : '',
         end_time: entry.end_time ? format(new Date(entry.end_time), "yyyy-MM-dd'T'HH:mm") : '',
-        total_hours: entry.total_hours.toString(),
-        chargeable_hours: entry.chargeable_hours.toString(),
+        total_hours: (entry.total_hours || 0).toString(),
+        chargeable_hours: (entry.chargeable_hours || 0).toString(),
         location: entry.location || '',
         objective: entry.objective || '',
         notes: entry.notes || '',
@@ -202,7 +191,7 @@ export default function TimeEntriesPage() {
       });
     }
     setIsDialogOpen(true);
-  }, [timeEntries]);
+  }, [timeEntriesArray]);
 
   const closeDialog = () => {
     setIsDialogOpen(false);
@@ -224,8 +213,8 @@ export default function TimeEntriesPage() {
   };
 
   const handleSubmit = () => {
-    if (!formData.project_id || !formData.date || !formData.total_hours || !formData.chargeable_hours) {
-      toast.error('Please fill in all required fields');
+    if (!formData.project_id || !formData.date || !formData.start_time || !formData.end_time || !formData.total_hours || !formData.chargeable_hours) {
+      toast.error('Please fill in all required fields (project, date, start time, end time, hours)');
       return;
     }
 
@@ -233,27 +222,55 @@ export default function TimeEntriesPage() {
       project_id: parseInt(formData.project_id),
       contact_ids: formData.contact_ids.length > 0 ? formData.contact_ids : undefined,
       date: formData.date,
-      start_time: formData.start_time || undefined,
-      end_time: formData.end_time || undefined,
+      start_time: formData.start_time || null,
+      end_time: formData.end_time || null,
       total_hours: parseFloat(formData.total_hours),
       chargeable_hours: parseFloat(formData.chargeable_hours),
-      location: formData.location || undefined,
-      objective: formData.objective || undefined,
-      notes: formData.notes || undefined,
+      location: formData.location || null,
+      objective: formData.objective || null,
+      notes: formData.notes || null,
       is_wbso: formData.is_wbso,
     };
 
     if (selectedEvent) {
-      updateMutation.mutate({ id: selectedEvent.id, data });
+      updateMutation.mutate({ id: selectedEvent.id, data }, {
+        onSuccess: () => {
+          toast.success('Time entry updated successfully');
+          refetch();
+          closeDialog();
+        },
+        onError: (error: any) => {
+          toast.error(`Error: ${error.message}`);
+        },
+      });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(data, {
+        onSuccess: () => {
+          toast.success('Time entry created successfully');
+          refetch();
+          closeDialog();
+        },
+        onError: (error: any) => {
+          console.error('Create mutation error:', error);
+          toast.error(`Error: ${error.message}`);
+        },
+      });
     }
   };
 
   const handleDelete = () => {
     if (selectedEvent) {
       if (confirm('Are you sure you want to delete this time entry?')) {
-        deleteMutation.mutate({ id: selectedEvent.id });
+        deleteMutation.mutate({ id: selectedEvent.id }, {
+          onSuccess: () => {
+            toast.success('Time entry deleted successfully');
+            refetch();
+            closeDialog();
+          },
+          onError: (error: any) => {
+            toast.error(`Error: ${error.message}`);
+          },
+        });
       }
     }
   };
@@ -378,7 +395,7 @@ export default function TimeEntriesPage() {
                     <SelectValue placeholder="Select a project" />
                   </SelectTrigger>
                   <SelectContent>
-                    {projects?.map((project: any) => (
+                    {projectsArray.map((project: any) => (
                       <SelectItem key={project.id} value={project.id.toString()}>
                         {project.name}
                       </SelectItem>
@@ -390,8 +407,8 @@ export default function TimeEntriesPage() {
               <div className="grid gap-2">
                 <Label>People Involved (besides yourself)</Label>
                 <div className="border rounded-md p-3 max-h-32 overflow-y-auto space-y-2">
-                  {contacts && contacts.length > 0 ? (
-                    contacts.map((contact: any) => (
+                  {contactsArray.length > 0 ? (
+                    contactsArray.map((contact: any) => (
                       <label key={contact.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
                         <input
                           type="checkbox"
@@ -429,7 +446,7 @@ export default function TimeEntriesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="start_time">Start Time</Label>
+                  <Label htmlFor="start_time">Start Time *</Label>
                   <Input
                     id="start_time"
                     type="time"
@@ -440,13 +457,15 @@ export default function TimeEntriesPage() {
                           ...formData,
                           start_time: `${formData.date}T${e.target.value}`
                         });
+                      } else {
+                        setFormData({ ...formData, start_time: '' });
                       }
                     }}
                     className="text-base"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="end_time">End Time</Label>
+                  <Label htmlFor="end_time">End Time *</Label>
                   <Input
                     id="end_time"
                     type="time"
@@ -457,6 +476,8 @@ export default function TimeEntriesPage() {
                           ...formData,
                           end_time: `${formData.date}T${e.target.value}`
                         });
+                      } else {
+                        setFormData({ ...formData, end_time: '' });
                       }
                     }}
                     className="text-base"

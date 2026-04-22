@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { trpc } from '@/lib/trpc';
+import { useCreateProject } from '@/lib/supabase/projects';
+import { useCompanies } from '@/lib/supabase/companies';
+import { useTaxRates } from '@/lib/supabase/reporting';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,18 +25,11 @@ export default function CreateProjectPage() {
   const [taxRateId, setTaxRateId] = useState<number | null>(null);
   const [status, setStatus] = useState<'active' | 'completed' | 'on_hold' | 'cancelled'>('active');
 
-  const { data: clients } = trpc.company.getAll.useQuery({ type: 'client', isActive: true });
-  const { data: taxRates } = trpc.reporting.getTaxRates.useQuery();
+  const { data: allCompanies = [] } = useCompanies();
+  const clients = allCompanies.filter(c => c.type === 'client' || c.type === 'both');
+  const { data: taxRates = [] } = useTaxRates();
 
-  const createProject = trpc.project.create.useMutation({
-    onSuccess: (data: any) => {
-      toast.success('Project created successfully');
-      router.push(`/projects/${data.id}`);
-    },
-    onError: (error) => {
-      toast.error(`Failed to create project: ${error.message}`);
-    },
-  });
+  const createProject = useCreateProject();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -53,17 +48,25 @@ export default function CreateProjectPage() {
     const data: any = {
       name: formData.get('name') as string,
       client_id: clientId,
-      description: formData.get('description') as string || undefined,
+      description: formData.get('description') as string || null,
       hourly_rate: parseFloat(formData.get('hourly_rate') as string) || 0,
       tax_rate_id: taxRateId,
       status,
-      start_date: formData.get('start_date') as string || undefined,
-      end_date: formData.get('end_date') as string || undefined,
+      start_date: formData.get('start_date') as string || null,
+      end_date: formData.get('end_date') as string || null,
       currency: 'EUR',
       color: formData.get('color') as string || '#1e3a8a',
     };
 
-    createProject.mutate(data);
+    createProject.mutate(data, {
+      onSuccess: (result: any) => {
+        toast.success('Project created successfully');
+        router.push(`/projects/${result.id}`);
+      },
+      onError: (error: any) => {
+        toast.error(`Failed to create project: ${error.message}`);
+      },
+    });
   };
 
   return (
@@ -89,13 +92,13 @@ export default function CreateProjectPage() {
 
             <div className="grid gap-2">
               <Label htmlFor="client_id">Client *</Label>
-              <Select value={clientId?.toString()} onValueChange={(value) => setClientId(parseInt(value))}>
+              <Select value={clientId.toString()} onValueChange={(value) => setClientId(parseInt(value))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients?.map((client) => (
-                    <SelectItem key={client.id} value={client.id?.toString() ?? ''}>
+                  {(clients || []).map((client: any) => (
+                    <SelectItem key={client.id} value={client.id.toString() ?? ''}>
                       {client.name}
                     </SelectItem>
                   ))}
@@ -142,12 +145,12 @@ export default function CreateProjectPage() {
 
                 <div className="grid gap-2">
                   <Label htmlFor="tax_rate_id">Tax Rate *</Label>
-                  <Select value={taxRateId?.toString()} onValueChange={(value) => setTaxRateId(parseInt(value))}>
+                  <Select value={taxRateId.toString()} onValueChange={(value) => setTaxRateId(parseInt(value))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a tax rate" />
                     </SelectTrigger>
                     <SelectContent>
-                      {taxRates?.map((taxRate: any) => (
+                      {taxRates.map((taxRate: any) => (
                         <SelectItem key={taxRate.id} value={taxRate.id.toString()}>
                           {taxRate.name} ({taxRate.rate}%)
                         </SelectItem>

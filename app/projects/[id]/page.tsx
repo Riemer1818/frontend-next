@@ -1,6 +1,10 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
+import { useProject, useDeleteProject, useProjectMonthlyExpenses } from '@/lib/supabase/projects';
+import { useTimeEntries, useProjectTotalHours, useUninvoicedTimeEntries } from '@/lib/supabase/time-entries';
+import { useInvoices } from '@/lib/supabase/invoices';
+import { useExpenses } from '@/lib/supabase/expenses';
+import { useContactsByCompany, usePrimaryContact } from '@/lib/supabase/contacts';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,31 +25,25 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const projectId = parseInt(params.id as string);
 
-  const { data: project, isLoading } = trpc.project.getById.useQuery({ id: projectId });
-  const { data: timeEntries } = trpc.timeEntries.getAll.useQuery({ projectId });
-  const { data: totalHours } = trpc.timeEntries.getTotalHoursByProject.useQuery({ projectId });
-  const { data: uninvoicedEntries } = trpc.timeEntries.getUninvoiced.useQuery({ projectId });
-  const { data: invoices } = trpc.invoice.getAll.useQuery({ projectId });
-  const { data: monthlyExpenses } = trpc.project.getMonthlyExpenses.useQuery({ id: projectId });
-  const { data: expenses } = trpc.expense.getAll.useQuery({ projectId });
-  const { data: contacts } = trpc.contact.getByCompanyId.useQuery(
-    { companyId: project?.client_id || 0, activeOnly: false },
-    { enabled: !!project?.client_id }
-  );
-  const { data: primaryContact } = trpc.contact.getPrimaryByCompanyId.useQuery(
-    { companyId: project?.client_id || 0 },
-    { enabled: !!project?.client_id }
-  );
+  const { data: project, isLoading } = useProject(projectId);
+  const { data: timeEntries = [] } = useTimeEntries({ projectId });
+  const { data: totalHours } = useProjectTotalHours(projectId);
+  const { data: uninvoicedEntries = [] } = useUninvoicedTimeEntries(projectId);
+  const { data: invoices = [] } = useInvoices({ projectId });
+  const { data: monthlyExpenses = [] } = useProjectMonthlyExpenses(projectId);
+  const { data: expenses = [] } = useExpenses({ projectId });
+  const { data: contacts = [] } = useContactsByCompany(project?.client_id, false);
+  const { data: primaryContact } = usePrimaryContact(project?.client_id);
 
-  const deleteMutation = trpc.project.delete.useMutation({
-    onSuccess: () => {
-      router.push('/projects');
-    },
-  });
+  const deleteMutation = useDeleteProject();
 
   const handleDelete = () => {
     if (window.confirm(`Are you sure you want to delete ${project?.name}? This action cannot be undone.`)) {
-      deleteMutation.mutate({ id: projectId });
+      deleteMutation.mutate({ id: projectId }, {
+        onSuccess: () => {
+          router.push('/projects');
+        },
+      });
     }
   };
 
@@ -70,7 +68,7 @@ export default function ProjectDetailPage() {
   }
 
   // Calculate recent time entries (last 10)
-  const recentTimeEntries = timeEntries?.slice(0, 10) || [];
+  const recentTimeEntries = timeEntries.slice(0, 10) || [];
 
   return (
     <MainLayout>
@@ -128,7 +126,7 @@ export default function ProjectDetailPage() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-slate-900">
-                {totalHours?.total_hours?.toFixed(1) || '0.0'}h
+                {totalHours?.totalHours?.toFixed(1) || '0.0'}h
               </p>
             </CardContent>
           </Card>
@@ -243,7 +241,7 @@ export default function ProjectDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contacts.map((contact) => (
+                  {contacts.map((contact: any) => (
                     <TableRow key={contact.id} className="hover:bg-slate-50">
                       <TableCell className="font-medium text-slate-900">
                         <div className="flex items-center gap-2">
@@ -281,7 +279,7 @@ export default function ProjectDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {monthlyExpenses.map((expense) => {
+                {monthlyExpenses.map((expense: any) => {
                   const maxSpent = Math.max(...monthlyExpenses.map(e => e.total_spent));
                   const widthPercent = maxSpent > 0 ? (expense.total_spent / maxSpent) * 100 : 0;
                   const monthName = new Date(expense.month + '-01').toLocaleDateString('en-US', {
@@ -316,7 +314,7 @@ export default function ProjectDetailPage() {
         {/* Invoices */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-900">Invoices ({invoices?.length || 0})</CardTitle>
+            <CardTitle className="text-slate-900">Invoices ({invoices.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {invoices && invoices.length > 0 ? (
@@ -330,7 +328,7 @@ export default function ProjectDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoices?.map((invoice: any) => (
+                  {invoices.map((invoice: any) => (
                     <TableRow key={invoice.id} className="hover:bg-slate-50">
                       <TableCell className="font-medium text-slate-900">{invoice.invoice_number}</TableCell>
                       <TableCell className="text-slate-700">
@@ -357,7 +355,7 @@ export default function ProjectDetailPage() {
         {/* Expenses */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-900">Project Expenses ({expenses?.length || 0})</CardTitle>
+            <CardTitle className="text-slate-900">Project Expenses ({expenses.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {expenses && expenses.length > 0 ? (
@@ -372,7 +370,7 @@ export default function ProjectDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {expenses.map((expense) => (
+                  {expenses.map((expense: any) => (
                     <TableRow
                       key={expense.id}
                       className="cursor-pointer hover:bg-blue-50 transition-colors"
@@ -402,7 +400,7 @@ export default function ProjectDetailPage() {
         {/* Recent Time Entries */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-900">Recent Time Entries ({timeEntries?.length || 0})</CardTitle>
+            <CardTitle className="text-slate-900">Recent Time Entries ({timeEntries.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {recentTimeEntries.length > 0 ? (

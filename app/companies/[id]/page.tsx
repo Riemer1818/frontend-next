@@ -1,6 +1,11 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
+import { useCompany, useDeleteCompany } from '@/lib/supabase/companies';
+import { useProjects } from '@/lib/supabase/projects';
+import { useInvoices } from '@/lib/supabase/invoices';
+import { useExpenses } from '@/lib/supabase/expenses';
+import { useContactsByCompany, usePrimaryContact } from '@/lib/supabase/contacts';
+import { useEmailsByCompany } from '@/lib/supabase/emails';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,23 +26,23 @@ export default function CompanyDetailPage() {
   const router = useRouter();
   const companyId = parseInt(params.id as string);
 
-  const { data: company, isLoading } = trpc.company.getById.useQuery({ id: companyId });
-  const { data: projects } = trpc.project.getAll.useQuery({ clientId: companyId });
-  const { data: invoices } = trpc.invoice.getAll.useQuery({ clientId: companyId });
-  const { data: expenses } = trpc.expense.getAll.useQuery({ supplierId: companyId });
-  const { data: contacts } = trpc.contact.getByCompanyId.useQuery({ companyId, activeOnly: false });
-  const { data: primaryContact } = trpc.contact.getPrimaryByCompanyId.useQuery({ companyId });
-  const { data: emails } = trpc.email.getByCompany.useQuery({ companyId });
+  const { data: company, isLoading } = useCompany(companyId);
+  const { data: projects = [] } = useProjects({ clientId: companyId });
+  const { data: invoices = [] } = useInvoices({ clientId: companyId });
+  const { data: expenses = [] } = useExpenses({ supplierId: companyId });
+  const { data: contacts = [] } = useContactsByCompany(companyId, false);
+  const { data: primaryContact } = usePrimaryContact(companyId);
+  const { data: emails = [] } = useEmailsByCompany(companyId);
 
-  const deleteMutation = trpc.company.delete.useMutation({
-    onSuccess: () => {
-      router.push('/companies');
-    },
-  });
+  const deleteMutation = useDeleteCompany();
 
   const handleDelete = () => {
     if (window.confirm(`Are you sure you want to delete ${company?.name}? This action cannot be undone.`)) {
-      deleteMutation.mutate({ id: companyId });
+      deleteMutation.mutate({ id: companyId }, {
+        onSuccess: () => {
+          router.push('/companies');
+        },
+      });
     }
   };
 
@@ -177,7 +182,7 @@ export default function CompanyDetailPage() {
         {/* Contacts */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-900">Contacts ({contacts?.length || 0})</CardTitle>
+            <CardTitle className="text-slate-900">Contacts ({contacts.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {contacts && contacts.length > 0 ? (
@@ -191,7 +196,7 @@ export default function CompanyDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contacts.map((contact) => (
+                  {contacts.map((contact: any) => (
                     <TableRow
                       key={contact.id}
                       className="cursor-pointer hover:bg-blue-50 transition-colors"
@@ -223,7 +228,7 @@ export default function CompanyDetailPage() {
         {/* Projects */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-900">Projects ({projects?.length || 0})</CardTitle>
+            <CardTitle className="text-slate-900">Projects ({projects.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {projects && projects.length > 0 ? (
@@ -236,7 +241,7 @@ export default function CompanyDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {projects.map((project) => (
+                  {projects.map((project: any) => (
                     <TableRow
                       key={project.id}
                       className="hover:bg-slate-50 cursor-pointer"
@@ -261,7 +266,7 @@ export default function CompanyDetailPage() {
         {(company.type === 'client' || company.type === 'both') && (
           <Card className="bg-white border-slate-200">
             <CardHeader>
-              <CardTitle className="text-slate-900">Invoices Sent ({invoices?.length || 0})</CardTitle>
+              <CardTitle className="text-slate-900">Invoices Sent ({invoices.length || 0})</CardTitle>
             </CardHeader>
             <CardContent>
               {invoices && invoices.length > 0 ? (
@@ -274,7 +279,7 @@ export default function CompanyDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {invoices?.map((invoice: any) => (
+                    {invoices.map((invoice: any) => (
                       <TableRow
                         key={invoice.id}
                         className="cursor-pointer hover:bg-blue-50 transition-colors"
@@ -300,7 +305,7 @@ export default function CompanyDetailPage() {
         {(company.type === 'supplier' || company.type === 'both') && (
           <Card className="bg-white border-slate-200">
             <CardHeader>
-              <CardTitle className="text-slate-900">Expenses from this Supplier ({expenses?.length || 0})</CardTitle>
+              <CardTitle className="text-slate-900">Expenses from this Supplier ({expenses.length || 0})</CardTitle>
             </CardHeader>
             <CardContent>
               {expenses && expenses.length > 0 ? (
@@ -314,7 +319,7 @@ export default function CompanyDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {expenses.map((expense) => (
+                    {expenses.map((expense: any) => (
                       <TableRow
                         key={expense.id}
                         className="cursor-pointer hover:bg-blue-50 transition-colors"
@@ -344,7 +349,7 @@ export default function CompanyDetailPage() {
         {/* Emails Section */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-900">Emails ({emails?.length || 0})</CardTitle>
+            <CardTitle className="text-slate-900">Emails ({emails.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {emails && emails.length > 0 ? (
@@ -365,7 +370,7 @@ export default function CompanyDetailPage() {
                       onClick={() => router.push(`/emails/${email.id}`)}
                     >
                       <TableCell className="text-sm">
-                        {new Date(email.email_date).toLocaleDateString()}
+                        {new Date(email.received_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="font-medium">
                         {email.subject || '(no subject)'}

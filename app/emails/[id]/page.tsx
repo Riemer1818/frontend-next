@@ -1,7 +1,6 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { trpc } from '@/lib/trpc';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,50 +8,43 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ArrowLeft, Download, FileText, Mail } from 'lucide-react';
 import Link from 'next/link';
+import { useEmail, useUpdateEmailLabel, useDeleteEmail, useLinkEmailToCompany, useLinkEmailToContact } from '@/lib/supabase/emails';
+import { useCompanies } from '@/lib/supabase/companies';
+import { useContacts } from '@/lib/supabase/contacts';
 
 export default function EmailDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = parseInt(params.id as string);
-  const utils = trpc.useUtils();
 
-  const { data: email, isLoading } = trpc.email.getById.useQuery({ id });
-  const { data: companies } = trpc.company.getAll.useQuery();
-  const { data: contacts } = trpc.contact.getAll.useQuery();
+  const { data: email, isLoading } = useEmail(id);
+  const { data: companiesData } = useCompanies();
+  const companies = companiesData || [];
+  const { data: contactsData } = useContacts();
+  const contacts = contactsData || [];
 
-  const updateLabel = trpc.email.updateLabel.useMutation({
-    onSuccess: () => {
-      utils.email.getById.invalidate({ id });
-      utils.email.list.invalidate();
-    },
-  });
+  const updateLabelMutation = useUpdateEmailLabel();
+  const deleteEmailMutation = useDeleteEmail();
+  const linkToCompanyMutation = useLinkEmailToCompany();
+  const linkToContactMutation = useLinkEmailToContact();
 
-  const deleteEmail = trpc.email.delete.useMutation({
-    onSuccess: () => {
-      router.push('/dashboard');
-    },
-  });
-
-  const linkToCompany = trpc.email.linkToCompany.useMutation({
-    onSuccess: () => {
-      utils.email.getById.invalidate({ id });
-      utils.email.getByCompany.invalidate();
-    },
-  });
-
-  const linkToContact = trpc.email.linkToContact.useMutation({
-    onSuccess: () => {
-      utils.email.getById.invalidate({ id });
-      utils.email.getByContact.invalidate();
-    },
-  });
-
-  const handleLabelUpdate = (label: 'incoming_invoice' | 'receipt' | 'newsletter' | 'other') => {
-    updateLabel.mutate({ id, label });
+  const handleLabelUpdate = async (label: 'incoming_invoice' | 'receipt' | 'newsletter' | 'other') => {
+    try {
+      await updateLabelMutation.mutateAsync({ id, label });
+    } catch (error) {
+      console.error('Failed to update label:', error);
+      alert('Failed to update label');
+    }
   };
 
-  const handleDelete = () => {
-    deleteEmail.mutate({ id });
+  const handleDelete = async () => {
+    try {
+      await deleteEmailMutation.mutateAsync({ id });
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Failed to delete email:', error);
+      alert('Failed to delete email');
+    }
   };
 
   if (isLoading) {
@@ -92,19 +84,6 @@ export default function EmailDetailPage() {
     );
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, any> = {
-      pending: { variant: 'outline', label: 'Pending' },
-      processing: { variant: 'default', label: 'Processing' },
-      completed: { variant: 'secondary', label: 'Processed' },
-      failed: { variant: 'destructive', label: 'Failed' },
-      skipped: { variant: 'outline', label: 'Skipped' },
-    };
-
-    const config = variants[status] || { variant: 'outline', label: status };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
   return (
     <MainLayout>
       <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
@@ -130,12 +109,11 @@ export default function EmailDetailPage() {
 
           <div className="flex items-center gap-2">
             {getLabelBadge(email.label)}
-            {getStatusBadge(email.processing_status)}
             <Button
               variant="destructive"
               size="sm"
               onClick={handleDelete}
-              disabled={deleteEmail.isPending}
+              disabled={deleteEmailMutation.isPending}
             >
               Delete Email
             </Button>
@@ -167,12 +145,7 @@ export default function EmailDetailPage() {
                 <p className="text-slate-900">{email.to_address || '—'}</p>
               </div>
 
-              {email.cc_address && (
-                <div>
-                  <label className="text-sm font-medium text-slate-600">CC</label>
-                  <p className="text-slate-900">{email.cc_address}</p>
-                </div>
-              )}
+              {/* CC address not tracked in new schema */}
 
               <div>
                 <label className="text-sm font-medium text-slate-600">Date</label>
@@ -182,18 +155,7 @@ export default function EmailDetailPage() {
               </div>
             </div>
 
-            {email.linked_invoice_id && (
-              <div className="pt-4 border-t">
-                <label className="text-sm font-medium text-slate-600">Linked Invoice</label>
-                <div className="mt-2">
-                  <Link href={`/expenses/${email.linked_invoice_id}`}>
-                    <Button variant="outline" size="sm">
-                      View Invoice #{email.linked_invoice_id}
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
+            {/* Linked invoice/expense tracking removed from new schema - use linked_company/contact instead */}
 
             <div className="pt-4 border-t space-y-3">
               <div>
@@ -208,7 +170,7 @@ export default function EmailDetailPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => linkToCompany.mutate({ emailId: id, companyId: null })}
+                      onClick={() => linkToCompanyMutation.mutate({ emailId: id, companyId: null })}
                     >
                       Unlink
                     </Button>
@@ -220,12 +182,12 @@ export default function EmailDetailPage() {
                       onChange={(e) => {
                         const companyId = parseInt(e.target.value);
                         if (companyId) {
-                          linkToCompany.mutate({ emailId: id, companyId });
+                          linkToCompanyMutation.mutate({ emailId: id, companyId });
                         }
                       }}
                     >
                       <option value="">Select company...</option>
-                      {companies?.map((company: any) => (
+                      {companies.map((company: any) => (
                         <option key={company.id} value={company.id}>
                           {company.name}
                         </option>
@@ -247,7 +209,7 @@ export default function EmailDetailPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => linkToContact.mutate({ emailId: id, contactId: null })}
+                      onClick={() => linkToContactMutation.mutate({ emailId: id, contactId: null })}
                     >
                       Unlink
                     </Button>
@@ -259,12 +221,12 @@ export default function EmailDetailPage() {
                       onChange={(e) => {
                         const contactId = parseInt(e.target.value);
                         if (contactId) {
-                          linkToContact.mutate({ emailId: id, contactId });
+                          linkToContactMutation.mutate({ emailId: id, contactId });
                         }
                       }}
                     >
                       <option value="">Select contact...</option>
-                      {contacts?.map((contact: any) => (
+                      {contacts.map((contact: any) => (
                         <option key={contact.id} value={contact.id}>
                           {contact.first_name} {contact.last_name}
                         </option>
@@ -287,25 +249,25 @@ export default function EmailDetailPage() {
               <div className="flex gap-2">
                 <Button
                   onClick={() => handleLabelUpdate('incoming_invoice')}
-                  disabled={updateLabel.isPending}
+                  disabled={updateLabelMutation.isPending}
                 >
                   Invoice
                 </Button>
                 <Button
                   onClick={() => handleLabelUpdate('receipt')}
-                  disabled={updateLabel.isPending}
+                  disabled={updateLabelMutation.isPending}
                 >
                   Receipt
                 </Button>
                 <Button
                   onClick={() => handleLabelUpdate('newsletter')}
-                  disabled={updateLabel.isPending}
+                  disabled={updateLabelMutation.isPending}
                 >
                   Newsletter
                 </Button>
                 <Button
                   onClick={() => handleLabelUpdate('other')}
-                  disabled={updateLabel.isPending}
+                  disabled={updateLabelMutation.isPending}
                 >
                   Other
                 </Button>
@@ -382,17 +344,7 @@ export default function EmailDetailPage() {
           </Card>
         )}
 
-        {/* Processing Error */}
-        {email.processing_status === 'failed' && email.processing_error && (
-          <Card className="border-red-200 bg-red-50">
-            <CardHeader>
-              <CardTitle className="text-red-900">Processing Error</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-red-700 text-sm">{email.processing_error}</p>
-            </CardContent>
-          </Card>
-        )}
+        {/* Processing errors removed - no longer tracked in new architecture */}
       </div>
     </MainLayout>
   );

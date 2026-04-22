@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { trpc } from '@/lib/trpc';
+import { useInvoice, useUpdateInvoiceStatus, useDeleteInvoice } from '@/lib/supabase/invoices';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,41 +14,39 @@ export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = parseInt(params.id as string);
-  const utils = trpc.useUtils();
 
-  const { data: invoice, isLoading } = trpc.invoice.getById.useQuery({ id });
+  const { data: invoice, isLoading } = useInvoice(id);
 
-  const updateStatusMutation = trpc.invoice.updateStatus.useMutation({
-    onSuccess: () => {
-      utils.invoice.getById.invalidate({ id });
-      utils.reporting.getOutstandingInvoices.invalidate();
-      utils.reporting.getDashboardStats.invalidate();
-    },
-  });
+  const updateStatusMutation = useUpdateInvoiceStatus();
 
-  const deleteMutation = trpc.invoice.delete.useMutation({
-    onSuccess: () => {
-      router.push('/invoices');
-    },
-  });
+  const deleteMutation = useDeleteInvoice();
 
   const handleMarkAsPaid = () => {
-    const paidDate = new Date().toISOString().split('T')[0];
     updateStatusMutation.mutate({
       id,
-      status: 'paid',
-      paidDate,
+      payment_status: 'paid',
     });
   };
 
   const handleMarkAsSent = () => {
+    // Mark as sent by updating to unpaid status (invoice has been sent to client)
     updateStatusMutation.mutate({
       id,
-      status: 'sent',
+      payment_status: 'unpaid',
     });
   };
 
   const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this invoice?')) {
+      deleteMutation.mutate({ id }, {
+        onSuccess: () => {
+          router.push('/invoices');
+        },
+      });
+    }
+  };
+
+  const handleDeleteOld = () => {
     if (confirm('Are you sure you want to delete this invoice? Time entries will be unmarked and available for invoicing again.')) {
       deleteMutation.mutate({ id });
     }

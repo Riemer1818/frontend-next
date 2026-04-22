@@ -1,6 +1,6 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
+import { useCompany, useUpdateCompany } from '@/lib/supabase/companies';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ export default function EditCompanyPage() {
   const router = useRouter();
   const companyId = parseInt(params.id as string);
 
-  const { data: company, isLoading } = trpc.company.getById.useQuery({ id: companyId });
+  const { data: company, isLoading } = useCompany(companyId);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -55,17 +55,33 @@ export default function EditCompanyPage() {
     }
   }, [company]);
 
-  const updateMutation = trpc.company.update.useMutation({
-    onSuccess: () => {
-      router.push(`/companies/${companyId}`);
-    },
-  });
+  const updateMutation = useUpdateCompany();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Convert empty strings to null for optional fields
+    const cleanedData: any = {
+      ...formData,
+      email: formData.email || null,
+      phone: formData.phone || null,
+      street_address: formData.street_address || null,
+      postal_code: formData.postal_code || null,
+      city: formData.city || null,
+      country: formData.country || null,
+      kvk_number: formData.kvk_number || null,
+      btw_number: formData.btw_number || null,
+      iban: formData.iban || null,
+      notes: formData.notes || null,
+    };
+
     updateMutation.mutate({
       id: companyId,
-      data: formData,
+      data: cleanedData,
+    }, {
+      onSuccess: () => {
+        router.push(`/companies/${companyId}`);
+      },
     });
   };
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { trpc } from '@/lib/trpc';
+import { useCreateCompany } from '@/lib/supabase/companies';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,15 +21,7 @@ export default function CreateCompanyPage() {
   const router = useRouter();
   const [type, setType] = useState<'client' | 'supplier' | 'both'>('client');
 
-  const createCompany = trpc.company.create.useMutation({
-    onSuccess: (data: any) => {
-      toast.success('Company created successfully');
-      router.push(`/companies/${data.id}`);
-    },
-    onError: (error) => {
-      toast.error(`Failed to create company: ${error.message}`);
-    },
-  });
+  const createCompany = useCreateCompany();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,21 +30,29 @@ export default function CreateCompanyPage() {
     const data: any = {
       type,
       name: formData.get('name') as string,
-      main_contact_person: formData.get('main_contact_person') as string || undefined,
-      email: formData.get('email') as string || undefined,
-      phone: formData.get('phone') as string || undefined,
-      street_address: formData.get('street_address') as string || undefined,
-      postal_code: formData.get('postal_code') as string || undefined,
-      city: formData.get('city') as string || undefined,
-      country: formData.get('country') as string || undefined,
-      btw_number: formData.get('btw_number') as string || undefined,
-      kvk_number: formData.get('kvk_number') as string || undefined,
-      iban: formData.get('iban') as string || undefined,
-      notes: formData.get('notes') as string || undefined,
+      main_contact_person: formData.get('main_contact_person') as string || null,
+      email: formData.get('email') as string || null,
+      phone: formData.get('phone') as string || null,
+      street_address: formData.get('street_address') as string || null,
+      postal_code: formData.get('postal_code') as string || null,
+      city: formData.get('city') as string || null,
+      country: formData.get('country') as string || null,
+      btw_number: formData.get('btw_number') as string || null,
+      kvk_number: formData.get('kvk_number') as string || null,
+      iban: formData.get('iban') as string || null,
+      notes: formData.get('notes') as string || null,
       is_active: true,
     };
 
-    createCompany.mutate(data);
+    createCompany.mutate(data, {
+      onSuccess: (result: any) => {
+        toast.success('Company created successfully');
+        router.push(`/companies/${result.id}`);
+      },
+      onError: (error: any) => {
+        toast.error(`Failed to create company: ${error.message}`);
+      },
+    });
   };
 
   return (

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { trpc } from '@/lib/trpc';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,19 +11,27 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { CheckCircle, XCircle, ArrowLeft, Save, FileText } from 'lucide-react';
+import { useExpense, useUpdateExpense, useApproveExpense, useRejectExpense, useUploadExpensePdf } from '@/lib/supabase/expenses';
+import { useProjects } from '@/lib/supabase/projects';
+
+// TODO: Migrate to Supabase hooks
+// Missing hooks:
+// - useExpenseCategories (need to create)
 
 export default function ExpenseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = parseInt(params.id as string);
-  const utils = trpc.useUtils();
 
   const [isEditing, setIsEditing] = useState(false);
   const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
 
-  const { data: expense, isLoading } = trpc.expense.getById.useQuery({ id });
-  const { data: projects } = trpc.project.getAll.useQuery({ status: 'active' });
-  const { data: categories } = trpc.expenseCategory.getAll.useQuery();
+  const { data: expense, isLoading } = useExpense(id);
+  const { data: projectsData } = useProjects({ status: 'active' });
+  const projects = projectsData || [];
+
+  // TODO: Replace with useExpenseCategories once created
+  const categories: any[] = [];
 
   // Auto-enable edit mode for pending expenses (review mode)
   const isPendingStatus = expense?.review_status === 'pending';
@@ -55,9 +62,9 @@ export default function ExpenseDetailPage() {
       setEditedData({
         supplier_name: expense.supplier_name,
         description: expense.description || '',
-        subtotal: parseFloat(expense.original_subtotal || expense.subtotal),
-        tax_amount: parseFloat(expense.original_tax_amount || expense.tax_amount),
-        total_amount: parseFloat(expense.original_amount || expense.total_amount),
+        subtotal: expense.subtotal || 0,
+        tax_amount: expense.tax_amount || 0,
+        total_amount: expense.total_amount || 0,
         project_id: expense.project_id || null,
         currency: expense.original_currency || 'EUR',
         invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
@@ -67,38 +74,10 @@ export default function ExpenseDetailPage() {
     }
   }, [expense]);
 
-  const approveMutation = trpc.expense.approve.useMutation({
-    onSuccess: () => {
-      utils.expense.getById.invalidate({ id });
-      utils.expense.getPending.invalidate();
-      utils.reporting.getDashboardStats.invalidate();
-      router.push('/money');
-    },
-  });
-
-  const rejectMutation = trpc.expense.reject.useMutation({
-    onSuccess: () => {
-      utils.expense.getById.invalidate({ id });
-      utils.expense.getPending.invalidate();
-      utils.reporting.getDashboardStats.invalidate();
-      router.push('/money');
-    },
-  });
-
-  const uploadPdfMutation = trpc.expense.uploadPdf.useMutation({
-    onSuccess: () => {
-      utils.expense.getById.invalidate({ id });
-    },
-  });
-
-  const updateMutation = trpc.expense.approve.useMutation({
-    onSuccess: () => {
-      utils.expense.getById.invalidate({ id });
-      utils.expense.getPending.invalidate();
-      utils.reporting.getDashboardStats.invalidate();
-      setIsEditing(false);
-    },
-  });
+  const approveMutation = useApproveExpense();
+  const rejectMutation = useRejectExpense();
+  const uploadPdfMutation = useUploadExpensePdf();
+  const updateMutation = useUpdateExpense();
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -110,9 +89,9 @@ export default function ExpenseDetailPage() {
       setEditedData({
         supplier_name: expense.supplier_name,
         description: expense.description || '',
-        subtotal: parseFloat(expense.original_subtotal || expense.subtotal),
-        tax_amount: parseFloat(expense.original_tax_amount || expense.tax_amount),
-        total_amount: parseFloat(expense.original_amount || expense.total_amount),
+        subtotal: expense.original_subtotal || expense.subtotal || 0,
+        tax_amount: expense.original_tax_amount || expense.tax_amount || 0,
+        total_amount: expense.original_amount || expense.total_amount || 0,
         project_id: expense.project_id || null,
         currency: expense.original_currency || 'EUR',
         invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
@@ -123,25 +102,43 @@ export default function ExpenseDetailPage() {
     setIsEditing(false);
   };
 
-  const handleSave = () => {
-    updateMutation.mutate({
-      id,
-      edits: editedData,
-    });
+  const handleSave = async () => {
+    try {
+      await updateMutation.mutateAsync({
+        id,
+        data: editedData as any,
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update expense:', error);
+      alert('Failed to update expense');
+    }
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     // Always approve with the current edited data in review mode
     console.log('🔍 FRONTEND APPROVE: Sending editedData:', editedData);
-    approveMutation.mutate({
-      id,
-      edits: editedData,
-    });
+    try {
+      await approveMutation.mutateAsync({
+        id,
+        edits: editedData as any,
+      });
+      router.push('/money');
+    } catch (error) {
+      console.error('Failed to approve expense:', error);
+      alert('Failed to approve expense');
+    }
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (confirm('Are you sure you want to reject this expense?')) {
-      rejectMutation.mutate({ id });
+      try {
+        await rejectMutation.mutateAsync({ id });
+        router.push('/money');
+      } catch (error) {
+        console.error('Failed to reject expense:', error);
+        alert('Failed to reject expense');
+      }
     }
   };
 
@@ -187,7 +184,6 @@ export default function ExpenseDetailPage() {
               <h1 className="text-3xl font-bold text-slate-900">Expense Details</h1>
               <p className="text-slate-600 mt-1">
                 {expense.supplier_name} • {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
-                {expense.language && <span> • {expense.language.toUpperCase()}</span>}
               </p>
             </div>
           </div>
@@ -264,7 +260,7 @@ export default function ExpenseDetailPage() {
                 <label className="text-sm font-medium text-slate-700">Project</label>
                 {isEditing ? (
                   <Select
-                    value={editedData.project_id?.toString() || 'none'}
+                    value={editedData.project_id.toString() || 'none'}
                     onValueChange={(value) =>
                       setEditedData({ ...editedData, project_id: value === 'none' ? null : parseInt(value) })
                     }
@@ -274,7 +270,7 @@ export default function ExpenseDetailPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No project</SelectItem>
-                      {projects?.map((project: any) => (
+                      {projects.map((project: any) => (
                         <SelectItem key={project.id} value={project.id.toString()}>
                           {project.name}
                         </SelectItem>
@@ -293,7 +289,7 @@ export default function ExpenseDetailPage() {
                 <label className="text-sm font-medium text-slate-700">Category</label>
                 {isEditing ? (
                   <Select
-                    value={editedData.category?.toString() || 'none'}
+                    value={editedData.category.toString() || 'none'}
                     onValueChange={(value) =>
                       setEditedData({ ...editedData, category: value === 'none' ? null : parseInt(value) })
                     }
@@ -303,7 +299,7 @@ export default function ExpenseDetailPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No category</SelectItem>
-                      {categories?.map((category: any) => (
+                      {categories.map((category: any) => (
                         <SelectItem key={category.id} value={category.id.toString()}>
                           {category.name}
                         </SelectItem>
@@ -312,7 +308,7 @@ export default function ExpenseDetailPage() {
                   </Select>
                 ) : (
                   <p className="text-slate-900 mt-1">
-                    {(categories as any)?.find((c: any) => c.id === expense.category_id)?.name || '—'}
+                    {(categories as any).find((c: any) => c.id === expense.category_id).name || '—'}
                   </p>
                 )}
               </div>
@@ -411,15 +407,15 @@ export default function ExpenseDetailPage() {
                       {expense.original_currency && expense.original_currency !== 'EUR' ? (
                         <>
                           <p className="text-lg font-bold text-slate-900">
-                            {expense.original_currency} {parseFloat(expense.original_subtotal || 0).toFixed(2)}
+                            {expense.original_currency} {(expense.original_subtotal || 0).toFixed(2)}
                           </p>
                           <p className="text-xs text-slate-500 mt-1">
-                            ≈ €{parseFloat(expense.subtotal).toFixed(2)}
+                            ≈ €{(expense.subtotal || 0).toFixed(2)}
                           </p>
                         </>
                       ) : (
                         <p className="text-lg font-bold text-slate-900">
-                          €{parseFloat(expense.subtotal).toFixed(2)}
+                          €{(expense.subtotal || 0).toFixed(2)}
                         </p>
                       )}
                     </div>
@@ -444,15 +440,15 @@ export default function ExpenseDetailPage() {
                       {expense.original_currency && expense.original_currency !== 'EUR' ? (
                         <>
                           <p className="text-lg font-bold text-slate-900">
-                            {expense.original_currency} {parseFloat(expense.original_tax_amount || 0).toFixed(2)}
+                            {expense.original_currency} {(expense.original_tax_amount || 0).toFixed(2)}
                           </p>
                           <p className="text-xs text-slate-500 mt-1">
-                            ≈ €{parseFloat(expense.tax_amount).toFixed(2)}
+                            ≈ €{(expense.tax_amount || 0).toFixed(2)}
                           </p>
                         </>
                       ) : (
                         <p className="text-lg font-bold text-slate-900">
-                          €{parseFloat(expense.tax_amount).toFixed(2)}
+                          €{(expense.tax_amount || 0).toFixed(2)}
                         </p>
                       )}
                     </div>
@@ -477,15 +473,15 @@ export default function ExpenseDetailPage() {
                       {expense.original_currency && expense.original_currency !== 'EUR' ? (
                         <>
                           <p className="text-xl font-bold text-slate-900">
-                            {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
+                            {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
                           </p>
                           <p className="text-xs text-slate-500 mt-1">
-                            ≈ €{parseFloat(expense.total_amount).toFixed(2)} @ {parseFloat(expense.exchange_rate || 1).toFixed(4)}
+                            ≈ €{expense.total_amount.toFixed(2)} @ {(expense.exchange_rate || 1).toFixed(4)}
                           </p>
                         </>
                       ) : (
                         <p className="text-xl font-bold text-slate-900">
-                          €{parseFloat(expense.total_amount).toFixed(2)}
+                          €{expense.total_amount.toFixed(2)}
                         </p>
                       )}
                     </div>
@@ -505,13 +501,13 @@ export default function ExpenseDetailPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-slate-900">
-                        {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
+                        {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
                       </p>
                       <p className="text-sm text-slate-600 mt-1">
-                        = €{parseFloat(expense.total_amount).toFixed(2)}
+                        = €{expense.total_amount.toFixed(2)}
                       </p>
                       <p className="text-xs text-slate-500">
-                        @ {parseFloat(expense.exchange_rate || 1).toFixed(4)}
+                        @ {(expense.exchange_rate || 1).toFixed(4)}
                       </p>
                     </div>
                   </div>
@@ -524,10 +520,10 @@ export default function ExpenseDetailPage() {
                   <label className="text-sm font-medium text-slate-700">Currency Conversion</label>
                   <div className="mt-2 space-y-1 text-sm">
                     <p className="text-slate-700">
-                      <span className="font-medium">Original:</span> {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
+                      <span className="font-medium">Original:</span> {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
                     </p>
                     <p className="text-slate-700">
-                      <span className="font-medium">Rate:</span> {parseFloat(expense.exchange_rate || 1).toFixed(4)}
+                      <span className="font-medium">Rate:</span> {(expense.exchange_rate || 1).toFixed(4)}
                     </p>
                     {expense.exchange_rate_date && (
                       <p className="text-slate-500 text-xs">
@@ -607,34 +603,28 @@ export default function ExpenseDetailPage() {
         <Card className="bg-white border-slate-200">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Attachments {expense.attachments && expense.attachments.length > 0 && `(${expense.attachments.length})`}</span>
+              <span>Invoice Document</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {expense.attachments && expense.attachments.length > 0 ? (
-              <div className="space-y-6">
-                {expense.attachments.map((attachment: any, index: number) => (
-                  <div key={attachment.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-slate-700">
-                          {attachment.file_name}
-                        </p>
-                        <p className="text-xs text-slate-500 capitalize">
-                          {attachment.attachment_type} • {(attachment.file_size / 1024).toFixed(1)} KB
-                        </p>
-                      </div>
-                      <Badge variant={attachment.attachment_type === 'invoice' ? 'default' : 'secondary'}>
-                        {attachment.attachment_type}
-                      </Badge>
-                    </div>
-                    <iframe
-                      src={`data:${attachment.file_type};base64,${attachment.file_data}`}
-                      className="w-full h-[600px] border border-slate-200 rounded"
-                      title={attachment.file_name}
-                    />
+            {expense.invoice_file ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">
+                      {expense.invoice_file_name || 'Invoice Document'}
+                    </p>
+                    <p className="text-xs text-slate-500 capitalize">
+                      {expense.invoice_file_type}
+                    </p>
                   </div>
-                ))}
+                  <Badge variant="default">Invoice</Badge>
+                </div>
+                <iframe
+                  src={`data:${expense.invoice_file_type};base64,${expense.invoice_file}`}
+                  className="w-full h-[600px] border border-slate-200 rounded"
+                  title={expense.invoice_file_name || 'Invoice'}
+                />
               </div>
             ) : uploadedPdf || expense.invoice_file_base64 ? (
               <div className="space-y-4">
@@ -648,7 +638,7 @@ export default function ExpenseDetailPage() {
                 )}
                 {uploadPdfMutation.isError && (
                   <p className="text-sm text-red-600 text-center">
-                    Error: {uploadPdfMutation.error?.message || 'Failed to save PDF'}
+                    Error: {uploadPdfMutation.error.message || 'Failed to save PDF'}
                   </p>
                 )}
                 {uploadPdfMutation.isSuccess && (
@@ -671,11 +661,11 @@ export default function ExpenseDetailPage() {
                     type="file"
                     accept="application/pdf"
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
+                      const file = e.target.files[0];
                       if (file && file.type === 'application/pdf') {
                         const reader = new FileReader();
                         reader.onload = () => {
-                          const base64 = reader.result?.toString().split(',')[1];
+                          const base64 = reader.result.toString().split(',')[1];
                           if (base64) {
                             setUploadedPdf(base64);
                             // Auto-save PDF immediately

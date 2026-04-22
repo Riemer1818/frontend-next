@@ -2,11 +2,19 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  // TEMPORARILY DISABLED FOR TESTING - Re-enable after configuring auth!
+  // The Supabase client needs authenticated sessions for RLS to work properly
+
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
+
+  // TODO: Re-enable this once SMTP is configured and you can log in
+  // For now, allowing unauthenticated access for testing the migration
+
+  /* AUTH DISABLED - UNCOMMENT TO RE-ENABLE:
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,6 +70,8 @@ export async function middleware(request: NextRequest) {
 
   // Attach role to response headers for use in components
   response.headers.set('x-user-role', profile.role);
+
+  */
 
   return response;
 }

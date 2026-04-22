@@ -1,6 +1,7 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
+import { useDashboardStats, useOutstandingInvoices, useIncomeExpenseTrend } from '@/lib/supabase/reporting';
+import { useEmails, useEmailStats, useUpdateEmailLabel, useMarkEmailAsRead, useDeleteEmail, useFetchUnreadEmails } from '@/lib/supabase/emails';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,63 +15,68 @@ import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const [isChecking, setIsChecking] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const router = useRouter();
 
-  const { data: stats, isLoading: loadingStats } = trpc.reporting.getDashboardStats.useQuery();
-  const { data: outstandingInvoices, isLoading: loadingInvoices } = trpc.reporting.getOutstandingInvoices.useQuery();
-  const { data: trendData, isLoading: loadingTrend } = trpc.reporting.getIncomeExpenseTrend.useQuery({ months: 6 });
-  const { data: emailStats, isLoading: loadingEmailStats } = trpc.email.getStats.useQuery();
-  const { data: emails, isLoading: loadingEmails, refetch: refetchEmails } = trpc.email.list.useQuery({ page: 1, pageSize: 10 });
+  const { data: stats, isLoading: loadingStats, error: statsError } = useDashboardStats(selectedDate);
+  const { data: outstandingInvoices, isLoading: loadingInvoices } = useOutstandingInvoices();
+  const { data: trendData, isLoading: loadingTrend } = useIncomeExpenseTrend(6, selectedDate);
+  const { data: emailStats, isLoading: loadingEmailStats } = useEmailStats();
+  const { data: emails, isLoading: loadingEmails, refetch: refetchEmails } = useEmails(undefined, false, 1, 10);
 
-  const fetchEmails = trpc.email.fetchUnread.useMutation({
-    onSuccess: (data: any) => {
-      if (data.success) {
-        toast.success(`Fetched ${data.count} new email(s)!`);
-        refetchEmails();
-      } else {
-        toast.error(data.error || 'Failed to fetch emails');
-      }
-      setIsChecking(false);
-    },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`);
-      setIsChecking(false);
-    },
-  });
+  const fetchEmails = useFetchUnreadEmails();
 
-  const updateLabel = trpc.email.updateLabel.useMutation({
-    onSuccess: () => {
-      toast.success('Email labeled!');
-      refetchEmails();
-    },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`);
-    },
-  });
+  const updateLabel = useUpdateEmailLabel();
 
-  const deleteEmail = trpc.email.delete.useMutation({
-    onSuccess: () => {
-      toast.success('Email deleted!');
-      refetchEmails();
-    },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`);
-    },
-  });
+  const deleteEmail = useDeleteEmail();
 
   const handleFetchEmails = () => {
     setIsChecking(true);
     toast.info('Fetching unread emails...');
-    fetchEmails.mutate();
+    fetchEmails.mutate(undefined, {
+      onSuccess: (data: any) => {
+        if (data.success) {
+          toast.success(`Fetched ${data.count} new email(s)!`);
+          refetchEmails();
+        } else {
+          toast.error(data.error || 'Failed to fetch emails');
+        }
+        setIsChecking(false);
+      },
+      onError: (error: any) => {
+        toast.error(`Error: ${error.message}`);
+        setIsChecking(false);
+      },
+    });
   };
 
   const handleLabelUpdate = (emailId: number, label: 'incoming_invoice' | 'receipt' | 'newsletter' | 'other') => {
-    updateLabel.mutate({ id: emailId, label });
+    updateLabel.mutate({ id: emailId, label }, {
+      onSuccess: () => {
+        toast.success('Email labeled!');
+        refetchEmails();
+      },
+      onError: (error: any) => {
+        toast.error(`Error: ${error.message}`);
+      },
+    });
   };
 
   const handleDeleteEmail = (emailId: number) => {
-    deleteEmail.mutate({ id: emailId });
+    deleteEmail.mutate({ id: emailId }, {
+      onSuccess: () => {
+        toast.success('Email deleted!');
+        refetchEmails();
+      },
+      onError: (error: any) => {
+        toast.error(`Error: ${error.message}`);
+      },
+    });
   };
+
+  const outstandingInvoicesArray = outstandingInvoices || [];
+  const trendDataArray = trendData || [];
+  const emailsArray = emails?.emails || [];
 
   if (loadingStats) {
     return (
@@ -82,15 +88,76 @@ export default function DashboardPage() {
     );
   }
 
-  const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
-  const currentYear = new Date().getFullYear();
+  if (statsError || !stats) {
+    return (
+      <MainLayout>
+        <div className="p-8">
+          <div className="bg-red-50 border border-red-200 rounded p-4">
+            <h2 className="text-red-800 font-semibold">Error loading dashboard</h2>
+            <p className="text-red-600 text-sm mt-1">{statsError?.message || 'Failed to load stats'}</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const currentQuarter = Math.ceil((selectedDate.getMonth() + 1) / 3);
+  const currentYear = selectedDate.getFullYear();
+  const selectedMonth = format(selectedDate, 'MMMM yyyy');
+
+  const goToPreviousMonth = () => {
+    setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1));
+  };
+
+  const goToCurrentMonth = () => {
+    setSelectedDate(new Date());
+  };
+
+  const isCurrentMonth = selectedDate.getMonth() === new Date().getMonth() &&
+                         selectedDate.getFullYear() === new Date().getFullYear();
 
   return (
     <MainLayout>
       <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
         <div className="flex justify-between items-center">
-          <div>
+          <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+            <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-slate-200">
+              <Button
+                onClick={goToPreviousMonth}
+                size="sm"
+                variant="outline"
+                className="px-2"
+              >
+                ←
+              </Button>
+              <span className="text-sm font-medium text-slate-700 min-w-[120px] text-center">
+                {selectedMonth}
+              </span>
+              <Button
+                onClick={goToNextMonth}
+                size="sm"
+                variant="outline"
+                className="px-2"
+                disabled={isCurrentMonth}
+              >
+                →
+              </Button>
+              {!isCurrentMonth && (
+                <Button
+                  onClick={goToCurrentMonth}
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs ml-2"
+                >
+                  Today
+                </Button>
+              )}
+            </div>
           </div>
           <Button
             onClick={handleFetchEmails}
@@ -109,8 +176,8 @@ export default function DashboardPage() {
               <CardTitle className="text-slate-700 text-sm font-medium">Income (This Month)</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-slate-900">€{stats?.income_this_month?.toFixed(2) || '0.00'}</p>
-              <p className="text-sm text-slate-500 mt-1">YTD: €{stats?.income_ytd?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-bold text-slate-900">€{(stats.income_this_month || 0).toFixed(2)}</p>
+              <p className="text-sm text-slate-500 mt-1">YTD: €{(stats.income_ytd || 0).toFixed(2)}</p>
             </CardContent>
           </Card>
 
@@ -120,8 +187,8 @@ export default function DashboardPage() {
               <CardTitle className="text-slate-700 text-sm font-medium">Expenses (This Month)</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-slate-900">€{stats?.expenses_this_month?.toFixed(2) || '0.00'}</p>
-              <p className="text-sm text-slate-500 mt-1">YTD: €{stats?.expenses_ytd?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-bold text-slate-900">€{(stats.expenses_this_month || 0).toFixed(2)}</p>
+              <p className="text-sm text-slate-500 mt-1">YTD: €{(stats.expenses_ytd || 0).toFixed(2)}</p>
             </CardContent>
           </Card>
 
@@ -131,8 +198,8 @@ export default function DashboardPage() {
               <CardTitle className="text-slate-700 text-sm font-medium">Profit (This Month)</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-slate-900">€{stats?.profit_this_month?.toFixed(2) || '0.00'}</p>
-              <p className="text-sm text-slate-500 mt-1">YTD: €{stats?.profit_ytd?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-bold text-slate-900">€{(stats.profit_this_month || 0).toFixed(2)}</p>
+              <p className="text-sm text-slate-500 mt-1">YTD: €{(stats.profit_ytd || 0).toFixed(2)}</p>
             </CardContent>
           </Card>
 
@@ -142,7 +209,7 @@ export default function DashboardPage() {
               <CardTitle className="text-slate-700 text-sm font-medium">Active Projects</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-slate-900">{stats?.active_projects_count || 0}</p>
+              <p className="text-3xl font-bold text-slate-900">{stats.active_projects || 0}</p>
             </CardContent>
           </Card>
         </div>
@@ -157,8 +224,8 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-white">€{stats?.vat_this_quarter?.toFixed(2) || '0.00'}</p>
-              <p className="text-sm text-blue-100 mt-1">Total outstanding: €{stats?.vat_to_pay_total?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-bold text-white">€{(stats.vat_this_quarter || 0).toFixed(2)}</p>
+              <p className="text-sm text-blue-100 mt-1">Total outstanding: €{(stats.vat_to_pay_total || 0).toFixed(2)}</p>
             </CardContent>
           </Card>
 
@@ -170,7 +237,7 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-white">€{parseFloat(String(stats?.estimated_income_tax_ytd || '0')).toFixed(2)}</p>
+              <p className="text-3xl font-bold text-white">€{parseFloat(String(stats.estimated_income_tax_ytd || '0')).toFixed(2)}</p>
               <p className="text-sm text-blue-100 mt-1">30% of profit YTD</p>
             </CardContent>
           </Card>
@@ -183,8 +250,8 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-white">{stats?.pending_expenses_count || 0}</p>
-              <p className="text-sm text-blue-100 mt-1">Total: €{stats?.pending_expenses_amount?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-bold text-white">{stats.pending_expenses_count || 0}</p>
+              <p className="text-sm text-blue-100 mt-1">Total: €{(stats.pending_expenses_amount || 0).toFixed(2)}</p>
               <Link href="/expenses?status=pending" className="inline-block mt-2 text-sm text-white hover:underline">
                 Review now →
               </Link>
@@ -201,15 +268,15 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm text-slate-600 mb-2">Total Income</p>
-                <p className="text-2xl font-bold text-slate-900">€{stats?.income_ytd?.toFixed(2) || '0.00'}</p>
+                <p className="text-2xl font-bold text-slate-900">€{(stats.income_ytd || 0).toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-600 mb-2">Total Expenses</p>
-                <p className="text-2xl font-bold text-slate-900">€{stats?.expenses_ytd?.toFixed(2) || '0.00'}</p>
+                <p className="text-2xl font-bold text-slate-900">€{(stats.expenses_ytd || 0).toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-600 mb-2">Net Profit</p>
-                <p className="text-2xl font-bold text-slate-900">€{stats?.profit_ytd?.toFixed(2) || '0.00'}</p>
+                <p className="text-2xl font-bold text-slate-900">€{(stats.profit_ytd || 0).toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
@@ -225,11 +292,11 @@ export default function DashboardPage() {
             <CardContent>
               {loadingInvoices ? (
                 <p className="text-slate-500">Loading...</p>
-              ) : !outstandingInvoices || outstandingInvoices.length === 0 ? (
+              ) : outstandingInvoicesArray.length === 0 ? (
                 <p className="text-slate-500">No outstanding invoices</p>
               ) : (
                 <div className="space-y-3">
-                  {outstandingInvoices.map((invoice: any) => (
+                  {outstandingInvoicesArray.map((invoice: any) => (
                     <div key={invoice.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -279,11 +346,11 @@ export default function DashboardPage() {
                   {(() => {
                     // Calculate global max across all months (including uninvoiced)
                     const globalMax = Math.max(
-                      ...trendData.flatMap((m: any) => [m.income + (m.uninvoiced || 0), m.expenses]),
+                      ...trendDataArray.flatMap((m: any) => [m.income + (m.uninvoiced || 0), m.expenses]),
                       1
                     );
 
-                    return trendData.map((month: any) => {
+                    return trendDataArray.map((month: any) => {
                       const incomeWidth = (month.income / globalMax) * 100;
                       const totalIncomeWidth = ((month.income + (month.uninvoiced || 0)) / globalMax) * 100;
                       const expenseWidth = (month.expenses / globalMax) * 100;
@@ -291,7 +358,7 @@ export default function DashboardPage() {
                       return (
                         <div key={month.period} className="space-y-1">
                         <div className="flex justify-between text-xs text-slate-600">
-                          <span className="font-medium">{format(new Date(month.period), 'MMM yyyy')}</span>
+                          <span className="font-medium">{format(new Date(month.period + '-01'), 'MMM yyyy')}</span>
                           <span>Profit: €{month.profit.toFixed(0)}
                             {month.uninvoiced > 0 && <span className="text-green-400 ml-1">(+€{month.uninvoiced.toFixed(0)} uninv.)</span>}
                           </span>
@@ -350,10 +417,10 @@ export default function DashboardPage() {
               {emailStats && (
                 <div className="flex gap-4 text-sm">
                   <span className="text-slate-600">
-                    Total: <span className="font-bold text-slate-900">{emailStats.total}</span>
+                    Total: <span className="font-bold text-slate-900">{emailStats.total_count}</span>
                   </span>
                   <span className="text-slate-600">
-                    Unread: <span className="font-bold text-slate-900">{emailStats.unread}</span>
+                    Unread: <span className="font-bold text-slate-900">{emailStats.unread_count}</span>
                   </span>
                 </div>
               )}
@@ -362,7 +429,7 @@ export default function DashboardPage() {
           <CardContent>
             {loadingEmails ? (
               <p className="text-slate-500">Loading...</p>
-            ) : !emails || emails.emails.length === 0 ? (
+            ) : !emails || emailsArray.length === 0 ? (
               <p className="text-slate-500">No emails yet. Click "Fetch New Emails" to import from your inbox.</p>
             ) : (
               <Table>
@@ -376,7 +443,7 @@ export default function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {emails.emails.map((email: any) => (
+                  {emailsArray.map((email: any) => (
                     <TableRow
                       key={email.id}
                       className="cursor-pointer hover:bg-blue-50 transition-colors"

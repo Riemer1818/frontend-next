@@ -1,6 +1,7 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
+import { useProject, useUpdateProject } from '@/lib/supabase/projects';
+import { useCompanies } from '@/lib/supabase/companies';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,8 +25,9 @@ export default function EditProjectPage() {
   const router = useRouter();
   const projectId = parseInt(params.id as string);
 
-  const { data: project, isLoading } = trpc.project.getById.useQuery({ id: projectId });
-  const { data: companies } = trpc.company.getAll.useQuery({ type: 'client', isActive: true });
+  const { data: project, isLoading } = useProject(projectId);
+  const { data: allCompanies = [] } = useCompanies();
+  const companies = allCompanies.filter(c => c.type === 'client' || c.type === 'both');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -42,9 +44,9 @@ export default function EditProjectPage() {
     if (project) {
       setFormData({
         name: project.name || '',
-        client_id: project.client_id?.toString() || '',
+        client_id: project.client_id.toString() || '',
         description: project.description || '',
-        hourly_rate: project.hourly_rate?.toString() || '',
+        hourly_rate: project.hourly_rate.toString() || '',
         status: project.status || 'active',
         start_date: project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '',
         end_date: project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '',
@@ -53,15 +55,7 @@ export default function EditProjectPage() {
     }
   }, [project]);
 
-  const updateMutation = trpc.project.update.useMutation({
-    onSuccess: () => {
-      toast.success('Project updated successfully');
-      router.push(`/projects/${projectId}`);
-    },
-    onError: (error) => {
-      toast.error(`Failed to update project: ${error.message}`);
-    },
-  });
+  const updateMutation = useUpdateProject();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,13 +71,20 @@ export default function EditProjectPage() {
       data: {
         name: formData.name,
         client_id: clientId,
-        description: formData.description || undefined,
+        description: formData.description || null,
         hourly_rate: parseFloat(formData.hourly_rate) || 0,
         status: formData.status as 'active' | 'completed' | 'on_hold' | 'cancelled',
-        start_date: formData.start_date || undefined,
-        end_date: formData.end_date || undefined,
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null,
         color: formData.color,
-        tax_rate_id: 1, // Default tax rate
+      },
+    }, {
+      onSuccess: () => {
+        toast.success('Project updated successfully');
+        router.push(`/projects/${projectId}`);
+      },
+      onError: (error: any) => {
+        toast.error(`Failed to update project: ${error.message}`);
       },
     });
   };
@@ -151,8 +152,8 @@ export default function EditProjectPage() {
                       <SelectValue placeholder="Select a client" />
                     </SelectTrigger>
                     <SelectContent>
-                      {companies?.map((company) => (
-                        <SelectItem key={company.id} value={company.id?.toString() ?? ''}>
+                      {companies?.map((company: any) => (
+                        <SelectItem key={company.id} value={company.id.toString() ?? ''}>
                           {company.name}
                         </SelectItem>
                       ))}

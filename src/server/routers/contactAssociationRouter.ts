@@ -30,10 +30,10 @@ const contactAssociationRouter = router({
       contact_id: z.number().int().positive(),
       company_id: z.number().int().positive().optional(),
       project_id: z.number().int().positive().optional(),
-      role: z.string().max(100).optional(),
+      role: z.string().max(100).optional().or(z.literal('')),
       is_primary: z.boolean().default(false),
       is_active: z.boolean().default(true),
-      notes: z.string().optional(),
+      notes: z.string().optional().or(z.literal('')),
     }))
     .mutation(async ({ ctx, input }) => {
       const association = new ContactAssociation({ ...input, id: 0 });
@@ -52,10 +52,10 @@ const contactAssociationRouter = router({
     .input(z.object({
       id: z.number(),
       data: z.object({
-        role: z.string().max(100).optional(),
+        role: z.string().max(100).optional().or(z.literal('')),
         is_primary: z.boolean().optional(),
         is_active: z.boolean().optional(),
-        notes: z.string().optional(),
+        notes: z.string().optional().or(z.literal('')),
       }),
     }))
     .mutation(async ({ ctx, input }) => {

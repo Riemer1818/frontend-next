@@ -3,7 +3,7 @@ import type { Context } from '@/server/context';
 import superjson from 'superjson';
 
 const t = initTRPC.context<Context>().create({
-  transformer: superjson,
+  // transformer: superjson, // Temporarily disabled to test
 });
 
 export const router = t.router;

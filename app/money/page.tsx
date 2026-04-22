@@ -1,6 +1,7 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
+import { useDashboardStats, useOutstandingInvoices, useIncomeExpenseTrend } from '@/lib/supabase/reporting';
+import { useExpenses, usePendingExpenses } from '@/lib/supabase/expenses';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,17 +19,32 @@ export default function MoneyPage() {
 
   const [showAllExpenses, setShowAllExpenses] = React.useState(false);
 
-  const { data: stats, isLoading: loadingStats } = trpc.reporting.getDashboardStats.useQuery();
-  const { data: outstandingInvoices, isLoading: loadingInvoices } = trpc.reporting.getOutstandingInvoices.useQuery();
-  const { data: trendData, isLoading: loadingTrend } = trpc.reporting.getIncomeExpenseTrend.useQuery({ months: 6 });
-  const { data: pendingExpenses, isLoading: loadingExpenses } = trpc.expense.getPending.useQuery();
-  const { data: allExpenses, isLoading: loadingAllExpenses } = trpc.expense.getAll.useQuery();
+  const { data: stats, isLoading: loadingStats, error: statsError } = useDashboardStats();
+  const { data: outstandingInvoices, isLoading: loadingInvoices } = useOutstandingInvoices();
+  const { data: trendData, isLoading: loadingTrend } = useIncomeExpenseTrend(6);
+  const { data: pendingExpenses, isLoading: loadingExpenses } = usePendingExpenses();
+  const { data: allExpenses, isLoading: loadingAllExpenses } = useExpenses();
+
+  const outstandingInvoicesArray = outstandingInvoices || [];
+  const trendDataArray = trendData || [];
+  const pendingExpensesArray = pendingExpenses || [];
+  const allExpensesArray = allExpenses || [];
 
   if (loadingStats) {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
           <p className="text-slate-500">Loading...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (statsError || !stats) {
+    return (
+      <MainLayout>
+        <div className="flex h-full items-center justify-center">
+          <p className="text-red-500">Error loading stats: {statsError?.message || 'No data'}</p>
         </div>
       </MainLayout>
     );
@@ -43,16 +59,16 @@ export default function MoneyPage() {
           </div>
           <div className="flex gap-3">
             <button
-              onClick={() => router.push('/btw-declaration')}
+              onClick={() => router.push('/money/vat')}
               className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
             >
-              BTW Aangifte
+              VAT
             </button>
             <button
-              onClick={() => router.push('/taxes')}
+              onClick={() => router.push('/money/tax')}
               className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 flex items-center gap-2"
             >
-              Taxes
+              Tax
             </button>
             <button
               onClick={() => router.push('/expenses/new')}
@@ -81,8 +97,8 @@ export default function MoneyPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-white">€{stats?.vat_this_quarter?.toFixed(2) || '0.00'}</p>
-              <p className="text-sm text-blue-100 mt-1">Total outstanding: €{stats?.vat_to_pay_total?.toFixed(2) || '0.00'}</p>
+              <p className="text-3xl font-bold text-white">€{stats.vat_this_quarter.toFixed(2)}</p>
+              <p className="text-sm text-blue-100 mt-1">Total outstanding: €{stats.vat_to_pay_total.toFixed(2)}</p>
             </CardContent>
           </Card>
 
@@ -98,19 +114,19 @@ export default function MoneyPage() {
                     <TrendingUp className="h-4 w-4 text-green-600" />
                     Income
                   </span>
-                  <span className="font-bold text-green-600">€{stats?.income_this_month?.toFixed(2) || '0.00'}</span>
+                  <span className="font-bold text-green-600">€{stats.income_this_month.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-600 flex items-center gap-2">
                     <TrendingDown className="h-4 w-4 text-red-600" />
                     Expenses
                   </span>
-                  <span className="font-bold text-red-600">€{stats?.expenses_this_month?.toFixed(2) || '0.00'}</span>
+                  <span className="font-bold text-red-600">€{stats.expenses_this_month.toFixed(2)}</span>
                 </div>
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-slate-700">Profit</span>
-                    <span className="text-xl font-bold text-slate-900">€{stats?.profit_this_month?.toFixed(2) || '0.00'}</span>
+                    <span className="text-xl font-bold text-slate-900">€{stats.profit_this_month.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -126,16 +142,16 @@ export default function MoneyPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-600">Income</span>
-                  <span className="font-bold text-slate-900">€{stats?.income_ytd?.toFixed(2) || '0.00'}</span>
+                  <span className="font-bold text-slate-900">€{stats.income_ytd.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-600">Expenses</span>
-                  <span className="font-bold text-slate-900">€{stats?.expenses_ytd?.toFixed(2) || '0.00'}</span>
+                  <span className="font-bold text-slate-900">€{stats.expenses_ytd.toFixed(2)}</span>
                 </div>
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-slate-700">Profit</span>
-                    <span className="text-xl font-bold text-slate-900">€{stats?.profit_ytd?.toFixed(2) || '0.00'}</span>
+                    <span className="text-xl font-bold text-slate-900">€{stats.profit_ytd.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -154,18 +170,18 @@ export default function MoneyPage() {
           <CardContent>
             {loadingTrend ? (
               <p className="text-slate-500">Loading...</p>
-            ) : !trendData || trendData.length === 0 ? (
+            ) : trendDataArray.length === 0 ? (
               <p className="text-slate-500">No data available</p>
             ) : (
               <div className="space-y-4">
                 {(() => {
                   // Calculate global max across all months (including uninvoiced)
                   const globalMax = Math.max(
-                    ...trendData.flatMap((m: any) => [m.income + (m.uninvoiced || 0), m.expenses]),
+                    ...trendDataArray.flatMap((m: any) => [m.income + (m.uninvoiced || 0), m.expenses]),
                     1
                   );
 
-                  return trendData.map((month: any) => {
+                  return trendDataArray.map((month: any) => {
                     const incomeWidth = (month.income / globalMax) * 100;
                     const uninvoicedWidth = ((month.uninvoiced || 0) / globalMax) * 100;
                     const totalIncomeWidth = ((month.income + (month.uninvoiced || 0)) / globalMax) * 100;
@@ -238,11 +254,11 @@ export default function MoneyPage() {
             <CardContent>
               {loadingInvoices ? (
                 <p className="text-slate-500">Loading...</p>
-              ) : !outstandingInvoices || outstandingInvoices.length === 0 ? (
+              ) : outstandingInvoicesArray.length === 0 ? (
                 <p className="text-slate-500">No outstanding invoices</p>
               ) : (
                 <div className="space-y-3">
-                  {outstandingInvoices.slice(0, 5).map((invoice: any) => (
+                  {outstandingInvoicesArray.slice(0, 5).map((invoice: any) => (
                     <div
                       key={invoice.id}
                       className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
@@ -273,7 +289,7 @@ export default function MoneyPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-slate-700">Total Outstanding</span>
                       <span className="text-lg font-bold text-slate-900">
-                        €{outstandingInvoices.reduce((sum: number, inv: any) => sum + inv.total_amount, 0).toFixed(2)}
+                        €{outstandingInvoicesArray.reduce((sum: number, inv: any) => sum + inv.total_amount, 0).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -288,9 +304,9 @@ export default function MoneyPage() {
               <CardTitle className="text-slate-900 flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
                 Expenses Pending Review
-                {(stats?.pending_expenses_count ?? 0) > 0 && (
+                {stats.pending_expenses_count > 0 && (
                   <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                    {stats?.pending_expenses_count}
+                    {stats.pending_expenses_count}
                   </Badge>
                 )}
               </CardTitle>
@@ -298,14 +314,14 @@ export default function MoneyPage() {
             <CardContent>
               {loadingExpenses ? (
                 <p className="text-slate-500">Loading...</p>
-              ) : !pendingExpenses || pendingExpenses.length === 0 ? (
+              ) : pendingExpensesArray.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-slate-500">✓ No expenses pending review</p>
                   <p className="text-sm text-slate-400 mt-1">All caught up!</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {pendingExpenses.slice(0, 5).map((expense: any) => (
+                  {pendingExpensesArray.slice(0, 5).map((expense: any) => (
                     <div
                       key={expense.id}
                       className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-200 cursor-pointer"
@@ -334,7 +350,7 @@ export default function MoneyPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-slate-700">Total Pending</span>
                       <span className="text-lg font-bold text-slate-900">
-                        €{stats?.pending_expenses_amount?.toFixed(2) || '0.00'}
+                        €{stats.pending_expenses_amount.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -348,7 +364,7 @@ export default function MoneyPage() {
         <Card className="bg-white border-slate-200">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-slate-900">Recent Expenses</CardTitle>
-            {allExpenses && allExpenses.length > 10 && (
+            {allExpensesArray.length > 10 && (
               <button
                 onClick={() => setShowAllExpenses(!showAllExpenses)}
                 className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
@@ -356,7 +372,7 @@ export default function MoneyPage() {
                 {showAllExpenses ? (
                   <>Show Less <ChevronUp className="h-4 w-4" /></>
                 ) : (
-                  <>Show All ({allExpenses.length}) <ChevronDown className="h-4 w-4" /></>
+                  <>Show All ({allExpensesArray.length}) <ChevronDown className="h-4 w-4" /></>
                 )}
               </button>
             )}
@@ -364,7 +380,7 @@ export default function MoneyPage() {
           <CardContent>
             {loadingAllExpenses ? (
               <p className="text-slate-500">Loading...</p>
-            ) : !allExpenses || allExpenses.length === 0 ? (
+            ) : allExpensesArray.length === 0 ? (
               <p className="text-slate-500">No recent expenses</p>
             ) : (
               <div className="overflow-auto" style={{ maxHeight: showAllExpenses ? 'none' : '500px' }}>
@@ -381,7 +397,7 @@ export default function MoneyPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(showAllExpenses ? allExpenses : allExpenses.slice(0, 10)).map((expense: any) => (
+                    {(showAllExpenses ? allExpensesArray : allExpensesArray.slice(0, 10)).map((expense: any) => (
                       <TableRow
                         key={expense.id}
                         className="cursor-pointer hover:bg-blue-50 transition-colors"
@@ -390,10 +406,10 @@ export default function MoneyPage() {
                         <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
                         <TableCell className="font-medium">{expense.supplier_name}</TableCell>
                         <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
-                        <TableCell className="text-slate-600">{expense.project_name || '—'}</TableCell>
-                        <TableCell className="text-right">€{parseFloat(expense.subtotal || 0).toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-slate-600">€{parseFloat(expense.tax_amount || 0).toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-medium">€{parseFloat(expense.total_amount).toFixed(2)}</TableCell>
+                        <TableCell className="text-slate-600">—</TableCell>
+                        <TableCell className="text-right">€{(expense.subtotal_amount || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-slate-600">€{(expense.vat_amount || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">€{expense.total_amount.toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

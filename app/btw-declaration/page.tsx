@@ -1,5 +1,10 @@
 'use client';
 
+// TODO: Migrate to Supabase hooks
+// This page uses complex tax calculation endpoints that need to be implemented:
+// - trpc.tax.getVATSettlement - Complex quarterly VAT settlement calculation
+// These would require creating dedicated Supabase RPC functions or Edge Functions
+
 import { trpc } from '@/lib/trpc';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -24,7 +29,7 @@ export default function BTWDeclarationPage() {
   const availableQuarters = [1, 2, 3, 4];
 
   // Get data for selected quarter
-  const quarterData = vatSettlement?.find(
+  const quarterData = vatSettlement.find(
     (q: { year: number; quarter: number }) => q.year === selectedYear && q.quarter === selectedQuarter
   );
 

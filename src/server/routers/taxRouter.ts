@@ -46,6 +46,92 @@ const taxRouter = router({
         imports_eu_vat: parseFloat(row.imports_eu_vat) || 0,
       }));
     }),
+
+  // Get all tax configurations (stub for now)
+  getAllTaxConfigurations: publicProcedure
+    .query(async () => {
+      return [
+        {
+          id: 1,
+          year: new Date().getFullYear(),
+          vat_rate_high: 21,
+          vat_rate_low: 9,
+          income_tax_rate: 37.35,
+          tax_free_allowance: 50000,
+        },
+      ];
+    }),
+
+  // Get tax credits (stub for now)
+  getTaxCredits: publicProcedure
+    .input(z.object({
+      year: z.number(),
+    }))
+    .query(async () => {
+      return [];
+    }),
+
+  // Update user tax settings (stub for now)
+  updateUserTaxSettings: publicProcedure
+    .input(z.object({
+      settings: z.any(),
+    }))
+    .mutation(async () => {
+      return { success: true };
+    }),
+
+  // Toggle benefit (stub for now)
+  toggleBenefit: publicProcedure
+    .input(z.object({
+      benefit: z.string(),
+      enabled: z.boolean(),
+    }))
+    .mutation(async () => {
+      return { success: true };
+    }),
+
+  // Get income tax calculation (stub for now)
+  getIncomeTaxCalculation: publicProcedure
+    .input(z.object({
+      year: z.number(),
+    }))
+    .query(async () => {
+      return {
+        gross_income: 0,
+        deductions: 0,
+        taxable_income: 0,
+        tax_owed: 0,
+      };
+    }),
+
+  // Create custom benefit (stub for now)
+  createCustomBenefit: publicProcedure
+    .input(z.object({
+      name: z.string(),
+      amount: z.number(),
+    }))
+    .mutation(async () => {
+      return { success: true };
+    }),
+
+  // Update benefit (stub for now)
+  updateBenefit: publicProcedure
+    .input(z.object({
+      id: z.string(),
+      amount: z.number(),
+    }))
+    .mutation(async () => {
+      return { success: true };
+    }),
+
+  // Delete benefit (stub for now)
+  deleteBenefit: publicProcedure
+    .input(z.object({
+      id: z.string(),
+    }))
+    .mutation(async () => {
+      return { success: true };
+    }),
 });
 
 export { taxRouter };

@@ -1,6 +1,5 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,15 +11,24 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { useExpense, useUpdateExpense } from '@/lib/supabase/expenses';
+import { useProjects } from '@/lib/supabase/projects';
+
+// TODO: Migrate to Supabase hooks
+// Missing hooks:
+// - useExpenseCategories (need to create)
 
 export default function EditExpensePage() {
   const params = useParams();
   const router = useRouter();
   const expenseId = parseInt(params.id as string);
 
-  const { data: expense, isLoading } = trpc.expense.getById.useQuery({ id: expenseId });
-  const { data: projects } = trpc.project.getAll.useQuery({ status: 'active' });
-  const { data: categories } = trpc.expenseCategory.getAll.useQuery();
+  const { data: expense, isLoading } = useExpense(expenseId);
+  const { data: projectsData } = useProjects({ status: 'active' });
+  const projects = projectsData || [];
+
+  // TODO: Replace with useExpenseCategories once created
+  const categories: any[] = [];
 
   const [formData, setFormData] = useState({
     supplier_name: '',
@@ -43,9 +51,9 @@ export default function EditExpensePage() {
       setFormData({
         supplier_name: expense.supplier_name || '',
         description: expense.description || '',
-        subtotal: parseFloat(expense.original_subtotal || expense.subtotal) || 0,
-        tax_amount: parseFloat(expense.original_tax_amount || expense.tax_amount) || 0,
-        total_amount: parseFloat(expense.original_amount || expense.total_amount) || 0,
+        subtotal: expense.original_subtotal ?? expense.subtotal ?? 0,
+        tax_amount: expense.original_tax_amount ?? expense.tax_amount ?? 0,
+        total_amount: expense.original_amount ?? expense.total_amount,
         project_id: expense.project_id || null,
         currency: initialCurrency,
         invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
@@ -67,24 +75,22 @@ export default function EditExpensePage() {
     setLastCurrency(newCurrency);
   };
 
-  const updateMutation = trpc.expense.update.useMutation({
-    onSuccess: () => {
-      console.log('✅ Update successful, redirecting...');
-      router.push(`/expenses/${expenseId}`);
-    },
-    onError: (error) => {
-      console.error('❌ Update failed:', error);
-      alert(`Failed to update expense: ${error.message}`);
-    },
-  });
+  const updateMutation = useUpdateExpense();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('🔍 FRONTEND: Submitting form data:', formData);
-    updateMutation.mutate({
-      id: expenseId,
-      data: formData,
-    });
+    try {
+      await updateMutation.mutateAsync({
+        id: expenseId,
+        data: formData as any,
+      });
+      console.log('✅ Update successful, redirecting...');
+      router.push(`/expenses/${expenseId}`);
+    } catch (error) {
+      console.error('❌ Update failed:', error);
+      alert(`Failed to update expense: ${error}`);
+    }
   };
 
   if (isLoading) {
@@ -149,7 +155,7 @@ export default function EditExpensePage() {
               <div>
                 <Label htmlFor="project_id" className="text-slate-900">Project</Label>
                 <Select
-                  value={formData.project_id?.toString() || 'none'}
+                  value={formData.project_id.toString() || 'none'}
                   onValueChange={(value) =>
                     setFormData({ ...formData, project_id: value === 'none' ? null : parseInt(value) })
                   }
@@ -159,7 +165,7 @@ export default function EditExpensePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No project</SelectItem>
-                    {projects?.map((project: any) => (
+                    {projects.map((project: any) => (
                       <SelectItem key={project.id} value={project.id.toString()}>
                         {project.name}
                       </SelectItem>
@@ -171,7 +177,7 @@ export default function EditExpensePage() {
               <div>
                 <Label htmlFor="category" className="text-slate-900">Category</Label>
                 <Select
-                  value={formData.category?.toString() || 'none'}
+                  value={formData.category.toString() || 'none'}
                   onValueChange={(value) =>
                     setFormData({ ...formData, category: value === 'none' ? null : parseInt(value) })
                   }
@@ -181,7 +187,7 @@ export default function EditExpensePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No category</SelectItem>
-                    {categories?.map((category: any) => (
+                    {categories.map((category: any) => (
                       <SelectItem key={category.id} value={category.id.toString()}>
                         {category.name}
                       </SelectItem>
@@ -289,16 +295,16 @@ export default function EditExpensePage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-lg font-bold text-slate-900">
-                        {expense.original_currency} {parseFloat(expense.original_amount || 0).toFixed(2)}
+                        {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
                       </p>
                       <p className="text-xs text-slate-500">
-                        Rate: {parseFloat(expense.exchange_rate || 1).toFixed(4)}
+                        Rate: {/* Exchange rate calculation not in new schema */}
                       </p>
                     </div>
                     <div className="text-slate-500 text-xl">=</div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-slate-900">
-                        €{parseFloat(expense.total_amount).toFixed(2)}
+                        €{(expense.total_amount || 0).toFixed(2)}
                       </p>
                       <p className="text-xs text-slate-500">
                         {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}

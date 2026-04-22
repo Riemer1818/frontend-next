@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { trpc } from '@/lib/trpc';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, FileText, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useCreateExpense } from '@/lib/supabase/expenses';
+import { useProjects } from '@/lib/supabase/projects';
+import { useCompanies } from '@/lib/supabase/companies';
+
+// TODO: Migrate to Supabase hooks
+// Missing hooks:
+// - useExpenseCategories (need to create)
+// - useFindOrCreateCompany (need to create)
+// - useExtractInvoice (PDF extraction - complex, may need to keep tRPC or move to server action)
 
 export default function NewExpensePage() {
   const router = useRouter();
@@ -19,8 +27,11 @@ export default function NewExpensePage() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
 
-  const { data: projects } = trpc.project.getAll.useQuery({ status: 'active' });
-  const { data: categories } = trpc.expenseCategory.getAll.useQuery();
+  const { data: projectsData } = useProjects({ status: 'active' });
+  const projects = projectsData || [];
+
+  // TODO: Replace with useExpenseCategories once created
+  const categories: any[] = [];
 
   const [formData, setFormData] = useState({
     supplier_name: '',
@@ -35,36 +46,19 @@ export default function NewExpensePage() {
     category: null as number | null,
   });
 
-  const createMutation = trpc.expense.createManual.useMutation({
-    onSuccess: (data: any) => {
-      router.push(`/expenses/${data.id}`);
-    },
-  });
+  const createExpenseMutation = useCreateExpense();
 
-  const extractMutation = trpc.expense.extractPdf.useMutation({
-    onSuccess: (extracted) => {
-      console.log('✅ PDF extraction successful:', extracted);
-      setFormData({
-        ...formData,  // Keep existing fields like notes and category
-        supplier_name: extracted.supplier_name,
-        description: extracted.description || '',
-        invoice_date: extracted.invoice_date,
-        subtotal: extracted.subtotal,
-        tax_amount: extracted.tax_amount,
-        total_amount: extracted.total_amount,
-        currency: extracted.currency,
-      });
+  // TODO: Replace with useExtractInvoice once implemented
+  // PDF extraction is complex and may need to remain as tRPC or move to server action
+  const extractMutation = {
+    mutate: () => {
+      alert('PDF extraction not yet migrated to Supabase. Please fill out form manually.');
       setIsExtracting(false);
     },
-    onError: (error) => {
-      console.error('Failed to extract PDF data:', error);
-      alert('Failed to extract invoice data from PDF. Please fill out manually.');
-      setIsExtracting(false);
-    },
-  });
+  };
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files[0];
     if (!file) return;
 
     setPdfFile(file);
@@ -77,10 +71,8 @@ export default function NewExpensePage() {
         const base64 = reader.result as string;
 
         // Call tRPC endpoint to extract data from PDF
-        extractMutation.mutate({
-          pdfBase64: base64,
-          filename: file.name,
-        });
+        // TODO: Implement PDF extraction with actual API call
+        extractMutation.mutate();
       };
       reader.readAsDataURL(file);
     } catch (error) {
@@ -89,9 +81,47 @@ export default function NewExpensePage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { data: companiesData } = useCompanies();
+  const companies = companiesData || [];
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+
+    // TODO: Replace with useFindOrCreateCompany once created
+    // For now, try to find existing company or alert user to create one
+    let supplierId: number | null = null;
+    const existingCompany = companies.find(
+      (c: any) => c.name.toLowerCase() === formData.supplier_name.toLowerCase()
+    );
+
+    if (existingCompany) {
+      supplierId = existingCompany.id;
+    } else {
+      alert(`Company "${formData.supplier_name}" not found. Please create the company first.`);
+      return;
+    }
+
+    try {
+      const result = await createExpenseMutation.mutateAsync({
+        supplier_id: supplierId,
+        invoice_date: formData.invoice_date,
+        description: formData.description || null,
+        subtotal: formData.subtotal,
+        tax_amount: formData.tax_amount,
+        total_amount: formData.total_amount,
+        project_id: formData.project_id,
+        category_id: formData.category,
+        notes: formData.notes || null,
+        review_status: 'pending' as const,
+      });
+
+      if (result) {
+        router.push(`/expenses/${result.id}`);
+      }
+    } catch (error) {
+      console.error('Failed to create expense:', error);
+      alert('Failed to create expense. Please try again.');
+    }
   };
 
   return (
@@ -229,7 +259,7 @@ export default function NewExpensePage() {
               <div>
                 <Label htmlFor="project_id" className="text-slate-900">Project</Label>
                 <Select
-                  value={formData.project_id?.toString() || 'none'}
+                  value={formData.project_id.toString() || 'none'}
                   onValueChange={(value) =>
                     setFormData({ ...formData, project_id: value === 'none' ? null : parseInt(value) })
                   }
@@ -239,7 +269,7 @@ export default function NewExpensePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No project</SelectItem>
-                    {projects?.map((project: any) => (
+                    {projects.map((project: any) => (
                       <SelectItem key={project.id} value={project.id.toString()}>
                         {project.name}
                       </SelectItem>
@@ -252,7 +282,7 @@ export default function NewExpensePage() {
               <div>
                 <Label htmlFor="category" className="text-slate-900">Category</Label>
                 <Select
-                  value={formData.category?.toString() || 'none'}
+                  value={formData.category.toString() || 'none'}
                   onValueChange={(value) =>
                     setFormData({ ...formData, category: value === 'none' ? null : parseInt(value) })
                   }
@@ -262,7 +292,7 @@ export default function NewExpensePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No category</SelectItem>
-                    {categories?.map((category: any) => (
+                    {categories.map((category: any) => (
                       <SelectItem key={category.id} value={category.id.toString()}>
                         {category.name}
                       </SelectItem>
@@ -371,9 +401,9 @@ export default function NewExpensePage() {
             <Button
               type="submit"
               className="bg-blue-900 hover:bg-blue-800 text-white"
-              disabled={createMutation.isPending}
+              disabled={createExpenseMutation.isPending}
             >
-              {createMutation.isPending ? 'Creating...' : 'Create Invoice'}
+              {createExpenseMutation.isPending ? 'Creating...' : 'Create Invoice'}
             </Button>
           </div>
         </form>

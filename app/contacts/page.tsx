@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { trpc } from '@/lib/trpc';
+import { useContactsWithCompany, useCreateContact, useDeleteContact, useSetPrimaryContact } from '@/lib/supabase/contacts';
+import { useCompanies } from '@/lib/supabase/companies';
 import { MainLayout } from '@/components/layout/MainLayout';
 import {
   Table,
@@ -38,39 +39,14 @@ export default function ContactsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
 
-  const { data: contacts, isLoading, refetch } = trpc.contact.getAllWithCompany.useQuery();
-  const { data: companies } = trpc.company.getAll.useQuery({ type: 'client', isActive: true });
+  const { data: contacts, isLoading, error, refetch } = useContactsWithCompany();
+  const { data: companies } = useCompanies();
 
-  const createContact = trpc.contact.create.useMutation({
-    onSuccess: () => {
-      toast.success('Contact created successfully');
-      setIsCreateDialogOpen(false);
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(`Failed to create contact: ${error.message}`);
-    },
-  });
+  const createContact = useCreateContact();
 
-  const deleteContact = trpc.contact.delete.useMutation({
-    onSuccess: () => {
-      toast.success('Contact deleted successfully');
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(`Failed to delete contact: ${error.message}`);
-    },
-  });
+  const deleteContact = useDeleteContact();
 
-  const setPrimary = trpc.contact.setPrimary.useMutation({
-    onSuccess: () => {
-      toast.success('Primary contact updated');
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(`Failed to set primary: ${error.message}`);
-    },
-  });
+  const setPrimary = useSetPrimaryContact();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -79,11 +55,11 @@ export default function ContactsPage() {
     const companyIdStr = formData.get('company_id') as string;
     const data: any = {
       first_name: formData.get('first_name') as string,
-      last_name: formData.get('last_name') as string,
-      role: formData.get('role') as string || undefined,
-      description: formData.get('description') as string || undefined,
-      email: formData.get('email') as string || undefined,
-      phone: formData.get('phone') as string || undefined,
+      last_name: formData.get('last_name') as string || null,
+      role: formData.get('role') as string || null,
+      description: formData.get('description') as string || null,
+      email: formData.get('email') as string || null,
+      phone: formData.get('phone') as string || null,
       is_primary: formData.get('is_primary') === 'on',
       is_active: true,
     };
@@ -93,18 +69,72 @@ export default function ContactsPage() {
       data.company_id = parseInt(companyIdStr);
     }
 
-    createContact.mutate(data);
+    createContact.mutate(data, {
+      onSuccess: () => {
+        toast.success('Contact created successfully');
+        setIsCreateDialogOpen(false);
+        refetch();
+      },
+      onError: (error: any) => {
+        toast.error(`Failed to create contact: ${error.message}`);
+      },
+    });
   };
 
   const handleDelete = (id: number, name: string) => {
     if (confirm(`Are you sure you want to delete ${name}?`)) {
-      deleteContact.mutate({ id });
+      deleteContact.mutate({ id }, {
+        onSuccess: () => {
+          toast.success('Contact deleted successfully');
+          refetch();
+        },
+        onError: (error: any) => {
+          toast.error(`Failed to delete contact: ${error.message}`);
+        },
+      });
     }
   };
 
   const handleSetPrimary = (id: number) => {
-    setPrimary.mutate({ id });
+    setPrimary.mutate({ id }, {
+      onSuccess: () => {
+        toast.success('Primary contact updated');
+        refetch();
+      },
+      onError: (error: any) => {
+        toast.error(`Failed to set primary: ${error.message}`);
+      },
+    });
   };
+
+  const companiesArray = companies || [];
+  const contactsArray = contacts || [];
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+          <h1 className="text-3xl font-bold text-slate-900">Contacts</h1>
+          <div className="flex justify-center py-12">
+            <p className="text-slate-500">Loading contacts...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="p-8 space-y-6 bg-slate-50 min-h-screen">
+          <h1 className="text-3xl font-bold text-slate-900">Contacts</h1>
+          <div className="flex justify-center py-12">
+            <p className="text-red-500">Error loading contacts: {error.message}</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -152,8 +182,8 @@ export default function ContactsPage() {
                         <SelectValue placeholder="Select a company (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        {companies?.map((company) => (
-                          <SelectItem key={company.id} value={company.id?.toString() ?? ''}>
+                        {companiesArray.map((company: any) => (
+                          <SelectItem key={company.id} value={company.id.toString() ?? ''}>
                             {company.name}
                           </SelectItem>
                         ))}
@@ -209,32 +239,27 @@ export default function ContactsPage() {
           </Dialog>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <p className="text-slate-500">Loading contacts...</p>
-          </div>
-        ) : (
-          <div className="border border-slate-200 rounded-lg bg-white">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="text-slate-900 font-semibold">Name</TableHead>
-                  <TableHead className="text-slate-900 font-semibold">Description</TableHead>
-                  <TableHead className="text-slate-900 font-semibold">Company</TableHead>
-                  <TableHead className="text-slate-900 font-semibold">Email</TableHead>
-                  <TableHead className="text-slate-900 font-semibold">Phone</TableHead>
-                  <TableHead className="text-right text-slate-900 font-semibold">Actions</TableHead>
+        <div className="border border-slate-200 rounded-lg bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="text-slate-900 font-semibold">Name</TableHead>
+                <TableHead className="text-slate-900 font-semibold">Description</TableHead>
+                <TableHead className="text-slate-900 font-semibold">Company</TableHead>
+                <TableHead className="text-slate-900 font-semibold">Email</TableHead>
+                <TableHead className="text-slate-900 font-semibold">Phone</TableHead>
+                <TableHead className="text-right text-slate-900 font-semibold">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {contactsArray.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12 text-slate-500">
+                    No contacts found. Create your first contact to get started.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contacts?.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-slate-500">
-                      No contacts found. Create your first contact to get started.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  contacts?.map((contact) => (
+              ) : (
+                contactsArray.map((contact: any) => (
                     <TableRow key={contact.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => window.location.href = `/contacts/${contact.id}`}>
                       <TableCell className="font-medium text-slate-900">
                         <div className="flex flex-col">
@@ -289,7 +314,6 @@ export default function ContactsPage() {
               </TableBody>
             </Table>
           </div>
-        )}
       </div>
     </MainLayout>
   );

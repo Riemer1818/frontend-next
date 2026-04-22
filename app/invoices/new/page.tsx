@@ -1,7 +1,9 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { trpc } from '@/lib/trpc';
+import { useProject } from '@/lib/supabase/projects';
+import { useTimeEntries } from '@/lib/supabase/time-entries';
+import { useCreateInvoiceFromProject, useGenerateInvoicePdf } from '@/lib/supabase/invoices';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,39 +24,25 @@ export default function NewInvoicePage() {
   const [paymentTermsDays, setPaymentTermsDays] = useState(14);
   const [notes, setNotes] = useState('');
 
-  const { data: project, isLoading: projectLoading } = trpc.project.getById.useQuery(
-    { id: projectId },
-    { enabled: projectId > 0 }
+  const { data: project, isLoading: projectLoading } = useProject(projectId > 0 ? projectId : undefined);
+
+  const { data: timeEntries = [], isLoading: timeEntriesLoading } = useTimeEntries(
+    projectId > 0 ? { projectId } : undefined
   );
 
-  const { data: timeEntries, isLoading: timeEntriesLoading } = trpc.timeEntries.getAll.useQuery(
-    { projectId },
-    { enabled: projectId > 0 }
-  );
+  const createMutation = useCreateInvoiceFromProject();
 
-  const createMutation = trpc.invoice.createFromProject.useMutation({
-    onError: (error) => {
-      console.error('Failed to create invoice:', error);
-      alert('Failed to create invoice: ' + error.message);
-    },
-  });
-
-  const generatePdfMutation = trpc.invoice.generatePdf.useMutation({
-    onError: (error) => {
-      console.error('Failed to generate PDF:', error);
-      alert('Failed to generate PDF: ' + error.message);
-    },
-  });
+  const generatePdfMutation = useGenerateInvoicePdf();
 
   // Filter time entries based on URL params
-  const selectedTimeEntries = timeEntries?.filter(te =>
+  const selectedTimeEntries = (timeEntries || []).filter((te: any) =>
     timeEntryIds.length === 0 || timeEntryIds.includes(te.id)
-  ) || [];
+  );
 
   // Calculate totals
-  const totalHours = selectedTimeEntries.reduce((sum, te) => sum + parseFloat(te.chargeable_hours), 0);
+  const totalHours = selectedTimeEntries.reduce((sum: number, te: any) => sum + parseFloat(te.chargeable_hours || '0'), 0);
   const roundedHours = Math.ceil(totalHours); // Round up to whole hours
-  const hourlyRate = project?.hourly_rate ? parseFloat(project.hourly_rate) : 0;
+  const hourlyRate = project.hourly_rate ? parseFloat(project.hourly_rate) : 0;
   const subtotal = roundedHours * hourlyRate;
   const taxAmount = subtotal * (taxRate / 100);
   const totalAmount = subtotal + taxAmount;
@@ -64,13 +52,25 @@ export default function NewInvoicePage() {
       console.log('Creating invoice for project:', projectId);
       console.log('Time entry IDs:', timeEntryIds);
 
-      const invoice = await createMutation.mutateAsync({
+      // eslint-disable-next-line react-hooks/purity
+      const invoiceDate = new Date().toISOString().split('T')[0];
+      // eslint-disable-next-line react-hooks/purity
+      const dueDate = new Date(Date.now() + paymentTermsDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      // eslint-disable-next-line react-hooks/purity
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+
+      const invoice: any = await createMutation.mutateAsync({
         projectId,
-        includeTimeEntryIds: timeEntryIds.length > 0 ? timeEntryIds : undefined,
-        taxRate,
-        paymentTermsDays,
-        notes,
+        timeEntryIds: timeEntryIds.length > 0 ? timeEntryIds : selectedTimeEntries.map((te: any) => te.id),
+        invoiceNumber,
+        invoiceDate,
+        dueDate,
+        notes: notes || null,
       });
+
+      if (!invoice || !invoice.id) {
+        throw new Error('Failed to create invoice');
+      }
 
       console.log('Invoice created:', invoice);
       console.log('Generating PDF...');
@@ -150,7 +150,7 @@ export default function NewInvoicePage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {selectedTimeEntries.map((entry) => (
+                      {selectedTimeEntries.map((entry: any) => (
                         <tr key={entry.id} className="bg-white">
                           <td className="p-3 text-slate-600">
                             {format(new Date(entry.date), 'dd MMM yyyy')}

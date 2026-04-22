@@ -1,6 +1,7 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
+import { useContact, useUpdateContact } from '@/lib/supabase/contacts';
+import { useCompanies } from '@/lib/supabase/companies';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,8 +25,8 @@ export default function EditContactPage() {
   const router = useRouter();
   const contactId = parseInt(params.id as string);
 
-  const { data: contact, isLoading } = trpc.contact.getById.useQuery({ id: contactId });
-  const { data: companies } = trpc.company.getAll.useQuery();
+  const { data: contact, isLoading } = useContact(contactId);
+  const { data: companies = [] } = useCompanies();
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -45,7 +46,7 @@ export default function EditContactPage() {
       setFormData({
         first_name: contact.first_name || '',
         last_name: contact.last_name || '',
-        company_id: contact.company_id?.toString() || 'none',
+        company_id: contact.company_id.toString() || 'none',
         role: contact.role || '',
         description: contact.description || '',
         email: contact.email || '',
@@ -57,39 +58,41 @@ export default function EditContactPage() {
     }
   }, [contact]);
 
-  const updateMutation = trpc.contact.update.useMutation({
-    onSuccess: () => {
-      toast.success('Contact updated successfully');
-      router.push(`/contacts/${contactId}`);
-    },
-    onError: (error) => {
-      toast.error(`Failed to update contact: ${error.message}`);
-    },
-  });
+  const updateMutation = useUpdateContact();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const data: any = {
       first_name: formData.first_name,
-      last_name: formData.last_name || undefined,
-      role: formData.role || undefined,
-      description: formData.description || undefined,
-      email: formData.email || undefined,
-      phone: formData.phone || undefined,
+      last_name: formData.last_name || null,
+      role: formData.role || null,
+      description: formData.description || null,
+      email: formData.email || null,
+      phone: formData.phone || null,
       is_primary: formData.is_primary,
       is_active: formData.is_active,
-      notes: formData.notes || undefined,
+      notes: formData.notes || null,
     };
 
     // Only add company_id if provided and not "none"
     if (formData.company_id && formData.company_id !== '' && formData.company_id !== 'none') {
       data.company_id = parseInt(formData.company_id);
+    } else {
+      data.company_id = null;
     }
 
     updateMutation.mutate({
       id: contactId,
       data,
+    }, {
+      onSuccess: () => {
+        toast.success('Contact updated successfully');
+        router.push(`/contacts/${contactId}`);
+      },
+      onError: (error: any) => {
+        toast.error(`Failed to update contact: ${error.message}`);
+      },
     });
   };
 
@@ -178,8 +181,8 @@ export default function EditContactPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {companies?.map((company) => (
-                        <SelectItem key={company.id} value={company.id?.toString() ?? ''}>
+                      {companies?.map((company: any) => (
+                        <SelectItem key={company.id} value={company.id.toString() ?? ''}>
                           {company.name}
                         </SelectItem>
                       ))}

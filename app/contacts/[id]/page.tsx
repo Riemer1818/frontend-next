@@ -1,6 +1,9 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
+import { useContact, useDeleteContact } from '@/lib/supabase/contacts';
+import { useCompany } from '@/lib/supabase/companies';
+import { useProjects } from '@/lib/supabase/projects';
+import { useEmailsByContact } from '@/lib/supabase/emails';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,32 +25,28 @@ export default function ContactDetailPage() {
   const router = useRouter();
   const contactId = parseInt(params.id as string);
 
-  const { data: contact, isLoading } = trpc.contact.getById.useQuery({ id: contactId });
-  const { data: company } = trpc.company.getById.useQuery(
-    { id: contact?.company_id || 0 },
-    { enabled: !!contact?.company_id }
-  );
+  const { data: contact, isLoading } = useContact(contactId);
+  const { data: company } = useCompany(contact?.company_id || undefined);
 
   // Get projects for this contact's company
-  const { data: projects } = trpc.project.getAll.useQuery(
-    { clientId: contact?.company_id },
-    { enabled: !!contact?.company_id }
-  );
+  const { data: projects = [] } = useProjects({
+    clientId: contact?.company_id || undefined
+  });
 
   // Get emails from this contact
-  const { data: emails } = trpc.email.getByContact.useQuery({ contactId });
+  const { data: emails = [] } = useEmailsByContact(contactId);
 
   // Don't show time entries for contacts - time entries are work YOU do, not work contacts do
 
-  const deleteMutation = trpc.contact.delete.useMutation({
-    onSuccess: () => {
-      router.push('/contacts');
-    },
-  });
+  const deleteMutation = useDeleteContact();
 
   const handleDelete = () => {
     if (window.confirm(`Are you sure you want to delete ${contact?.first_name}? This action cannot be undone.`)) {
-      deleteMutation.mutate({ id: contactId });
+      deleteMutation.mutate({ id: contactId }, {
+        onSuccess: () => {
+          router.push('/contacts');
+        },
+      });
     }
   };
 
@@ -173,7 +172,7 @@ export default function ContactDetailPage() {
                     <Briefcase className="h-4 w-4 text-slate-500" />
                     <div>
                       <p className="text-xs text-slate-500">Company Projects</p>
-                      <p className="text-2xl font-bold text-slate-900">{projects?.length || 0}</p>
+                      <p className="text-2xl font-bold text-slate-900">{projects.length || 0}</p>
                     </div>
                   </div>
                 </>
@@ -201,7 +200,7 @@ export default function ContactDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {projects.map((project) => (
+                  {projects.map((project: any) => (
                     <TableRow
                       key={project.id}
                       className="cursor-pointer hover:bg-blue-50 transition-colors"
@@ -222,7 +221,7 @@ export default function ContactDetailPage() {
         {/* Emails Section */}
         <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-900">Emails ({emails?.length || 0})</CardTitle>
+            <CardTitle className="text-slate-900">Emails ({emails.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {emails && emails.length > 0 ? (
@@ -242,7 +241,7 @@ export default function ContactDetailPage() {
                       onClick={() => router.push(`/emails/${email.id}`)}
                     >
                       <TableCell className="text-sm">
-                        {new Date(email.email_date).toLocaleDateString()}
+                        {new Date(email.received_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="font-medium">
                         {email.subject || '(no subject)'}

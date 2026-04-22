@@ -1,28 +1,28 @@
 import { router } from '@/server/trpc';
 import { companyRouter } from './companyRouter';
 import { projectRouter } from './projectRouter';
-// import { invoiceRouter } from './invoiceRouter'; // TODO: Fix syntax errors
-// import { expenseRouter } from './expenseRouter'; // TODO: Fix syntax errors
+import { invoiceRouter } from './invoiceRouter';
+import { expenseRouter } from './expenseRouter';
 import { expenseCategoryRouter } from './expenseCategoryRouter';
-// import { reportingRouter } from './reportingRouter'; // TODO: Fix syntax errors
-// import { timeEntriesRouter } from './timeEntriesRouter'; // TODO: Fix syntax errors
-// import { contactRouter } from './contactRouter'; // TODO: Fix ctx.repos usage
+import { reportingRouter } from './reportingRouter';
+import { timeEntriesRouter } from './timeEntriesRouter';
+import { contactRouter } from './contactRouter';
 // import { contactAssociationRouter } from './contactAssociationRouter'; // TODO: Fix ctx.repos usage
-// import { invoiceIngestionRouter } from './invoiceIngestionRouter'; // TODO: Fix ctx.repos usage
+import { invoiceIngestionRouter } from './invoiceIngestionRouter';
 import { taxRouter } from './taxRouter';
 import { emailRouter } from './emailRouter';
 
 export const appRouter = router({
   company: companyRouter,
   project: projectRouter,
-  // invoice: invoiceRouter, // TODO
-  // expense: expenseRouter, // TODO
+  invoice: invoiceRouter,
+  expense: expenseRouter,
   expenseCategory: expenseCategoryRouter,
-  // reporting: reportingRouter, // TODO
-  // timeEntries: timeEntriesRouter, // TODO
-  // contact: contactRouter, // TODO
+  reporting: reportingRouter,
+  timeEntries: timeEntriesRouter,
+  contact: contactRouter,
   // contactAssociation: contactAssociationRouter, // TODO
-  // invoiceIngestion: invoiceIngestionRouter, // TODO
+  invoiceIngestion: invoiceIngestionRouter,
   tax: taxRouter,
   email: emailRouter,
 });
