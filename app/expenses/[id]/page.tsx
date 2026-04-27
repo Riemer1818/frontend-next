@@ -10,38 +10,44 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
+import { formatDate, formatDateTime } from '@/lib/utils/date';
 import { CheckCircle, XCircle, ArrowLeft, Save, FileText } from 'lucide-react';
 import { useExpense, useUpdateExpense, useApproveExpense, useRejectExpense, useUploadExpensePdf } from '@/lib/supabase/expenses';
 import { useProjects } from '@/lib/supabase/projects';
-
-// TODO: Migrate to Supabase hooks
-// Missing hooks:
-// - useExpenseCategories (need to create)
+import { useExpenseCategories } from '@/lib/supabase/categories';
+import { listFiles, getPublicUrl } from '@/lib/supabase/storage';
 
 export default function ExpenseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = parseInt(params.id as string);
 
-  const [isEditing, setIsEditing] = useState(false);
   const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Array<{ name: string; url: string }>>([]);
 
   const { data: expense, isLoading } = useExpense(id);
   const { data: projectsData } = useProjects({ status: 'active' });
   const projects = projectsData || [];
 
-  // TODO: Replace with useExpenseCategories once created
-  const categories: any[] = [];
-
-  // Auto-enable edit mode for pending expenses (review mode)
-  const isPendingStatus = expense?.review_status === 'pending';
-
-  // Auto-enable editing for pending expenses
+  // Load attachments from storage
   useEffect(() => {
-    if (isPendingStatus) {
-      setIsEditing(true);
+    async function loadAttachments() {
+      const files = await listFiles('invoice-attachments');
+      const expenseFiles = files
+        .filter(f => f.name.startsWith(`expense_${id}_`))
+        .map(f => ({
+          name: f.name.replace(`expense_${id}_`, ''),
+          url: getPublicUrl(`invoice-attachments/${f.name}`)
+        }));
+      setAttachments(expenseFiles);
     }
-  }, [isPendingStatus]);
+    if (id) loadAttachments();
+  }, [id]);
+
+  const { data: categoriesData } = useExpenseCategories();
+  const categories = categoriesData || [];
+
+  const isPendingStatus = expense?.review_status === 'pending';
 
   const [editedData, setEditedData] = useState({
     supplier_name: '',
@@ -77,43 +83,6 @@ export default function ExpenseDetailPage() {
   const approveMutation = useApproveExpense();
   const rejectMutation = useRejectExpense();
   const uploadPdfMutation = useUploadExpensePdf();
-  const updateMutation = useUpdateExpense();
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    // Reset to original values
-    if (expense) {
-      setEditedData({
-        supplier_name: expense.supplier_name,
-        description: expense.description || '',
-        subtotal: expense.original_subtotal || expense.subtotal || 0,
-        tax_amount: expense.original_tax_amount || expense.tax_amount || 0,
-        total_amount: expense.original_amount || expense.total_amount || 0,
-        project_id: expense.project_id || null,
-        currency: expense.original_currency || 'EUR',
-        invoice_date: expense.invoice_date ? format(new Date(expense.invoice_date), 'yyyy-MM-dd') : '',
-        notes: expense.notes || '',
-        category: expense.category_id || null,
-      });
-    }
-    setIsEditing(false);
-  };
-
-  const handleSave = async () => {
-    try {
-      await updateMutation.mutateAsync({
-        id,
-        data: editedData as any,
-      });
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update expense:', error);
-      alert('Failed to update expense');
-    }
-  };
 
   const handleApprove = async () => {
     // Always approve with the current edited data in review mode
@@ -183,7 +152,7 @@ export default function ExpenseDetailPage() {
             <div>
               <h1 className="text-3xl font-bold text-foreground">Expense Details</h1>
               <p className="text-muted-foreground mt-1">
-                {expense.supplier_name} • {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
+                {expense.supplier_name} • {formatDate(expense.invoice_date)}
               </p>
             </div>
           </div>
@@ -225,129 +194,43 @@ export default function ExpenseDetailPage() {
               {/* Supplier Name */}
               <div>
                 <label className="text-sm font-medium text-foreground">Supplier</label>
-                {isEditing ? (
-                  <Input
-                    value={editedData.supplier_name}
-                    onChange={(e) =>
-                      setEditedData({ ...editedData, supplier_name: e.target.value })
-                    }
-                    className="mt-1"
-                  />
-                ) : (
-                  <p className="text-foreground mt-1">{expense.supplier_name}</p>
-                )}
+                <p className="text-foreground mt-1">{expense.supplier_name}</p>
               </div>
 
               {/* Description */}
               <div>
                 <label className="text-sm font-medium text-foreground">Description</label>
-                {isEditing ? (
-                  <Textarea
-                    value={editedData.description}
-                    onChange={(e) =>
-                      setEditedData({ ...editedData, description: e.target.value })
-                    }
-                    className="mt-1"
-                    rows={3}
-                  />
-                ) : (
-                  <p className="text-foreground mt-1">{expense.description || '—'}</p>
-                )}
+                <p className="text-foreground mt-1">{expense.description || '—'}</p>
               </div>
 
               {/* Project */}
               <div>
                 <label className="text-sm font-medium text-foreground">Project</label>
-                {isEditing ? (
-                  <Select
-                    value={editedData.project_id.toString() || 'none'}
-                    onValueChange={(value) =>
-                      setEditedData({ ...editedData, project_id: value === 'none' ? null : parseInt(value) })
-                    }
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select a project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No project</SelectItem>
-                      {projects.map((project: any) => (
-                        <SelectItem key={project.id} value={project.id.toString()}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-foreground mt-1">
-                    {expense.project_name || '—'}
-                  </p>
-                )}
+                <p className="text-foreground mt-1">
+                  {expense.project_name || '—'}
+                </p>
               </div>
 
               {/* Category */}
               <div>
                 <label className="text-sm font-medium text-foreground">Category</label>
-                {isEditing ? (
-                  <Select
-                    value={editedData.category.toString() || 'none'}
-                    onValueChange={(value) =>
-                      setEditedData({ ...editedData, category: value === 'none' ? null : parseInt(value) })
-                    }
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No category</SelectItem>
-                      {categories.map((category: any) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-foreground mt-1">
-                    {(categories as any).find((c: any) => c.id === expense.category_id).name || '—'}
-                  </p>
-                )}
+                <p className="text-foreground mt-1">
+                  {(categories as any).find((c: any) => c.id === expense.category_id)?.name || '—'}
+                </p>
               </div>
 
               {/* Notes */}
               <div>
                 <label className="text-sm font-medium text-foreground">Notes</label>
-                {isEditing ? (
-                  <Textarea
-                    value={editedData.notes}
-                    onChange={(e) =>
-                      setEditedData({ ...editedData, notes: e.target.value })
-                    }
-                    className="mt-1"
-                    rows={2}
-                    placeholder="e.g. reis- en verblijfkosten"
-                  />
-                ) : (
-                  <p className="text-foreground mt-1">{expense.notes || '—'}</p>
-                )}
+                <p className="text-foreground mt-1">{expense.notes || '—'}</p>
               </div>
 
               {/* Invoice Date */}
               <div>
                 <label className="text-sm font-medium text-foreground">Invoice Date</label>
-                {isEditing ? (
-                  <Input
-                    type="date"
-                    value={editedData.invoice_date}
-                    onChange={(e) =>
-                      setEditedData({ ...editedData, invoice_date: e.target.value })
-                    }
-                    className="mt-1"
-                  />
-                ) : (
-                  <p className="text-foreground mt-1">
-                    {format(new Date(expense.invoice_date), 'MMMM dd, yyyy')}
-                  </p>
-                )}
+                <p className="text-foreground mt-1">
+                  {formatDate(expense.invoice_date, 'MMMM dd, yyyy')}
+                </p>
               </div>
 
               {/* Due Date */}
@@ -355,34 +238,8 @@ export default function ExpenseDetailPage() {
                 <div>
                   <label className="text-sm font-medium text-foreground">Due Date</label>
                   <p className="text-foreground mt-1">
-                    {format(new Date(expense.due_date), 'MMMM dd, yyyy')}
+                    {formatDate(expense.due_date, 'MMMM dd, yyyy')}
                   </p>
-                </div>
-              )}
-
-              {/* Currency Selector - Only in edit mode */}
-              {isEditing && (
-                <div className="pt-4 border-t">
-                  <label className="text-sm font-medium text-foreground">Currency</label>
-                  <Select
-                    value={editedData.currency}
-                    onValueChange={(value) => setEditedData({ ...editedData, currency: value })}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EUR">€ EUR (Euro)</SelectItem>
-                      <SelectItem value="USD">$ USD (US Dollar)</SelectItem>
-                      <SelectItem value="GBP">£ GBP (British Pound)</SelectItem>
-                      <SelectItem value="INR">₹ INR (Indian Rupee)</SelectItem>
-                      <SelectItem value="SGD">S$ SGD (Singapore Dollar)</SelectItem>
-                      <SelectItem value="JPY">¥ JPY (Japanese Yen)</SelectItem>
-                      <SelectItem value="CHF">CHF (Swiss Franc)</SelectItem>
-                      <SelectItem value="CAD">C$ CAD (Canadian Dollar)</SelectItem>
-                      <SelectItem value="AUD">A$ AUD (Australian Dollar)</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               )}
 
@@ -390,113 +247,71 @@ export default function ExpenseDetailPage() {
               <div className="grid grid-cols-3 gap-4 pt-4 border-t">
                 <div>
                   <label className="text-sm font-medium text-foreground">Subtotal</label>
-                  {isEditing ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={editedData.subtotal}
-                        onChange={(e) =>
-                          setEditedData({ ...editedData, subtotal: parseFloat(e.target.value) })
-                        }
-                      />
-                      <span className="text-muted-foreground min-w-[3rem] text-sm">{editedData.currency}</span>
-                    </div>
-                  ) : (
-                    <div className="mt-1">
-                      {expense.original_currency && expense.original_currency !== 'EUR' ? (
-                        <>
-                          <p className="text-lg font-bold text-foreground">
-                            {expense.original_currency} {(expense.original_subtotal || 0).toFixed(2)}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ≈ €{(expense.subtotal || 0).toFixed(2)}
-                          </p>
-                        </>
-                      ) : (
+                  <div className="mt-1">
+                    {expense.original_currency && expense.original_currency !== 'EUR' ? (
+                      <>
                         <p className="text-lg font-bold text-foreground">
-                          €{(expense.subtotal || 0).toFixed(2)}
+                          {expense.original_currency} {(expense.original_subtotal || 0).toFixed(2)}
                         </p>
-                      )}
-                    </div>
-                  )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ≈ €{(expense.subtotal || 0).toFixed(2)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-lg font-bold text-foreground">
+                        €{(expense.subtotal || 0).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground">VAT</label>
-                  {isEditing ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={editedData.tax_amount}
-                        onChange={(e) =>
-                          setEditedData({ ...editedData, tax_amount: parseFloat(e.target.value) })
-                        }
-                      />
-                      <span className="text-muted-foreground min-w-[3rem] text-sm">{editedData.currency}</span>
-                    </div>
-                  ) : (
-                    <div className="mt-1">
-                      {expense.original_currency && expense.original_currency !== 'EUR' ? (
-                        <>
-                          <p className="text-lg font-bold text-foreground">
-                            {expense.original_currency} {(expense.original_tax_amount || 0).toFixed(2)}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ≈ €{(expense.tax_amount || 0).toFixed(2)}
-                          </p>
-                        </>
-                      ) : (
+                  <div className="mt-1">
+                    {expense.original_currency && expense.original_currency !== 'EUR' ? (
+                      <>
                         <p className="text-lg font-bold text-foreground">
-                          €{(expense.tax_amount || 0).toFixed(2)}
+                          {expense.original_currency} {(expense.original_tax_amount || 0).toFixed(2)}
                         </p>
-                      )}
-                    </div>
-                  )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ≈ €{(expense.tax_amount || 0).toFixed(2)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-lg font-bold text-foreground">
+                        €{(expense.tax_amount || 0).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground">Total</label>
-                  {isEditing ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={editedData.total_amount}
-                        onChange={(e) =>
-                          setEditedData({ ...editedData, total_amount: parseFloat(e.target.value) })
-                        }
-                      />
-                      <span className="text-muted-foreground min-w-[3rem] text-sm">{editedData.currency}</span>
-                    </div>
-                  ) : (
-                    <div className="mt-1">
-                      {expense.original_currency && expense.original_currency !== 'EUR' ? (
-                        <>
-                          <p className="text-xl font-bold text-foreground">
-                            {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ≈ €{expense.total_amount.toFixed(2)} @ {(expense.exchange_rate || 1).toFixed(4)}
-                          </p>
-                        </>
-                      ) : (
+                  <div className="mt-1">
+                    {expense.original_currency && expense.original_currency !== 'EUR' ? (
+                      <>
                         <p className="text-xl font-bold text-foreground">
-                          €{expense.total_amount.toFixed(2)}
+                          {expense.original_currency} {(expense.original_amount || 0).toFixed(2)}
                         </p>
-                      )}
-                    </div>
-                  )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ≈ €{expense.total_amount.toFixed(2)} @ {(expense.exchange_rate || 1).toFixed(4)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xl font-bold text-foreground">
+                        €{expense.total_amount.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Currency Conversion Info - Show after approval */}
-              {!isEditing && expense.original_currency && expense.original_currency !== 'EUR' && (
+              {expense.original_currency && expense.original_currency !== 'EUR' && (
                 <div className="p-4 bg-background border border-border rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-foreground">Currency Conversion</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Exchange rate from {format(new Date(expense.invoice_date), 'MMM dd, yyyy')}
+                        Exchange rate from {formatDate(expense.invoice_date)}
                       </p>
                     </div>
                     <div className="text-right">
@@ -527,7 +342,7 @@ export default function ExpenseDetailPage() {
                     </p>
                     {expense.exchange_rate_date && (
                       <p className="text-muted-foreground text-xs">
-                        Rate from {format(new Date(expense.exchange_rate_date), 'MMM dd, yyyy')}
+                        Rate from {formatDate(expense.exchange_rate_date)}
                       </p>
                     )}
                   </div>
@@ -553,12 +368,20 @@ export default function ExpenseDetailPage() {
               {isPendingStatus && (
                 <>
                   <Button
+                    onClick={() => router.push(`/expenses/${id}/edit`)}
+                    variant="outline"
+                    className="w-full flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button
                     onClick={handleApprove}
                     disabled={approveMutation.isPending}
                     className="w-full bg-green-600 hover:bg-green-700 flex items-center gap-2"
                   >
-                    {isEditing ? <Save className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                    {isEditing ? 'Save & Approve' : 'Approve'}
+                    <CheckCircle className="h-4 w-4" />
+                    Approve
                   </Button>
                   <Button
                     onClick={handleReject}
@@ -578,7 +401,7 @@ export default function ExpenseDetailPage() {
                   <p className="text-sm text-green-700 font-medium">This expense has been approved</p>
                   {expense.reviewed_at && (
                     <p className="text-xs text-green-600 mt-1">
-                      on {format(new Date(expense.reviewed_at), 'MMM dd, yyyy')}
+                      on {formatDate(expense.reviewed_at)}
                     </p>
                   )}
                 </div>
@@ -590,7 +413,7 @@ export default function ExpenseDetailPage() {
                   <p className="text-sm text-red-700 font-medium">This expense has been rejected</p>
                   {expense.reviewed_at && (
                     <p className="text-xs text-red-600 mt-1">
-                      on {format(new Date(expense.reviewed_at), 'MMM dd, yyyy')}
+                      on {formatDate(expense.reviewed_at)}
                     </p>
                   )}
                 </div>
@@ -599,95 +422,52 @@ export default function ExpenseDetailPage() {
           </Card>
         </div>
 
-        {/* PDF Viewer */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Invoice Document</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {expense.invoice_file ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {expense.invoice_file_name || 'Invoice Document'}
-                    </p>
-                    <p className="text-xs text-muted-foreground capitalize">
-                      {expense.invoice_file_type}
-                    </p>
+        {/* Attachments */}
+        {attachments.length > 0 && (
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Attachments ({attachments.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {attachments.map((attachment, idx) => (
+                <div key={idx}>
+                  <h3 className="text-sm font-medium mb-2">{attachment.name}</h3>
+                  <div className="bg-secondary rounded-lg overflow-hidden border border-border" style={{ height: '800px' }}>
+                    <iframe
+                      src={attachment.url}
+                      className="w-full h-full"
+                      title={attachment.name}
+                    />
                   </div>
-                  <Badge variant="default">Invoice</Badge>
+                  <div className="mt-4 flex gap-2">
+                    <Button
+                      onClick={() => {
+                        const a = document.createElement('a');
+                        a.href = attachment.url;
+                        a.download = attachment.name;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                      }}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(attachment.url, '_blank')}
+                    >
+                      Open in New Tab
+                    </Button>
+                  </div>
                 </div>
-                <iframe
-                  src={`data:${expense.invoice_file_type};base64,${expense.invoice_file}`}
-                  className="w-full h-[600px] border border-border rounded"
-                  title={expense.invoice_file_name || 'Invoice'}
-                />
-              </div>
-            ) : uploadedPdf || expense.invoice_file_base64 ? (
-              <div className="space-y-4">
-                <iframe
-                  src={`data:application/pdf;base64,${uploadedPdf || expense.invoice_file_base64}`}
-                  className="w-full h-[600px] border border-border rounded"
-                  title="Invoice PDF"
-                />
-                {uploadPdfMutation.isPending && (
-                  <p className="text-sm text-primary text-center">Saving PDF...</p>
-                )}
-                {uploadPdfMutation.isError && (
-                  <p className="text-sm text-red-600 text-center">
-                    Error: {uploadPdfMutation.error.message || 'Failed to save PDF'}
-                  </p>
-                )}
-                {uploadPdfMutation.isSuccess && (
-                  <p className="text-sm text-green-600 text-center">✓ PDF saved successfully</p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex flex-col items-center justify-center h-[300px] bg-background rounded border-2 border-dashed border-border">
-                  <FileText className="h-12 w-12 text-slate-400 mb-2" />
-                  <p className="text-muted-foreground font-medium">No PDF attached</p>
-                  <p className="text-sm text-muted-foreground mt-1">Upload a PDF to view it here</p>
-                </div>
-                <div>
-                  <label htmlFor="pdf-upload" className="block text-sm font-medium text-foreground mb-2">
-                    Upload Invoice PDF
-                  </label>
-                  <input
-                    id="pdf-upload"
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file && file.type === 'application/pdf') {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          const base64 = reader.result.toString().split(',')[1];
-                          if (base64) {
-                            setUploadedPdf(base64);
-                            // Auto-save PDF immediately
-                            uploadPdfMutation.mutate({ id, pdfBase64: base64 });
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    className="block w-full text-sm text-muted-foreground
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-md file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-secondary file:text-primary
-                      hover:file:bg-secondary hover:file:text-foreground
-                      cursor-pointer"
-                  />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </MainLayout>
   );

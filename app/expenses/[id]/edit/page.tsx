@@ -13,10 +13,8 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useExpense, useUpdateExpense } from '@/lib/supabase/expenses';
 import { useProjects } from '@/lib/supabase/projects';
-
-// TODO: Migrate to Supabase hooks
-// Missing hooks:
-// - useExpenseCategories (need to create)
+import { useExpenseCategories } from '@/lib/supabase/categories';
+import { convertCurrency } from '@/app/actions/convert-currency';
 
 export default function EditExpensePage() {
   const params = useParams();
@@ -26,9 +24,8 @@ export default function EditExpensePage() {
   const { data: expense, isLoading } = useExpense(expenseId);
   const { data: projectsData } = useProjects({ status: 'active' });
   const projects = projectsData || [];
-
-  // TODO: Replace with useExpenseCategories once created
-  const categories: any[] = [];
+  const { data: categoriesData } = useExpenseCategories();
+  const categories = categoriesData || [];
 
   const [formData, setFormData] = useState({
     supplier_name: '',
@@ -81,9 +78,50 @@ export default function EditExpensePage() {
     e.preventDefault();
     console.log('🔍 FRONTEND: Submitting form data:', formData);
     try {
+      // Convert currency if not EUR
+      let eurSubtotal = formData.subtotal;
+      let eurTaxAmount = formData.tax_amount;
+      let eurTotalAmount = formData.total_amount;
+      let exchangeRate = 1;
+      let exchangeRateDate = formData.invoice_date;
+
+      if (formData.currency !== 'EUR') {
+        const conversion = await convertCurrency(
+          formData.total_amount,
+          formData.currency,
+          'EUR',
+          formData.invoice_date
+        );
+
+        exchangeRate = conversion.rate;
+        exchangeRateDate = conversion.date;
+
+        // Convert all amounts
+        eurTotalAmount = conversion.convertedAmount;
+        eurSubtotal = formData.subtotal * exchangeRate;
+        eurTaxAmount = formData.tax_amount * exchangeRate;
+      }
+
+      // Map form data to database fields correctly
       await updateMutation.mutateAsync({
         id: expenseId,
-        data: formData as any,
+        data: {
+          supplier_name: formData.supplier_name,
+          description: formData.description,
+          subtotal: eurSubtotal,
+          tax_amount: eurTaxAmount,
+          total_amount: eurTotalAmount,
+          project_id: formData.project_id,
+          original_currency: formData.currency,
+          original_amount: formData.total_amount,
+          original_subtotal: formData.subtotal,
+          original_tax_amount: formData.tax_amount,
+          exchange_rate: exchangeRate,
+          exchange_rate_date: exchangeRateDate,
+          invoice_date: formData.invoice_date,
+          notes: formData.notes,
+          category_id: formData.category,
+        },
       });
       console.log('✅ Update successful, redirecting...');
       router.push(`/expenses/${expenseId}`);
@@ -155,7 +193,7 @@ export default function EditExpensePage() {
               <div>
                 <Label htmlFor="project_id" className="text-foreground">Project</Label>
                 <Select
-                  value={formData.project_id.toString() || 'none'}
+                  value={formData.project_id?.toString() || 'none'}
                   onValueChange={(value) =>
                     setFormData({ ...formData, project_id: value === 'none' ? null : parseInt(value) })
                   }
@@ -177,7 +215,7 @@ export default function EditExpensePage() {
               <div>
                 <Label htmlFor="category" className="text-foreground">Category</Label>
                 <Select
-                  value={formData.category.toString() || 'none'}
+                  value={formData.category?.toString() || 'none'}
                   onValueChange={(value) =>
                     setFormData({ ...formData, category: value === 'none' ? null : parseInt(value) })
                   }

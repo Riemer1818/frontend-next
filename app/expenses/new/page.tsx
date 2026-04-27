@@ -11,27 +11,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, FileText, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCreateExpense } from '@/lib/supabase/expenses';
+import { useCreateExpense, useUploadExpensePdf } from '@/lib/supabase/expenses';
 import { useProjects } from '@/lib/supabase/projects';
 import { useCompanies } from '@/lib/supabase/companies';
-
-// TODO: Migrate to Supabase hooks
-// Missing hooks:
-// - useExpenseCategories (need to create)
-// - useFindOrCreateCompany (need to create)
-// - useExtractInvoice (PDF extraction - complex, may need to keep tRPC or move to server action)
+import { useExpenseCategories } from '@/lib/supabase/categories';
+import { extractInvoiceFromPdf } from '@/app/actions/extract-invoice';
 
 export default function NewExpensePage() {
   const router = useRouter();
   const [uploadMethod, setUploadMethod] = useState<'pdf' | 'manual'>('pdf');
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [invoicePreview, setInvoicePreview] = useState<string | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
 
   const { data: projectsData } = useProjects({ status: 'active' });
   const projects = projectsData || [];
 
-  // TODO: Replace with useExpenseCategories once created
-  const categories: any[] = [];
+  const { data: categoriesData } = useExpenseCategories();
+  const categories = categoriesData || [];
 
   const [formData, setFormData] = useState({
     supplier_name: '',
@@ -44,41 +43,67 @@ export default function NewExpensePage() {
     currency: 'EUR' as string,
     notes: '',
     category: null as number | null,
+    deductibility_percentage: 100,
   });
 
   const createExpenseMutation = useCreateExpense();
+  const uploadPdfMutation = useUploadExpensePdf();
 
-  // TODO: Replace with useExtractInvoice once implemented
-  // PDF extraction is complex and may need to remain as tRPC or move to server action
-  const extractMutation = {
-    mutate: () => {
-      alert('PDF extraction not yet migrated to Supabase. Please fill out form manually.');
-      setIsExtracting(false);
-    },
-  };
-
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files[0];
+  const handleInvoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    setPdfFile(file);
+    setInvoiceFile(file);
     setIsExtracting(true);
+
+    // Create preview
+    const previewUrl = URL.createObjectURL(file);
+    setInvoicePreview(previewUrl);
 
     try {
       // Convert file to base64
       const reader = new FileReader();
       reader.onload = async () => {
-        const base64 = reader.result as string;
+        const base64 = (reader.result as string).split(',')[1]; // Remove data URL prefix
 
-        // Call tRPC endpoint to extract data from PDF
-        // TODO: Implement PDF extraction with actual API call
-        extractMutation.mutate();
+        // Call server action to extract data from PDF or image
+        const result = await extractInvoiceFromPdf(base64);
+
+        if (result.success && result.data) {
+          // Pre-fill form with extracted data
+          setFormData({
+            ...formData,
+            supplier_name: result.data.supplier_name || '',
+            description: result.data.description || '',
+            invoice_date: result.data.invoice_date || formData.invoice_date,
+            subtotal: result.data.subtotal || 0,
+            tax_amount: result.data.tax_amount || 0,
+            total_amount: result.data.total_amount || 0,
+            currency: result.data.currency || 'EUR',
+          });
+        } else {
+          alert(`Failed to extract invoice data: ${result.error}`);
+        }
+
+        setIsExtracting(false);
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Failed to read PDF file:', error);
+      console.error('Failed to read file:', error);
+      alert('Failed to read file');
       setIsExtracting(false);
     }
+  };
+
+  const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setReceiptFile(file);
+
+    // Create preview
+    const previewUrl = URL.createObjectURL(file);
+    setReceiptPreview(previewUrl);
   };
 
   const { data: companiesData } = useCompanies();
@@ -116,6 +141,32 @@ export default function NewExpensePage() {
       });
 
       if (result) {
+        // Upload invoice file if one was selected
+        if (invoiceFile) {
+          try {
+            await uploadPdfMutation.mutateAsync({
+              expenseId: result.id,
+              file: invoiceFile,
+            });
+          } catch (uploadError) {
+            console.error('Failed to upload invoice:', uploadError);
+            alert('Expense created but invoice upload failed.');
+          }
+        }
+
+        // Upload receipt file if one was selected
+        if (receiptFile) {
+          try {
+            await uploadPdfMutation.mutateAsync({
+              expenseId: result.id,
+              file: receiptFile,
+            });
+          } catch (uploadError) {
+            console.error('Failed to upload receipt:', uploadError);
+            alert('Expense created but receipt upload failed.');
+          }
+        }
+
         router.push(`/expenses/${result.id}`);
       }
     } catch (error) {
@@ -170,52 +221,100 @@ export default function NewExpensePage() {
               <CardTitle className="text-foreground">Invoice Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* PDF Upload */}
+              {/* Invoice Upload (PDF or Image) */}
               {uploadMethod === 'pdf' && (
-                <div className="border-2 border-dashed border-border rounded-lg p-8">
-                  <div className="text-center">
-                    {pdfFile ? (
-                      <div>
-                        <FileText className="h-12 w-12 mx-auto mb-4 text-primary" />
-                        <p className="text-sm font-medium text-foreground">{pdfFile.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{(pdfFile.size / 1024).toFixed(1)} KB</p>
-                        {isExtracting && (
-                          <div className="flex items-center justify-center gap-2 mt-4">
-                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            <span className="text-sm text-muted-foreground">Extracting invoice data...</span>
-                          </div>
-                        )}
-                        {!isExtracting && pdfFile && (
-                          <p className="text-sm text-green-600 mt-4">
-                            ✅ Data extracted! Review and click "Create Invoice" to save.
-                          </p>
-                        )}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => setPdfFile(null)}
-                          className="mt-4"
-                        >
-                          Remove file
-                        </Button>
-                      </div>
-                    ) : (
-                      <label htmlFor="pdf-upload" className="cursor-pointer">
-                        <Upload className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                        <p className="text-sm font-medium text-foreground">Click to upload PDF</p>
-                        <p className="text-xs text-muted-foreground mt-1">or drag and drop</p>
-                        <input
-                          id="pdf-upload"
-                          type="file"
-                          accept=".pdf"
-                          onChange={handlePdfUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
+                <div>
+                  <Label className="text-foreground mb-2 block">Invoice (PDF or Image)</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-6">
+                    <div className="text-center">
+                      {!invoiceFile ? (
+                        <label htmlFor="invoice-upload" className="cursor-pointer">
+                          <Upload className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+                          <p className="text-sm font-medium text-foreground">Click to upload invoice</p>
+                          <p className="text-xs text-muted-foreground mt-1">PDF, JPG, PNG supported</p>
+                          <input
+                            id="invoice-upload"
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleInvoiceUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      ) : (
+                        <div>
+                          <FileText className="h-12 w-12 mx-auto mb-4 text-primary" />
+                          <p className="text-sm font-medium text-foreground">{invoiceFile.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{(invoiceFile.size / 1024).toFixed(1)} KB</p>
+                          {isExtracting && (
+                            <div className="flex items-center justify-center gap-2 mt-4">
+                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              <span className="text-sm text-muted-foreground">Extracting invoice data...</span>
+                            </div>
+                          )}
+                          {!isExtracting && (
+                            <p className="text-sm text-green-600 mt-4">
+                              ✅ Data extracted! Review and submit.
+                            </p>
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => {
+                              setInvoiceFile(null);
+                              setInvoicePreview(null);
+                            }}
+                            className="mt-4"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
+
+              {/* Attachment Upload - Always visible for manual mode, or as receipt for PDF mode */}
+              <div>
+                <Label className="text-foreground mb-2 block">
+                  {uploadMethod === 'manual' ? 'Attachment (Optional)' : 'Receipt (Optional)'}
+                </Label>
+                <div className="border-2 border-dashed border-border rounded-lg p-6">
+                  <div className="text-center">
+                    {!receiptFile ? (
+                      <label htmlFor="receipt-upload" className="cursor-pointer">
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                        <p className="text-sm font-medium text-foreground">Add receipt</p>
+                        <p className="text-xs text-muted-foreground mt-1">PDF, JPG, PNG</p>
+                        <input
+                          id="receipt-upload"
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={handleReceiptUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : (
+                      <div>
+                        <FileText className="h-8 w-8 mx-auto mb-2 text-primary" />
+                        <p className="text-sm font-medium text-foreground">{receiptFile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{(receiptFile.size / 1024).toFixed(1)} KB</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => {
+                            setReceiptFile(null);
+                            setReceiptPreview(null);
+                          }}
+                          className="mt-2 text-xs"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* Supplier */}
               <div>
@@ -259,7 +358,7 @@ export default function NewExpensePage() {
               <div>
                 <Label htmlFor="project_id" className="text-foreground">Project</Label>
                 <Select
-                  value={formData.project_id.toString() || 'none'}
+                  value={formData.project_id?.toString() || 'none'}
                   onValueChange={(value) =>
                     setFormData({ ...formData, project_id: value === 'none' ? null : parseInt(value) })
                   }
@@ -282,7 +381,7 @@ export default function NewExpensePage() {
               <div>
                 <Label htmlFor="category" className="text-foreground">Category</Label>
                 <Select
-                  value={formData.category.toString() || 'none'}
+                  value={formData.category?.toString() || 'none'}
                   onValueChange={(value) =>
                     setFormData({ ...formData, category: value === 'none' ? null : parseInt(value) })
                   }
@@ -297,6 +396,29 @@ export default function NewExpensePage() {
                         {category.name}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Deductibility Percentage */}
+              <div>
+                <Label htmlFor="deductibility_percentage" className="text-foreground">
+                  Tax Deductibility
+                </Label>
+                <Select
+                  value={formData.deductibility_percentage.toString()}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, deductibility_percentage: parseFloat(value) })
+                  }
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="100">100%</SelectItem>
+                    <SelectItem value="80">80%</SelectItem>
+                    <SelectItem value="50">50%</SelectItem>
+                    <SelectItem value="0">0%</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -407,6 +529,73 @@ export default function NewExpensePage() {
             </Button>
           </div>
         </form>
+
+        {/* File Previews */}
+        {(invoicePreview || receiptPreview) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            {/* Invoice Preview */}
+            {invoicePreview && (
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-foreground text-sm">Invoice Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {invoiceFile?.type === 'application/pdf' ? (
+                    <div className="bg-muted rounded p-4 text-center">
+                      <FileText className="h-16 w-16 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">PDF: {invoiceFile.name}</p>
+                      <a
+                        href={invoicePreview}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline mt-2 inline-block"
+                      >
+                        Open in new tab
+                      </a>
+                    </div>
+                  ) : (
+                    <img
+                      src={invoicePreview}
+                      alt="Invoice preview"
+                      className="w-full h-auto rounded border border-border"
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Receipt Preview */}
+            {receiptPreview && (
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-foreground text-sm">Receipt Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {receiptFile?.type === 'application/pdf' ? (
+                    <div className="bg-muted rounded p-4 text-center">
+                      <FileText className="h-16 w-16 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">PDF: {receiptFile.name}</p>
+                      <a
+                        href={receiptPreview}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline mt-2 inline-block"
+                      >
+                        Open in new tab
+                      </a>
+                    </div>
+                  ) : (
+                    <img
+                      src={receiptPreview}
+                      alt="Receipt preview"
+                      className="w-full h-auto rounded border border-border"
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
     </MainLayout>
   );

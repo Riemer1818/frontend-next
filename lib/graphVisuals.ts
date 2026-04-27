@@ -10,6 +10,7 @@ export interface NodeVisualConfig {
     dark: string;
   };
   borderWidth: number;
+  borderStyle: 'solid' | 'dashed' | 'dotted';
   size: {
     width: number;
     height: number;
@@ -36,10 +37,11 @@ export const NODE_VISUALS: Record<string, NodeVisualConfig> = {
   person: {
     shape: 'ellipse',
     color: {
-      light: '#00ffff', // Neon cyan
-      dark: '#00ffff',
+      light: '#000000', // Black
+      dark: '#ffffff', // White
     },
     borderWidth: 2,
+    borderStyle: 'solid',
     size: {
       width: 40,
       height: 40,
@@ -48,23 +50,38 @@ export const NODE_VISUALS: Record<string, NodeVisualConfig> = {
   company: {
     shape: 'round-rectangle',
     color: {
-      light: '#ff00ff', // Neon magenta
-      dark: '#ff00ff',
+      light: '#000000', // Black
+      dark: '#ffffff', // White
     },
     borderWidth: 2,
+    borderStyle: 'dashed',
     size: {
       width: 50,
       height: 50,
+    },
+  },
+  project: {
+    shape: 'diamond',
+    color: {
+      light: '#000000', // Black
+      dark: '#ffffff', // White
+    },
+    borderWidth: 2,
+    borderStyle: 'dotted',
+    size: {
+      width: 45,
+      height: 45,
     },
   },
   // Center/focus node gets special treatment (applied as modifier)
   center: {
     shape: 'ellipse', // Will inherit from actual type
     color: {
-      light: '#ffff00', // Neon yellow
-      dark: '#ffff00',
+      light: '#000000', // Black
+      dark: '#ffffff', // White
     },
     borderWidth: 4,
+    borderStyle: 'solid',
     size: {
       width: 60,
       height: 60,

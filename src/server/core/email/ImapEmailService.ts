@@ -113,8 +113,8 @@ export class ImapEmailService extends EventEmitter {
           return;
         }
 
-        // Search for ALL emails (script will skip ones that already exist)
-        this.imap!.search(['ALL'], (err, uids) => {
+        // Search for UNSEEN (unread) emails only
+        this.imap!.search(['UNSEEN'], (err, uids) => {
           if (err) {
             reject(err);
             return;

@@ -252,11 +252,43 @@ export function useEmailStats() {
 }
 
 // Update email label
+// NOTE: For incoming_invoice labels, this triggers server-side invoice processing
 export function useUpdateEmailLabel() {
   const invalidate = useInvalidateQuery();
 
   return useSupabaseMutation<Email, { id: number; label: EmailLabel | null }>(
-    ({ id, label }) => supabase.from('backoffice_emails').update({ label }).eq('id', id).select().single(),
+    async ({ id, label }) => {
+      // First update the label in the database
+      const { data, error } = await supabase
+        .from('backoffice_emails')
+        .update({ label })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // If labeling as incoming_invoice or receipt, trigger server-side processing
+      if (label === 'incoming_invoice' || label === 'receipt') {
+        try {
+          // Call server action to process the email
+          const response = await fetch('/api/emails/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emailId: id, label }),
+          });
+
+          if (!response.ok) {
+            console.error('Failed to process email as invoice');
+          }
+        } catch (err) {
+          console.error('Error processing email:', err);
+          // Don't fail the label update if processing fails
+        }
+      }
+
+      return { data, error: null };
+    },
     {
       onSuccess: () => invalidate(QUERY_KEY),
     }
@@ -314,15 +346,27 @@ export function useDeleteEmail() {
 }
 
 // Fetch unread emails from IMAP (server-side action)
+// NOTE: This uses tRPC behind the scenes via a custom mutation hook
 export function useFetchUnreadEmails() {
   const invalidate = useInvalidateQuery();
 
   return useSupabaseMutation<{ success: boolean; count: number; emails: Email[] }, void>(
     async () => {
-      // This would call a server action or API endpoint
-      // For now, return a placeholder
+      // Call the tRPC endpoint directly
+      const response = await fetch('/api/trpc/email.fetchUnread', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch emails');
+      }
+
+      const result = await response.json();
       return {
-        data: { success: true, count: 0, emails: [] },
+        data: result.result?.data || { success: false, count: 0, emails: [] },
         error: null,
       };
     },

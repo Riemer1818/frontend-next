@@ -24,7 +24,7 @@ export class LLMService {
     this.langfuseService = LangFuseService.getInstance();
     this.defaultModel = new ChatAnthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5',
       temperature: 0.7,
     });
   }
@@ -38,13 +38,13 @@ export class LLMService {
   ): Promise<string> {
     const trace = this.langfuseService.createTrace(options.traceName, {
       ...options.metadata,
-      model: options.model || 'claude-3-5-sonnet-20241022',
+      model: options.model || 'claude-sonnet-4-5',
     });
 
     const generation = trace.generation({
       name: options.traceName,
       input: prompt,
-      model: options.model || 'claude-3-5-sonnet-20241022',
+      model: options.model || 'claude-sonnet-4-5',
     });
 
     try {

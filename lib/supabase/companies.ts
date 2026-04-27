@@ -43,17 +43,25 @@ export function useCompany(id?: number) {
       if (error) return { data: null, error };
       if (!company) return { data: null, error: new Error('Company not found') as any };
 
-      // Get total spending if this is a supplier
+      // Get total spending from the expenses_by_supplier view if this is a supplier
       let totalSpent = 0;
       if (company.type === 'supplier' || company.type === 'both') {
         const { data, error: spendError } = await supabase
-          .from('backoffice_incoming_invoices')
-          .select('total_amount')
+          .from('expenses_by_supplier')
+          .select('total_incl_vat')
           .eq('supplier_id', id!)
-          .eq('review_status', 'approved');
+          .single();
 
-        if (spendError) return { data: null, error: spendError };
-        totalSpent = (data || []).reduce((sum: number, row: any) => sum + (parseFloat(row.total_amount) || 0), 0);
+        if (spendError) {
+          // If not found in view, it means no expenses yet - not an error
+          if (spendError.code === 'PGRST116') {
+            totalSpent = 0;
+          } else {
+            return { data: null, error: spendError };
+          }
+        } else {
+          totalSpent = parseFloat(data?.total_incl_vat || '0');
+        }
       }
 
       return {

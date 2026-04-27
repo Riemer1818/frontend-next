@@ -14,7 +14,7 @@ export interface Invoice {
   vat_amount: number;
   total_amount: number;
   vat_rate?: number | null;
-  payment_status: PaymentStatus;
+  payment_status: string;
   notes?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -42,7 +42,7 @@ const QUERY_KEY = ['invoices'];
 export function useInvoices(params?: { clientId?: number; projectId?: number }) {
   return useSupabaseQuery<Invoice[]>(
     params ? [...QUERY_KEY, JSON.stringify(params)] : QUERY_KEY,
-    () => {
+    async () => {
       let query = supabase
         .from('backoffice_invoices')
         .select('*')
@@ -56,7 +56,18 @@ export function useInvoices(params?: { clientId?: number; projectId?: number }) 
         query = query.eq('project_id', params.projectId);
       }
 
-      return query;
+      const { data, error } = await query;
+      if (error) return { data: null, error };
+
+      // Map database fields to interface fields
+      const mappedData = (data || []).map((invoice: any) => ({
+        ...invoice,
+        subtotal_amount: invoice.subtotal,
+        vat_amount: invoice.tax_amount,
+        payment_status: invoice.status,
+      }));
+
+      return { data: mappedData, error: null };
     }
   );
 }
@@ -72,13 +83,66 @@ export function useInvoice(id?: number) {
         .eq('id', id!)
         .single();
 
-      if (error) throw error;
+      if (error) return { data: null, error };
 
-      return {
+      // Fetch PDF separately using RPC to get it as base64
+      let pdfFileBase64 = null;
+      if (data.pdf_file) {
+        try {
+          const { data: pdfData, error: pdfError } = await supabase.rpc('get_invoice_pdf_base64', {
+            invoice_id: id
+          });
+
+          if (!pdfError && pdfData) {
+            pdfFileBase64 = pdfData;
+            console.log('Got PDF as base64 from RPC, length:', pdfData.length);
+          }
+        } catch (e) {
+          console.error('RPC not available, trying direct conversion:', e);
+
+          // Fallback: try direct hex parsing
+          const pdfFile = data.pdf_file;
+          if (typeof pdfFile === 'string' && pdfFile.startsWith('\\x')) {
+            // Parse the actual hex content: \x25504446 means bytes 0x25 0x50 0x44 0x46
+            // Remove \x prefix and parse every 2 chars as hex byte
+            let hexString = pdfFile.substring(2);
+
+            // Remove escaped \x sequences (5c78)
+            hexString = hexString.replace(/5c78/g, '');
+
+            const bytes: number[] = [];
+            for (let i = 0; i < hexString.length; i += 2) {
+              const hex = hexString.substring(i, i + 2);
+              if (hex.length === 2 && /^[0-9a-fA-F]{2}$/.test(hex)) {
+                bytes.push(parseInt(hex, 16));
+              }
+            }
+
+            const uint8 = new Uint8Array(bytes);
+            let binary = '';
+            const chunkSize = 8192;
+            for (let i = 0; i < uint8.length; i += chunkSize) {
+              const chunk = uint8.subarray(i, i + chunkSize);
+              binary += String.fromCharCode.apply(null, Array.from(chunk));
+            }
+            pdfFileBase64 = btoa(binary);
+            console.log('Converted PDF to base64, length:', pdfFileBase64.length);
+          }
+        }
+      }
+
+      // Map database fields to interface fields
+      const mappedData = {
         ...data,
+        pdf_file: pdfFileBase64,
+        subtotal_amount: data.subtotal,
+        vat_amount: data.tax_amount,
+        payment_status: data.status,
         client_name: data.companies?.name || null,
         companies: undefined,
       };
+
+      return { data: mappedData, error: null };
     },
     { enabled: !!id }
   );
@@ -92,16 +156,21 @@ export function useOutstandingInvoices() {
       const { data, error } = await supabase
         .from('backoffice_invoices')
         .select('*, companies:client_id(name)')
-        .in('payment_status', ['unpaid', 'partially_paid', 'overdue'])
+        .in('status', ['unpaid', 'partially_paid', 'overdue'])
         .order('invoice_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) return { data: null, error };
 
-      return (data || []).map((invoice: any) => ({
+      const result = (data || []).map((invoice: any) => ({
         ...invoice,
+        subtotal_amount: invoice.subtotal,
+        vat_amount: invoice.tax_amount,
+        payment_status: invoice.status,
         client_name: invoice.companies?.name || null,
         companies: undefined,
       }));
+
+      return { data: result, error: null };
     }
   );
 }
@@ -136,7 +205,7 @@ export function useUpdateInvoiceStatus() {
 
   return useSupabaseMutation<Invoice, { id: number; payment_status: PaymentStatus }>(
     ({ id, payment_status }) =>
-      supabase.from('backoffice_invoices').update({ payment_status }).eq('id', id).select().single(),
+      supabase.from('backoffice_invoices').update({ status: payment_status }).eq('id', id).select().single(),
     {
       onSuccess: () => invalidate(QUERY_KEY),
     }
@@ -196,7 +265,7 @@ export function useCreateInvoiceFromProject() {
       const vatAmount = subtotalAmount * (vatRate / 100);
       const totalAmount = subtotalAmount + vatAmount;
 
-      // Create the invoice
+      // Create the invoice (map to database field names)
       const { data: invoice, error: invoiceError } = await supabase
         .from('backoffice_invoices')
         .insert([
@@ -206,11 +275,10 @@ export function useCreateInvoiceFromProject() {
             invoice_number: input.invoiceNumber,
             invoice_date: input.invoiceDate,
             due_date: input.dueDate,
-            subtotal_amount: subtotalAmount,
-            vat_amount: vatAmount,
+            subtotal: subtotalAmount,
+            tax_amount: vatAmount,
             total_amount: totalAmount,
-            vat_rate: vatRate,
-            payment_status: 'unpaid' as PaymentStatus,
+            status: 'unpaid',
             notes: input.notes,
           },
         ])

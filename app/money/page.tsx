@@ -406,9 +406,9 @@ export default function MoneyPage() {
                         <TableCell>{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</TableCell>
                         <TableCell className="font-medium">{expense.supplier_name}</TableCell>
                         <TableCell className="max-w-xs truncate">{expense.description || '—'}</TableCell>
-                        <TableCell className="text-muted-foreground">—</TableCell>
-                        <TableCell className="text-right">€{(expense.subtotal_amount || 0).toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">€{(expense.vat_amount || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-muted-foreground">{expense.project_name || '—'}</TableCell>
+                        <TableCell className="text-right">€{(expense.subtotal || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">€{(expense.tax_amount || 0).toFixed(2)}</TableCell>
                         <TableCell className="text-right font-medium">€{expense.total_amount.toFixed(2)}</TableCell>
                       </TableRow>
                     ))}

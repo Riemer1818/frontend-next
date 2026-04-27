@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 import { ImapEmailService, Email as ImapEmail } from '@/server/core/email/ImapEmailService';
+import { EmailRepository, type EmailRecord, type EmailFilters } from '@/server/repositories/EmailRepository';
 
 export interface EmailListResult {
   emails: EmailRecord[];
@@ -351,40 +352,206 @@ export class EmailManagementService {
 
   /**
    * Process an email as an invoice - creates incoming_invoice record
+   * Extracts data from PDF attachments using AI
    */
   private async processEmailAsInvoice(email: EmailRecord): Promise<void> {
-    const { InvoiceIngestionApp } = await import('../apps/invoice-ingestion/InvoiceIngestionApp');
+    console.log(`Creating incoming invoice for email ${email.id}...`);
 
     // Get email attachments
     const attachments = await this.emailRepository.getAttachments(email.id);
 
-    // Convert EmailRecord + attachments to IMAP Email format
-    const imapEmail: ImapEmail = {
-      id: email.email_uid,
-      subject: email.subject || '',
-      from: email.from_address,
-      to: email.to_address || '',
-      cc: email.cc_address,
-      bcc: email.bcc_address,
-      date: email.email_date,
-      body: email.body_text || '',
-      htmlBody: email.body_html,
-      attachments: attachments.map(att => ({
-        filename: att.filename,
-        mimeType: att.mime_type,
-        data: att.file_data,
-        size: att.file_size,
-      })),
-      isRead: email.is_read,
-    };
+    // Extract basic info from email
+    const subject = email.subject || 'Invoice';
+    const fromAddress = email.from_address;
 
-    const ingestionApp = new InvoiceIngestionApp(this.supabase);
+    // Try to extract invoice data from PDF attachments
+    let extractedData: any = null;
 
-    // Use the processEmail method - need to make it public or refactor
-    // @ts-expect-error - accessing private method
-    await ingestionApp.processEmail(imapEmail);
+    for (const attachment of attachments) {
+      if (attachment.mime_type === 'application/pdf') {
+        try {
+          console.log(`Extracting invoice data from PDF: ${attachment.filename}`);
+          const { extractInvoiceFromPdf } = await import('@/app/actions/extract-invoice');
 
-    await ingestionApp.shutdown();
+          // Handle file_data - it might be a Buffer, string (JSON), or object
+          let pdfBuffer: Buffer;
+          if (Buffer.isBuffer(attachment.file_data)) {
+            pdfBuffer = attachment.file_data;
+          } else if (typeof attachment.file_data === 'string') {
+            // Handle PostgreSQL hex format (starts with \x)
+            if (attachment.file_data.startsWith('\\x')) {
+              // Remove \x prefix and convert hex to buffer
+              const hex = attachment.file_data.slice(2);
+              const hexBuffer = Buffer.from(hex, 'hex');
+              // The hex buffer contains JSON, parse it
+              try {
+                const parsed = JSON.parse(hexBuffer.toString('utf8'));
+                if (parsed.type === 'Buffer' && Array.isArray(parsed.data)) {
+                  pdfBuffer = Buffer.from(parsed.data);
+                } else {
+                  console.error('Unexpected parsed format:', parsed);
+                  continue;
+                }
+              } catch (e) {
+                console.error('Failed to parse hex buffer as JSON:', e);
+                continue;
+              }
+            } else {
+              // Try parsing as direct JSON
+              try {
+                const parsed = JSON.parse(attachment.file_data);
+                if (parsed.type === 'Buffer' && Array.isArray(parsed.data)) {
+                  pdfBuffer = Buffer.from(parsed.data);
+                } else {
+                  console.error('Unexpected parsed format:', parsed);
+                  continue;
+                }
+              } catch (e) {
+                console.error('Failed to parse file_data JSON:', e);
+                continue;
+              }
+            }
+          } else if (typeof attachment.file_data === 'object' && attachment.file_data.data) {
+            // Handle {type: 'Buffer', data: [..]} format
+            pdfBuffer = Buffer.from(attachment.file_data.data);
+          } else {
+            console.error('Unexpected file_data format:', typeof attachment.file_data);
+            continue;
+          }
+
+          const base64 = pdfBuffer.toString('base64');
+          const result = await extractInvoiceFromPdf(base64, {
+            subject: email.subject || undefined,
+            from: email.from_address,
+            body: email.body_text || undefined,
+          });
+
+          if (result.success && result.data) {
+            extractedData = result.data;
+            console.log(`✅ Extracted invoice data:`, extractedData);
+            break; // Use first PDF that successfully extracts
+          }
+        } catch (error) {
+          console.error(`Failed to extract from ${attachment.filename}:`, error);
+        }
+      }
+    }
+
+    // Determine values to use (extracted or defaults)
+    const supplierName = extractedData?.supplier_name || fromAddress;
+    const invoiceDate = extractedData?.invoice_date || email.email_date.toISOString().split('T')[0];
+    const description = extractedData?.description || subject;
+    const originalTotalAmount = extractedData?.total_amount || 0;
+    const originalTaxAmount = extractedData?.tax_amount || 0;
+    const originalSubtotal = extractedData?.subtotal || (originalTotalAmount - originalTaxAmount);
+    const currency = extractedData?.currency || 'EUR';
+    const invoiceNumber = extractedData?.invoice_number || null;
+
+    // Currency conversion
+    let totalAmount = originalTotalAmount;
+    let taxAmount = originalTaxAmount;
+    let subtotal = originalSubtotal;
+    let exchangeRate = 1.0;
+
+    if (currency.toUpperCase() !== 'EUR') {
+      console.log(`💱 Converting ${currency} ${originalTotalAmount} to EUR`);
+      const { CurrencyConverter } = await import('@/server/core/currency/CurrencyConverter');
+      const converter = new CurrencyConverter();
+
+      const conversion = await converter.convert(
+        originalTotalAmount,
+        currency,
+        'EUR',
+        invoiceDate
+      );
+
+      totalAmount = conversion.convertedAmount;
+      exchangeRate = conversion.rate;
+
+      // Convert subtotal and VAT proportionally
+      const ratio = totalAmount / originalTotalAmount;
+      subtotal = originalSubtotal * ratio;
+      taxAmount = originalTaxAmount * ratio;
+
+      console.log(`✅ Converted: €${totalAmount.toFixed(2)} (rate: ${exchangeRate.toFixed(4)})`);
+    }
+
+    // Try to find or create supplier
+    const domain = fromAddress.split('@')[1] || '';
+    let supplierId: number | null = null;
+
+    if (domain) {
+      const { data: existingSupplier } = await this.supabase
+        .from('backoffice_companies')
+        .select('id')
+        .ilike('website', `%${domain}%`)
+        .eq('type', 'supplier')
+        .limit(1)
+        .single();
+
+      supplierId = existingSupplier?.id || null;
+    }
+
+    // Create incoming invoice with extracted or default data
+    const { data: invoice, error: invoiceError } = await this.supabase
+      .from('backoffice_incoming_invoices')
+      .insert({
+        supplier_id: supplierId,
+        supplier_name: supplierName,
+        invoice_date: invoiceDate,
+        description: description,
+        subtotal: subtotal,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
+        review_status: 'pending',
+        payment_status: 'paid',
+        source: 'email',
+        source_email_id: email.email_uid,
+        source_email_subject: subject,
+        source_email_from: fromAddress,
+        source_email_date: email.email_date.toISOString(),
+        original_currency: currency !== 'EUR' ? currency : null,
+        original_amount: currency !== 'EUR' ? originalTotalAmount : null,
+        original_subtotal: currency !== 'EUR' ? originalSubtotal : null,
+        original_tax_amount: currency !== 'EUR' ? originalTaxAmount : null,
+        exchange_rate: currency !== 'EUR' ? exchangeRate : null,
+        exchange_rate_date: currency !== 'EUR' ? invoiceDate : null,
+        notes: extractedData
+          ? `Auto-extracted from PDF${invoiceNumber ? ` - Invoice #${invoiceNumber}` : ''}${currency !== 'EUR' ? `\nOriginal: ${currency} ${originalTotalAmount.toFixed(2)}` : ''}\nAttachments: ${attachments.length}`
+          : `Auto-created from email. Please review and update amounts.\nAttachments: ${attachments.length}`,
+      })
+      .select()
+      .single();
+
+    if (invoiceError) {
+      console.error('Failed to create incoming invoice:', invoiceError);
+      throw invoiceError;
+    }
+
+    console.log(`Created invoice #${invoice.id}`);
+
+    // Link invoice to email
+    await this.emailRepository.linkToInvoice(email.id, invoice.id);
+
+    // Copy attachments to invoice
+    for (const attachment of attachments) {
+      const { error: attachError } = await this.supabase
+        .from('backoffice_invoice_attachments')
+        .insert({
+          incoming_invoice_id: invoice.id,
+          file_data: attachment.file_data,
+          file_name: attachment.filename,
+          file_type: attachment.mime_type,
+          file_size: attachment.file_size,
+          attachment_type: 'invoice',
+        });
+
+      if (attachError) {
+        console.error(`Failed to copy attachment ${attachment.filename}:`, attachError);
+      }
+    }
+
+    console.log(`Linked ${attachments.length} attachment(s) to invoice #${invoice.id}`);
   }
 
   /**

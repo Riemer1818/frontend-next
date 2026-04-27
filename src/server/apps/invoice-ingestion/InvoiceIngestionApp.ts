@@ -1,8 +1,7 @@
 import { ImapEmailService, Email, EmailAttachment } from '@/server/core/email/ImapEmailService';
-import { DocumentParser } from '@/server/core/parsers/DocumentParser';
-import { LLMService } from '@/server/core/llm/LLMService';
 import { CurrencyConverter } from '@/server/core/currency/CurrencyConverter';
 import { Pool } from 'pg';
+import { extractInvoiceFromPdf } from '@/app/actions/extract-invoice';
 
 export interface InvoiceData {
   vendor: string;
@@ -15,25 +14,12 @@ export interface InvoiceData {
   language?: string;
 }
 
-const INVOICE_SCHEMA = `{
-  "vendor": "string (company/supplier name)",
-  "date": "string (YYYY-MM-DD format)",
-  "amount": "number (total amount including VAT)",
-  "vatAmount": "number (VAT amount if specified)",
-  "description": "string (brief description)",
-  "invoiceNumber": "string (invoice/reference number if present)",
-  "currency": "string (CRITICAL: Look for currency symbols ($, £, ¥, S$, etc.) or currency codes (USD, GBP, SGD, JPY, CHF, CAD, AUD, EUR) in the invoice. Return the 3-letter ISO currency code. Common symbols: $ = USD, £ = GBP, S$ = SGD, ¥ = JPY/CNY, € = EUR. If you see a dollar sign check if it's US, Singapore, Canadian, or Australian dollars from context. Only use EUR if you actually see € or EUR in the invoice.)",
-  "language": "string (2-letter ISO 639-1 language code like en, nl, fr, de, es - detect from the invoice text)"
-}`;
-
 /**
  * Invoice Ingestion App
  * Automatically fetches invoices from email via IMAP, extracts data, and creates expense records
  */
 export class InvoiceIngestionApp {
   private emailService: ImapEmailService;
-  private documentParser: DocumentParser;
-  private llmService: LLMService;
   private currencyConverter: CurrencyConverter;
   private dbPool: Pool;
 
@@ -49,8 +35,6 @@ export class InvoiceIngestionApp {
       tls: true,
     });
 
-    this.documentParser = new DocumentParser();
-    this.llmService = new LLMService();
     this.currencyConverter = new CurrencyConverter();
   }
 
@@ -187,107 +171,48 @@ export class InvoiceIngestionApp {
 
   /**
    * Extract invoice data from document with email context
+   * Now uses shared server action for consistency
    */
   private async extractInvoiceData(
     buffer: Buffer,
     mimeType: string,
     email: Email
   ): Promise<InvoiceData> {
-    // Parse document to text
-    const parsed = await this.documentParser.parse(buffer, mimeType);
+    // Convert buffer to base64
+    const base64 = buffer.toString('base64');
 
-    if (!parsed.text.trim()) {
-      throw new Error('No text content found in document');
+    // Use shared extraction logic with email context
+    const result = await extractInvoiceFromPdf(base64, {
+      subject: email.subject,
+      from: email.from,
+      body: email.body,
+    });
+
+    if (!result.success || !result.data) {
+      throw new Error(result.error || 'Failed to extract invoice data');
     }
 
-    // Combine email context with PDF text for better extraction
-    const fullContext = `EMAIL CONTEXT:
-Subject: ${email.subject}
-From: ${email.from}
-Body: ${email.body || '(no body)'}
-
-INVOICE DOCUMENT:
-${parsed.text}`;
-
-    // STEP 1: First identify currency and language explicitly
-    console.log('  🔍 Step 1: Detecting currency and language...');
-    const currencySchema = `{
-  "currency": "string (3-letter ISO code: USD, EUR, GBP, SGD, JPY, CHF, CAD, AUD, etc.)",
-  "language": "string (2-letter ISO code: en, nl, fr, de, es, etc.)"
-}`;
-
-    const currencyPrompt = `Look at this invoice and email. What currency and language is it in?
-
-INSTRUCTIONS:
-- Look for currency SYMBOLS: $, £, €, ¥, S$, C$, A$
-- Look for currency CODES: USD, EUR, GBP, SGD, JPY, CHF, CAD, AUD
-- Check the sender's location/country for context
-- If you see "$" determine if it's USD, SGD, CAD, or AUD from context (location, S$ prefix, etc.)
-- For language, detect from the text content
-
-${fullContext}`;
-
-    const currencyInfo = await this.llmService.extractStructured<{ currency: string; language: string }>(
-      currencyPrompt,
-      currencySchema,
-      { metadata: { app: 'invoice-ingestion-currency' } }
-    );
-
-    console.log(`  💱 Detected: ${currencyInfo.currency} (${currencyInfo.language})`);
-
-    // STEP 2: Extract full invoice data with currency already known
-    console.log('  📋 Step 2: Extracting invoice details...');
-    const invoiceData = await this.llmService.extractStructured<InvoiceData>(
-      fullContext,
-      INVOICE_SCHEMA,
-      { metadata: { app: 'invoice-ingestion' } }
-    );
-
-    // Override currency and language with step 1 results
-    invoiceData.currency = currencyInfo.currency;
-    invoiceData.language = currencyInfo.language;
-
-    return invoiceData;
+    // Map to InvoiceData format
+    return {
+      vendor: result.data.supplier_name || 'Unknown',
+      date: result.data.invoice_date || new Date().toISOString().split('T')[0],
+      amount: result.data.total_amount || 0,
+      vatAmount: result.data.tax_amount,
+      description: result.data.description || '',
+      invoiceNumber: result.data.invoice_number,
+      currency: result.data.currency,
+      language: result.data.language,
+    };
   }
 
   /**
    * Extract invoice data from email body only (no attachments)
+   * Note: For PDFs, use extractInvoiceData() which uses the shared server action
    */
   private async extractInvoiceDataFromEmail(email: Email): Promise<InvoiceData> {
-    const fullContext = `EMAIL CONTEXT:
-Subject: ${email.subject}
-From: ${email.from}
-Body:
-${email.body || '(no body)'}`;
-
-    // STEP 1: Detect currency and language
-    console.log('  🔍 Step 1: Detecting currency and language...');
-    const currencySchema = `{
-  "currency": "string (3-letter ISO code: USD, EUR, GBP, SGD, JPY, CHF, CAD, AUD, etc.)",
-  "language": "string (2-letter ISO code: en, nl, fr, de, es, etc.)"
-}`;
-
-    const currencyInfo = await this.llmService.extractStructured<{ currency: string; language: string }>(
-      fullContext,
-      currencySchema,
-      { metadata: { app: 'invoice-ingestion-email-currency' } }
-    );
-
-    console.log(`  💱 Detected: ${currencyInfo.currency} (${currencyInfo.language})`);
-
-    // STEP 2: Extract invoice details
-    console.log('  📋 Step 2: Extracting invoice details from email...');
-    const invoiceData = await this.llmService.extractStructured<InvoiceData>(
-      fullContext,
-      INVOICE_SCHEMA,
-      { metadata: { app: 'invoice-ingestion-email' } }
-    );
-
-    // Override currency and language
-    invoiceData.currency = currencyInfo.currency;
-    invoiceData.language = currencyInfo.language;
-
-    return invoiceData;
+    // For email-only invoices, we need a simpler extraction
+    // This is a fallback for invoices sent as email text without PDF attachments
+    throw new Error('Email-only invoice extraction not yet implemented. Invoices should have PDF attachments.');
   }
 
   /**

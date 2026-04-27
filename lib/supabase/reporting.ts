@@ -85,7 +85,7 @@ export function useDashboardStats(referenceDate: Date = new Date()) {
       // Get expenses
       const { data: allExpenses, error: expenseError } = await supabase
         .from('backoffice_incoming_invoices')
-        .select('invoice_date, total_amount')
+        .select('invoice_date, total_amount, deductibility_percentage')
         .eq('review_status', 'approved');
 
       console.log('[Dashboard Stats] Expenses query result:', {
@@ -99,11 +99,19 @@ export function useDashboardStats(referenceDate: Date = new Date()) {
       const expenses = allExpenses || [];
       const expenses_this_month = expenses
         .filter((exp: any) => exp.invoice_date >= firstDayOfMonth && exp.invoice_date <= lastDayOfMonth)
-        .reduce((sum: number, exp: any) => sum + (parseFloat(exp.total_amount) || 0), 0);
+        .reduce((sum: number, exp: any) => {
+          const amount = parseFloat(exp.total_amount) || 0;
+          const deductibility = (exp.deductibility_percentage || 100) / 100;
+          return sum + (amount * deductibility);
+        }, 0);
 
       const expenses_ytd = expenses
         .filter((exp: any) => exp.invoice_date >= firstDayOfYear && exp.invoice_date <= lastDayOfMonth)
-        .reduce((sum: number, exp: any) => sum + (parseFloat(exp.total_amount) || 0), 0);
+        .reduce((sum: number, exp: any) => {
+          const amount = parseFloat(exp.total_amount) || 0;
+          const deductibility = (exp.deductibility_percentage || 100) / 100;
+          return sum + (amount * deductibility);
+        }, 0);
 
       // Count active clients
       const { count: clientCount, error: clientError } = await supabase
@@ -235,6 +243,7 @@ export function useOutstandingInvoices() {
 
       const result = (data || []).map((invoice: any) => ({
         ...invoice,
+        payment_status: invoice.status,
         client_name: invoice.companies?.name || null,
         companies: undefined,
       }));
@@ -271,7 +280,7 @@ export function useIncomeExpenseTrend(months?: number, referenceDate: Date = new
       // Get expenses
       const { data: expenses, error: expenseError } = await supabase
         .from('backoffice_incoming_invoices')
-        .select('invoice_date, total_amount')
+        .select('invoice_date, total_amount, deductibility_percentage')
         .eq('review_status', 'approved')
         .gte('invoice_date', startDate)
         .lte('invoice_date', endDateStr)
@@ -291,7 +300,9 @@ export function useIncomeExpenseTrend(months?: number, referenceDate: Date = new
       (expenses || []).forEach((exp: any) => {
         const month = exp.invoice_date.substring(0, 7); // YYYY-MM
         if (!monthlyData[month]) monthlyData[month] = { income: 0, expenses: 0 };
-        monthlyData[month].expenses += parseFloat(exp.total_amount) || 0;
+        const amount = parseFloat(exp.total_amount) || 0;
+        const deductibility = (exp.deductibility_percentage || 100) / 100;
+        monthlyData[month].expenses += amount * deductibility;
       });
 
       // Convert to array and sort

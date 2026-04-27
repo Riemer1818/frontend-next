@@ -6,16 +6,17 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { formatDate, formatDateTime } from '@/lib/utils/date';
 import { ArrowLeft, CheckCircle, FileText, Calendar, ExternalLink, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { getInvoicePdfPath, getPublicUrl } from '@/lib/supabase/storage';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = parseInt(params.id as string);
 
-  const { data: invoice, isLoading } = useInvoice(id);
+  const { data: invoice, isLoading, error } = useInvoice(id);
 
   const updateStatusMutation = useUpdateInvoiceStatus();
 
@@ -24,7 +25,7 @@ export default function InvoiceDetailPage() {
   const handleMarkAsPaid = () => {
     updateStatusMutation.mutate({
       id,
-      payment_status: 'paid',
+      status: 'paid',
     });
   };
 
@@ -32,7 +33,7 @@ export default function InvoiceDetailPage() {
     // Mark as sent by updating to unpaid status (invoice has been sent to client)
     updateStatusMutation.mutate({
       id,
-      payment_status: 'unpaid',
+      status: 'unpaid',
     });
   };
 
@@ -56,7 +57,20 @@ export default function InvoiceDetailPage() {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Loading invoice...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col h-full items-center justify-center gap-4">
+          <p className="text-destructive">Error loading invoice: {error.message}</p>
+          <Button onClick={() => router.push('/invoices')}>
+            Back to Invoices
+          </Button>
         </div>
       </MainLayout>
     );
@@ -65,8 +79,11 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return (
       <MainLayout>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground">Invoice not found</p>
+        <div className="flex flex-col h-full items-center justify-center gap-4">
+          <p className="text-muted-foreground">Invoice #{id} not found</p>
+          <Button onClick={() => router.push('/invoices')}>
+            Back to Invoices
+          </Button>
         </div>
       </MainLayout>
     );
@@ -175,7 +192,7 @@ export default function InvoiceDetailPage() {
                     Invoice Date
                   </label>
                   <p className="text-foreground mt-1">
-                    {format(new Date(invoice.invoice_date), 'MMM dd, yyyy')}
+                    {formatDate(invoice.invoice_date)}
                   </p>
                 </div>
                 <div>
@@ -184,7 +201,7 @@ export default function InvoiceDetailPage() {
                     Due Date
                   </label>
                   <p className="text-foreground mt-1">
-                    {format(new Date(invoice.due_date), 'MMM dd, yyyy')}
+                    {formatDate(invoice.due_date)}
                   </p>
                 </div>
                 {invoice.paid_date && (
@@ -194,7 +211,7 @@ export default function InvoiceDetailPage() {
                       Paid Date
                     </label>
                     <p className="text-green-600 font-medium mt-1">
-                      {format(new Date(invoice.paid_date), 'MMM dd, yyyy')}
+                      {formatDate(invoice.paid_date)}
                     </p>
                   </div>
                 )}
@@ -214,19 +231,19 @@ export default function InvoiceDetailPage() {
                   <div className="flex justify-between">
                     <span className="text-foreground">Subtotal</span>
                     <span className="font-medium text-foreground">
-                      €{parseFloat(invoice.subtotal).toFixed(2)}
+                      €{parseFloat(String(invoice.subtotal_amount || 0)).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-foreground">VAT ({invoice.tax_rate}%)</span>
+                    <span className="text-foreground">VAT {invoice.vat_rate ? `(${invoice.vat_rate}%)` : ''}</span>
                     <span className="font-medium text-foreground">
-                      €{parseFloat(invoice.tax_amount).toFixed(2)}
+                      €{parseFloat(String(invoice.vat_amount || 0)).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between pt-3 border-t">
                     <span className="text-lg font-bold text-foreground">Total Amount</span>
                     <span className="text-2xl font-bold text-foreground">
-                      €{parseFloat(invoice.total_amount).toFixed(2)}
+                      €{parseFloat(String(invoice.total_amount || 0)).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -236,11 +253,11 @@ export default function InvoiceDetailPage() {
               <div className="grid grid-cols-2 gap-4 pt-4 border-t text-xs text-muted-foreground">
                 <div>
                   <span className="font-medium">Created:</span>{' '}
-                  {format(new Date(invoice.created_at), 'MMM dd, yyyy HH:mm')}
+                  {formatDateTime(invoice.created_at)}
                 </div>
                 <div>
                   <span className="font-medium">Last Updated:</span>{' '}
-                  {format(new Date(invoice.updated_at), 'MMM dd, yyyy HH:mm')}
+                  {formatDateTime(invoice.updated_at)}
                 </div>
               </div>
             </CardContent>
@@ -283,7 +300,7 @@ export default function InvoiceDetailPage() {
                   <p className="text-sm text-green-700 font-medium">Invoice has been paid</p>
                   {invoice.paid_date && (
                     <p className="text-xs text-green-600 mt-1">
-                      on {format(new Date(invoice.paid_date), 'MMM dd, yyyy')}
+                      on {formatDate(invoice.paid_date)}
                     </p>
                   )}
                 </div>
@@ -293,7 +310,7 @@ export default function InvoiceDetailPage() {
                 <div className="text-center p-4 bg-red-50 rounded-lg">
                   <p className="text-sm text-red-700 font-medium">This invoice is overdue</p>
                   <p className="text-xs text-red-600 mt-1">
-                    Due date was {format(new Date(invoice.due_date), 'MMM dd, yyyy')}
+                    Due date was {formatDate(invoice.due_date)}
                   </p>
                 </div>
               )}
@@ -361,43 +378,44 @@ export default function InvoiceDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-secondary rounded-lg overflow-hidden border border-border" style={{ height: '800px' }}>
-                <iframe
-                  src={`data:application/pdf;base64,${Buffer.from(invoice.pdf_file).toString('base64')}`}
-                  className="w-full h-full"
-                  title="Invoice PDF"
-                />
-              </div>
-              <div className="mt-4 flex gap-2">
-                <Button
-                  onClick={() => {
-                    const pdfData = Buffer.from(invoice.pdf_file);
-                    const blob = new Blob([pdfData], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${invoice.invoice_number}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  Download PDF
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const pdfData = Buffer.from(invoice.pdf_file);
-                    const blob = new Blob([pdfData], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, '_blank');
-                  }}
-                >
-                  Open in New Tab
-                </Button>
-              </div>
+              {(() => {
+                const pdfPath = getInvoicePdfPath(invoice.invoice_number);
+                const pdfUrl = getPublicUrl(pdfPath);
+                return (
+                  <>
+                    <div className="bg-secondary rounded-lg overflow-hidden border border-border" style={{ height: '800px' }}>
+                      <iframe
+                        src={pdfUrl}
+                        className="w-full h-full"
+                        title="Invoice PDF"
+                      />
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        onClick={() => {
+                          const a = document.createElement('a');
+                          a.href = pdfUrl;
+                          a.download = `${invoice.invoice_number}.pdf`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                        }}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Download PDF
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          window.open(pdfUrl, '_blank');
+                        }}
+                      >
+                        Open in New Tab
+                      </Button>
+                    </div>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         )}

@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
+import { ROUTES } from '@/lib/routes';
 
 export default function ProjectsPage() {
   const { data: projects, isLoading, error } = useProjects();
@@ -22,7 +24,7 @@ export default function ProjectsPage() {
         <div className="p-8 space-y-6 bg-background min-h-screen">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-foreground">Projects</h1>
-            <Link href="/projects/create">
+            <Link href={ROUTES.projects.create}>
               <Button className="bg-primary hover:bg-primary/90 text-white">
                 New Project
               </Button>
@@ -42,7 +44,7 @@ export default function ProjectsPage() {
         <div className="p-8 space-y-6 bg-background min-h-screen">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-foreground">Projects</h1>
-            <Link href="/projects/create">
+            <Link href={ROUTES.projects.create}>
               <Button className="bg-primary hover:bg-primary/90 text-white">
                 New Project
               </Button>
@@ -65,7 +67,7 @@ export default function ProjectsPage() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Projects</h1>
           </div>
-          <Link href="/projects/create">
+          <Link href={ROUTES.projects.create}>
             <Button className="bg-blue-900 hover:bg-blue-800 text-white">
               New Project
             </Button>
@@ -91,10 +93,9 @@ export default function ProjectsPage() {
                 </TableRow>
               ) : (
                 projectsArray.map((project: any) => (
-                  <TableRow
+                  <ClickableTableRow
                     key={project.id}
-                    className="cursor-pointer hover:bg-secondary hover:text-foreground transition-colors"
-                    onClick={() => window.location.href = `/projects/${project.id}`}
+                    href={ROUTES.projects.detail(project.id)}
                   >
                     <TableCell className="font-medium text-foreground">{project.name}</TableCell>
                     <TableCell className="text-foreground">{project.client_name || '—'}</TableCell>
@@ -104,7 +105,7 @@ export default function ProjectsPage() {
                     <TableCell className="text-foreground">
                       {project.start_date ? new Date(project.start_date).toLocaleDateString() : '—'}
                     </TableCell>
-                  </TableRow>
+                  </ClickableTableRow>
                 ))
               )}
             </TableBody>

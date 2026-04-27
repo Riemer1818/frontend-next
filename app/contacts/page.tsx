@@ -34,6 +34,8 @@ import {
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
+import { ROUTES } from '@/lib/routes';
 
 export default function ContactsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -260,11 +262,15 @@ export default function ContactsPage() {
                 </TableRow>
               ) : (
                 contactsArray.map((contact: any) => (
-                    <TableRow key={contact.id} className="hover:bg-background cursor-pointer" onClick={() => window.location.href = `/contacts/${contact.id}`}>
+                    <ClickableTableRow
+                      key={contact.id}
+                      href={ROUTES.contacts.detail(contact.id)}
+                      className="hover:bg-background"
+                    >
                       <TableCell className="font-medium text-foreground">
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
-                            <Link href={`/contacts/${contact.id}`} className="text-primary hover:underline">
+                            <Link href={ROUTES.contacts.detail(contact.id)} className="text-primary hover:underline">
                               {contact.first_name} {contact.last_name}
                             </Link>
                             {contact.is_primary && (
@@ -285,7 +291,7 @@ export default function ContactsPage() {
                       <TableCell className="text-foreground">{contact.email || '—'}</TableCell>
                       <TableCell className="text-foreground">{contact.phone || '—'}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                           {!contact.is_primary && (
                             <Button
                               variant="ghost"
@@ -308,7 +314,7 @@ export default function ContactsPage() {
                           </Button>
                         </div>
                       </TableCell>
-                    </TableRow>
+                    </ClickableTableRow>
                   ))
                 )}
               </TableBody>

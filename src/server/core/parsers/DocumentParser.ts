@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 
 export interface ParsedDocument {
   text: string;
@@ -16,12 +16,14 @@ export class DocumentParser {
    * Parse a PDF document
    */
   async parsePDF(buffer: Buffer): Promise<ParsedDocument> {
-    const data = await pdfParse(buffer);
+    const parser = new PDFParse({ data: buffer });
+    const data = await parser.getText();
+    await parser.destroy();
 
     return {
       text: data.text,
-      pageCount: data.numpages,
-      metadata: data.info,
+      pageCount: data.total,
+      metadata: {},
     };
   }
 

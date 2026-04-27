@@ -42,6 +42,7 @@ export interface Expense {
   source_email_subject?: string | null;
   source_email_date?: string | null;
   extraction_errors?: string | null;
+  deductibility_percentage?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -75,18 +76,18 @@ export interface ApproveExpenseInput {
 
 const QUERY_KEY = ['expenses'];
 
-// Fetch all expenses
+// Fetch all expenses (excludes rejected by default)
 export function useExpenses(params?: {
   supplierId?: number;
   projectId?: number;
   reviewStatus?: ReviewStatus;
 }) {
-  return useSupabaseQuery<Expense[]>(
+  return useSupabaseQuery<ExpenseWithSupplier[]>(
     params ? [...QUERY_KEY, JSON.stringify(params)] : QUERY_KEY,
-    () => {
+    async () => {
       let query = supabase
         .from('backoffice_incoming_invoices')
-        .select('*')
+        .select('*, companies:supplier_id(name), projects:project_id(name)')
         .order('invoice_date', { ascending: false });
 
       if (params?.supplierId) {
@@ -99,9 +100,24 @@ export function useExpenses(params?: {
 
       if (params?.reviewStatus) {
         query = query.eq('review_status', params.reviewStatus);
+      } else {
+        // By default, only show approved expenses
+        query = query.eq('review_status', 'approved');
       }
 
-      return query;
+      const { data, error } = await query;
+
+      if (error) return { data: null, error };
+
+      const mapped = (data || []).map((expense: any) => ({
+        ...expense,
+        supplier_name: expense.companies?.name || null,
+        project_name: expense.projects?.name || null,
+        companies: undefined,
+        projects: undefined,
+      }));
+
+      return { data: mapped, error: null };
     }
   );
 }
@@ -117,14 +133,17 @@ export function useExpense(id?: number) {
         .eq('id', id!)
         .single();
 
-      if (error) throw error;
+      if (error) return { data: null, error };
 
       return {
-        ...data,
-        supplier_name: data.companies?.name || null,
-        project_name: data.projects?.name || null,
-        companies: undefined,
-        projects: undefined,
+        data: {
+          ...data,
+          supplier_name: data.companies?.name || null,
+          project_name: data.projects?.name || null,
+          companies: undefined,
+          projects: undefined,
+        },
+        error: null,
       };
     },
     { enabled: !!id }
@@ -142,13 +161,15 @@ export function usePendingExpenses() {
         .eq('review_status', 'pending')
         .order('invoice_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) return { data: null, error };
 
-      return (data || []).map((expense: any) => ({
+      const mapped = (data || []).map((expense: any) => ({
         ...expense,
         supplier_name: expense.companies?.name || null,
         companies: undefined,
       }));
+
+      return { data: mapped, error: null };
     }
   );
 }
@@ -192,8 +213,8 @@ export function useApproveExpense() {
       if (edits) {
         if (edits.supplier_name) updateData.supplier_name = edits.supplier_name;
         if (edits.description !== undefined) updateData.description = edits.description;
-        if (edits.subtotal !== undefined) updateData.subtotal_amount = edits.subtotal;
-        if (edits.tax_amount !== undefined) updateData.vat_amount = edits.tax_amount;
+        if (edits.subtotal !== undefined) updateData.subtotal = edits.subtotal;
+        if (edits.tax_amount !== undefined) updateData.tax_amount = edits.tax_amount;
         if (edits.total_amount !== undefined) updateData.total_amount = edits.total_amount;
         if (edits.project_id !== undefined) updateData.project_id = edits.project_id;
         if (edits.invoice_date) updateData.invoice_date = edits.invoice_date;
@@ -240,13 +261,33 @@ export function useDeleteExpense() {
   );
 }
 
-// Upload PDF for expense
+// Upload PDF attachment for expense
 export function useUploadExpensePdf() {
   const invalidate = useInvalidateQuery();
 
-  return useSupabaseMutation<Expense, { id: number; pdfBase64: string }>(
-    ({ id, pdfBase64 }) =>
-      supabase.from('backoffice_incoming_invoices').update({ invoice_file_base64: pdfBase64 }).eq('id', id).select().single(),
+  return useSupabaseMutation<void, { expenseId: number; file: File }>(
+    async ({ expenseId, file }) => {
+      // Convert file to buffer
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = new Uint8Array(arrayBuffer);
+
+      // Insert into invoice_attachments table
+      const { error } = await supabase
+        .from('backoffice_invoice_attachments')
+        .insert([
+          {
+            incoming_invoice_id: expenseId,
+            file_data: buffer,
+            file_name: file.name,
+            file_type: file.type,
+            file_size: file.size,
+            attachment_type: 'invoice',
+          },
+        ]);
+
+      if (error) throw error;
+      return { data: null, error: null };
+    },
     {
       onSuccess: () => invalidate(QUERY_KEY),
     }

@@ -10,7 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/lib/routes';
 import Link from 'next/link';
 
 export default function CompaniesPage() {
@@ -65,8 +67,8 @@ export default function CompaniesPage() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Companies</h1>
           </div>
-          <Link href="/companies/create">
-            <Button className="bg-blue-900 hover:bg-blue-800 text-white">
+          <Link href={ROUTES.companies.create}>
+            <Button className="bg-primary hover:bg-primary/90 text-white">
               Add Company
             </Button>
           </Link>
@@ -91,10 +93,9 @@ export default function CompaniesPage() {
                 </TableRow>
               ) : (
                 companiesArray.map((company) => (
-                  <TableRow
+                  <ClickableTableRow
                     key={company.id}
-                    className="cursor-pointer hover:bg-secondary hover:text-foreground transition-colors"
-                    onClick={() => window.location.href = `/companies/${company.id}`}
+                    href={ROUTES.companies.detail(company.id)}
                   >
                     <TableCell className="font-medium text-foreground">{company.name}</TableCell>
                     <TableCell className="text-foreground">
@@ -104,7 +105,7 @@ export default function CompaniesPage() {
                     </TableCell>
                     <TableCell className="text-foreground">{company.email || '—'}</TableCell>
                     <TableCell className="text-foreground">{company.phone || '—'}</TableCell>
-                  </TableRow>
+                  </ClickableTableRow>
                 ))
               )}
             </TableBody>

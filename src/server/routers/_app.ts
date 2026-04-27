@@ -8,7 +8,6 @@ import { reportingRouter } from './reportingRouter';
 import { timeEntriesRouter } from './timeEntriesRouter';
 import { contactRouter } from './contactRouter';
 // import { contactAssociationRouter } from './contactAssociationRouter'; // TODO: Fix ctx.repos usage
-import { invoiceIngestionRouter } from './invoiceIngestionRouter';
 import { taxRouter } from './taxRouter';
 import { emailRouter } from './emailRouter';
 
@@ -22,7 +21,6 @@ export const appRouter = router({
   timeEntries: timeEntriesRouter,
   contact: contactRouter,
   // contactAssociation: contactAssociationRouter, // TODO
-  invoiceIngestion: invoiceIngestionRouter,
   tax: taxRouter,
   email: emailRouter,
 });
