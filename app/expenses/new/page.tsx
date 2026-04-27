@@ -112,17 +112,27 @@ export default function NewExpensePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // TODO: Replace with useFindOrCreateCompany once created
-    // For now, try to find existing company or alert user to create one
+    // Find or create the supplier company
     let supplierId: number | null = null;
-    const existingCompany = companies.find(
-      (c: any) => c.name.toLowerCase() === formData.supplier_name.toLowerCase()
-    );
+    try {
+      const response = await fetch('/api/trpc/company.findOrCreate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.supplier_name,
+          type: 'supplier',
+        }),
+      });
 
-    if (existingCompany) {
-      supplierId = existingCompany.id;
-    } else {
-      alert(`Company "${formData.supplier_name}" not found. Please create the company first.`);
+      if (!response.ok) {
+        throw new Error('Failed to find or create company');
+      }
+
+      const result = await response.json();
+      supplierId = result.result.data.id;
+    } catch (error) {
+      console.error('Failed to find or create company:', error);
+      alert('Failed to find or create supplier company. Please try again.');
       return;
     }
 

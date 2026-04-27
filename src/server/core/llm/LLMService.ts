@@ -75,6 +75,62 @@ export class LLMService {
   }
 
   /**
+   * Extract text from an image using Claude's vision capabilities
+   */
+  async extractTextFromImage(
+    base64Image: string,
+    mimeType: string,
+    options: Omit<LLMCallOptions, 'traceName'> = {}
+  ): Promise<string> {
+    const trace = this.langfuseService.createTrace('extract-text-from-image', {
+      ...options.metadata,
+      mimeType,
+    });
+
+    const generation = trace.generation({
+      name: 'extract-text-from-image',
+      input: { imageSize: base64Image.length, mimeType },
+      model: 'claude-sonnet-4-5',
+    });
+
+    try {
+      const response = await this.defaultModel.invoke([
+        {
+          type: 'human',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+                data: base64Image,
+              },
+            },
+            {
+              type: 'text',
+              text: 'Extract all text from this image. Transcribe everything you see, preserving the layout and structure as much as possible. Include all text, numbers, dates, and any other readable content.',
+            },
+          ],
+        },
+      ]);
+
+      const output = response.content.toString();
+
+      generation.end({
+        output,
+      });
+
+      return output;
+    } catch (error) {
+      generation.end({
+        output: null,
+        statusMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Extract structured data from text using LLM with retries
    */
   async extractStructured<T>(

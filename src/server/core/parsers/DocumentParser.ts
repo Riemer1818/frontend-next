@@ -28,17 +28,32 @@ export class DocumentParser {
   }
 
   /**
-   * Parse an image using OCR (placeholder for Tesseract/Google Vision)
-   * TODO: Implement OCR integration
+   * Parse an image using Claude's vision capabilities
    */
   async parseImage(buffer: Buffer, mimeType: string): Promise<ParsedDocument> {
-    // For now, return empty - implement Tesseract or Google Vision API
-    console.warn('Image OCR not yet implemented');
-    return {
-      text: '',
-      pageCount: 1,
-      metadata: { mimeType },
-    };
+    // Convert buffer to base64
+    const base64Image = buffer.toString('base64');
+
+    // Use Claude's vision to extract text from the image
+    const { LLMService } = await import('../llm/LLMService');
+    const llmService = new LLMService();
+
+    try {
+      const extractedText = await llmService.extractTextFromImage(base64Image, mimeType);
+
+      return {
+        text: extractedText,
+        pageCount: 1,
+        metadata: { mimeType },
+      };
+    } catch (error) {
+      console.error('Failed to extract text from image:', error);
+      return {
+        text: '',
+        pageCount: 1,
+        metadata: { mimeType, error: error instanceof Error ? error.message : 'Unknown error' },
+      };
+    }
   }
 
   /**

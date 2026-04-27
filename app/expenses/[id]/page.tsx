@@ -11,8 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { CheckCircle, XCircle, ArrowLeft, Save, FileText } from 'lucide-react';
-import { useExpense, useUpdateExpense, useApproveExpense, useRejectExpense, useUploadExpensePdf } from '@/lib/supabase/expenses';
+import { CheckCircle, XCircle, ArrowLeft, Save, FileText, Trash2 } from 'lucide-react';
+import { useExpense, useUpdateExpense, useApproveExpense, useRejectExpense, useUploadExpensePdf, useDeleteExpense } from '@/lib/supabase/expenses';
 import { useProjects } from '@/lib/supabase/projects';
 import { useExpenseCategories } from '@/lib/supabase/categories';
 import { listFiles, getPublicUrl } from '@/lib/supabase/storage';
@@ -83,6 +83,7 @@ export default function ExpenseDetailPage() {
   const approveMutation = useApproveExpense();
   const rejectMutation = useRejectExpense();
   const uploadPdfMutation = useUploadExpensePdf();
+  const deleteMutation = useDeleteExpense();
 
   const handleApprove = async () => {
     // Always approve with the current edited data in review mode
@@ -107,6 +108,18 @@ export default function ExpenseDetailPage() {
       } catch (error) {
         console.error('Failed to reject expense:', error);
         alert('Failed to reject expense');
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
+      try {
+        await deleteMutation.mutateAsync({ id });
+        router.push('/money');
+      } catch (error) {
+        console.error('Failed to delete expense:', error);
+        alert('Failed to delete expense');
       }
     }
   };
@@ -392,31 +405,68 @@ export default function ExpenseDetailPage() {
                     <XCircle className="h-4 w-4" />
                     Reject
                   </Button>
+                  <div className="pt-2 border-t">
+                    <Button
+                      onClick={handleDelete}
+                      disabled={deleteMutation.isPending}
+                      variant="outline"
+                      className="w-full flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
                 </>
               )}
 
               {isApproved && (
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <p className="text-sm text-green-700 font-medium">This expense has been approved</p>
-                  {expense.reviewed_at && (
-                    <p className="text-xs text-green-600 mt-1">
-                      on {formatDate(expense.reviewed_at)}
-                    </p>
-                  )}
-                </div>
+                <>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <p className="text-sm text-green-700 font-medium">This expense has been approved</p>
+                    {expense.reviewed_at && (
+                      <p className="text-xs text-green-600 mt-1">
+                        on {formatDate(expense.reviewed_at)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="pt-2 border-t">
+                    <Button
+                      onClick={handleDelete}
+                      disabled={deleteMutation.isPending}
+                      variant="outline"
+                      className="w-full flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </>
               )}
 
               {isRejected && (
-                <div className="text-center p-4 bg-red-50 rounded-lg">
-                  <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                  <p className="text-sm text-red-700 font-medium">This expense has been rejected</p>
-                  {expense.reviewed_at && (
-                    <p className="text-xs text-red-600 mt-1">
-                      on {formatDate(expense.reviewed_at)}
-                    </p>
-                  )}
-                </div>
+                <>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                    <p className="text-sm text-red-700 font-medium">This expense has been rejected</p>
+                    {expense.reviewed_at && (
+                      <p className="text-xs text-red-600 mt-1">
+                        on {formatDate(expense.reviewed_at)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="pt-2 border-t">
+                    <Button
+                      onClick={handleDelete}
+                      disabled={deleteMutation.isPending}
+                      variant="outline"
+                      className="w-full flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
