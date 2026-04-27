@@ -353,3 +353,72 @@ export function useMarkTimeEntriesAsInvoiced() {
     }
   );
 }
+
+// Get time entries grouped by project and week for the last 12 months
+export function useTimeEntriesByProjectAndMonth() {
+  return useSupabaseQuery<any[]>(
+    [...QUERY_KEY, 'by-project-week'],
+    async () => {
+      // Calculate date range (last 12 months)
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 11);
+      startDate.setDate(1);
+
+      const { data, error } = await supabase
+        .from('backoffice_time_entries')
+        .select(
+          `
+          id,
+          project_id,
+          date,
+          total_hours,
+          chargeable_hours,
+          projects:project_id(id, name, color)
+        `
+        )
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0])
+        .order('date', { ascending: true });
+
+      if (error) return { data: null, error };
+
+      // Helper function to get week number and year
+      const getWeekKey = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+        const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+        const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+        return `${date.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+      };
+
+      // Group by week and project
+      const grouped = (data || []).reduce((acc: any, entry: any) => {
+        const week = getWeekKey(entry.date);
+        const projectId = entry.project_id;
+        const projectName = entry.projects?.name || 'Unknown';
+        const projectColor = entry.projects?.color || '#1e3a8a';
+
+        const key = `${week}_${projectId}`;
+        if (!acc[key]) {
+          acc[key] = {
+            week,
+            week_name: week,
+            project_id: projectId,
+            project_name: projectName,
+            project_color: projectColor,
+            total_hours: 0,
+            chargeable_hours: 0,
+          };
+        }
+
+        acc[key].total_hours += Number(entry.total_hours) || 0;
+        acc[key].chargeable_hours += Number(entry.chargeable_hours) || 0;
+
+        return acc;
+      }, {});
+
+      return { data: Object.values(grouped), error: null };
+    }
+  );
+}

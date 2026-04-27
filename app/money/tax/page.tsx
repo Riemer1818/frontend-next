@@ -1,12 +1,13 @@
 'use client';
 
-import { useIncomeTaxCalculation } from '@/lib/supabase/tax';
+import { useIncomeTaxCalculation, useMonthlyTaxInsights } from '@/lib/supabase/tax';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
+import { Settings, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 export default function TaxesPage() {
   const router = useRouter();
@@ -14,16 +15,43 @@ export default function TaxesPage() {
 
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
-  const { data: taxCalc, isLoading: loadingTaxCalc } = useIncomeTaxCalculation(selectedYear);
+  const { data: taxCalc, isLoading: loadingTaxCalc, error: taxCalcError } = useIncomeTaxCalculation(selectedYear);
+  const { data: monthlyInsights, isLoading: loadingMonthly } = useMonthlyTaxInsights(selectedYear);
 
   // Generate available years (2025, 2026, etc.)
   const availableYears = [2025, 2026, 2027];
 
-  if (loadingTaxCalc || !taxCalc) {
+  if (loadingTaxCalc) {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center">
           <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (taxCalcError) {
+    return (
+      <MainLayout>
+        <div className="p-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-red-900 font-bold text-lg mb-2">Error Loading Tax Data</h2>
+            <p className="text-red-700">
+              {taxCalcError instanceof Error ? taxCalcError.message : 'An error occurred while loading tax data'}
+            </p>
+            <p className="text-red-600 text-sm mt-2">Check browser console for details.</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!taxCalc) {
+    return (
+      <MainLayout>
+        <div className="flex h-full items-center justify-center">
+          <p className="text-muted-foreground">No tax data available for {selectedYear}</p>
         </div>
       </MainLayout>
     );
@@ -71,6 +99,250 @@ export default function TaxesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Monthly Insights Section */}
+        {monthlyInsights && monthlyInsights.summary && (
+          <>
+
+            {/* Monthly Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card className="bg-blue-600 border-blue-600">
+                <CardHeader>
+                  <CardTitle className="text-white text-sm font-medium">Gemiddeld per Maand</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-white">€{monthlyInsights.summary.avg_monthly_profit.toFixed(0)}</p>
+                  <p className="text-sm text-blue-100 mt-1">Winst (tot nu toe)</p>
+                  <div className="mt-2 text-xs text-blue-100">
+                    <div>Inkomen: €{monthlyInsights.summary.avg_monthly_revenue.toFixed(0)}</div>
+                    <div>Uitgaven: €{monthlyInsights.summary.avg_monthly_expenses.toFixed(0)}</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-green-600 border-green-600">
+                <CardHeader>
+                  <CardTitle className="text-white text-sm font-medium">Belastingvrije Voet</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-white">€{monthlyInsights.summary.monthly_deductions.toFixed(0)}</p>
+                  <p className="text-sm text-green-100 mt-1">Gemiddeld per maand</p>
+                  <div className="mt-2 text-xs text-green-100 space-y-0.5">
+                    {monthlyInsights.summary.all_deductions.map((deduction, idx) => (
+                      <div key={idx}>
+                        {deduction.name}: €{deduction.monthly_amount.toFixed(0)}/mnd
+                      </div>
+                    ))}
+                    <div className="mt-1 pt-1 border-t border-green-400 font-medium">
+                      Totaal jaarlijks: €{(monthlyInsights.summary.monthly_deductions * 12).toFixed(0)}
+                    </div>
+                    <div className="text-green-200">
+                      + MKB vrijstelling: {monthlyInsights.summary.mkb_percentage}% van winst
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-purple-600 border-purple-600">
+                <CardHeader>
+                  <CardTitle className="text-white text-sm font-medium">YTD Totalen</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-white">€{monthlyInsights.summary.ytd_profit.toFixed(0)}</p>
+                  <p className="text-sm text-purple-100 mt-1">{monthlyInsights.summary.months_completed} maanden</p>
+                  <div className="mt-2 text-xs text-purple-100">
+                    <div>Inkomen: €{monthlyInsights.summary.ytd_revenue.toFixed(0)}</div>
+                    <div>Uitgaven: €{monthlyInsights.summary.ytd_expenses.toFixed(0)}</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-orange-600 border-orange-600">
+                <CardHeader>
+                  <CardTitle className="text-white text-sm font-medium">Geprojecteerd Jaar</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-white">€{monthlyInsights.summary.projected_annual_profit.toFixed(0)}</p>
+                  <p className="text-sm text-orange-100 mt-1">Totale winst</p>
+                  <div className="mt-2 text-xs text-orange-100">
+                    <div>Inkomen: €{monthlyInsights.summary.projected_annual_revenue.toFixed(0)}</div>
+                    <div>Uitgaven: €{monthlyInsights.summary.projected_annual_expenses.toFixed(0)}</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-red-600 border-red-600">
+                <CardHeader>
+                  <CardTitle className="text-white text-sm font-medium">Sparen voor Belasting</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-white">€{monthlyInsights.summary.recommended_monthly_tax_savings.toFixed(0)}</p>
+                  <p className="text-sm text-red-100 mt-1">Per maand opzij zetten</p>
+                  <div className="mt-2 text-xs text-red-100">
+                    <div>Totaal jaar: €{monthlyInsights.summary.projected_total_tax.toFixed(0)}</div>
+                    <div>Effectief tarief: {monthlyInsights.summary.projected_effective_rate.toFixed(1)}%</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Monthly Chart */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Maandelijks Overzicht {selectedYear}
+                </CardTitle>
+                <CardDescription>
+                  Actuele cijfers t/m {new Date().toLocaleString('nl-NL', { month: 'long' })},
+                  daarna geprojecteerd op basis van gemiddelde
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={400}>
+                  <AreaChart data={monthlyInsights.months}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="month_name"
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      formatter={(value: number) => `€${value.toFixed(2)}`}
+                      labelFormatter={(label) => label}
+                    />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stackId="1"
+                      stroke="#10b981"
+                      fill="#10b981"
+                      fillOpacity={0.6}
+                      name="Inkomen"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="expenses"
+                      stackId="2"
+                      stroke="#ef4444"
+                      fill="#ef4444"
+                      fillOpacity={0.6}
+                      name="Uitgaven"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="profit"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      dot={{ r: 4 }}
+                      name="Winst"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+
+                {/* Legend for historical vs projected */}
+                <div className="mt-4 flex items-center justify-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-600 rounded"></div>
+                    <span className="text-muted-foreground">Actueel (t/m {new Date().toLocaleString('nl-NL', { month: 'short' })})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-300 rounded"></div>
+                    <span className="text-muted-foreground">Geprojecteerd</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tax-Free Breakdown Chart */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">Maandelijkse Belastingvrije Breakdown</CardTitle>
+                <CardDescription>Hoe je winst wordt verdeeld: belastbaar vs belastingvrij</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={monthlyInsights.months}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="month_name"
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      formatter={(value: number) => `€${value.toFixed(2)}`}
+                    />
+                    <Legend />
+                    <Bar dataKey="deductions" stackId="a" fill="#10b981" name="Aftrek (zelfstandigen/starter)" />
+                    <Bar dataKey="mkb_exemption" stackId="a" fill="#84cc16" name="MKB Winstvrijstelling" />
+                    <Bar dataKey="taxable_income" stackId="a" fill="#ef4444" name="Belastbaar Inkomen" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Monthly Table */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">Maandelijkse Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Maand</th>
+                        <th className="text-right p-2">Inkomen</th>
+                        <th className="text-right p-2">Uitgaven</th>
+                        <th className="text-right p-2">Winst</th>
+                        <th className="text-right p-2">Aftrek</th>
+                        <th className="text-right p-2">MKB Vrijst.</th>
+                        <th className="text-right p-2">Belastbaar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monthlyInsights.months.map((month) => (
+                        <tr
+                          key={month.month}
+                          className={`border-b ${!month.is_historical ? 'bg-blue-50 italic' : ''}`}
+                        >
+                          <td className="p-2">
+                            {month.month_name}
+                            {!month.is_historical && <span className="ml-2 text-xs text-blue-600">(proj.)</span>}
+                          </td>
+                          <td className="text-right p-2 text-green-600">€{month.revenue.toFixed(0)}</td>
+                          <td className="text-right p-2 text-red-600">€{month.expenses.toFixed(0)}</td>
+                          <td className="text-right p-2 font-medium">€{month.profit.toFixed(0)}</td>
+                          <td className="text-right p-2 text-green-600">€{month.deductions.toFixed(0)}</td>
+                          <td className="text-right p-2 text-green-600">€{month.mkb_exemption.toFixed(0)}</td>
+                          <td className="text-right p-2 font-bold text-red-600">€{month.taxable_income.toFixed(0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold">
+                        <td className="p-2">Totaal</td>
+                        <td className="text-right p-2 text-green-600">€{monthlyInsights.summary.projected_annual_revenue.toFixed(0)}</td>
+                        <td className="text-right p-2 text-red-600">€{monthlyInsights.summary.projected_annual_expenses.toFixed(0)}</td>
+                        <td className="text-right p-2">€{monthlyInsights.summary.projected_annual_profit.toFixed(0)}</td>
+                        <td className="text-right p-2 text-green-600">€{(monthlyInsights.summary.monthly_deductions * 12).toFixed(0)}</td>
+                        <td className="text-right p-2 text-green-600">-</td>
+                        <td className="text-right p-2 text-red-600">-</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
 
         {/* Tax Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

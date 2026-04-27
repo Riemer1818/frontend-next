@@ -3,20 +3,21 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addMonths, subMonths, startOfMonth, endOfMonth, differenceInMinutes } from 'date-fns';
-import { useTimeEntriesByDateRange, useCreateTimeEntry, useUpdateTimeEntry, useDeleteTimeEntry } from '@/lib/supabase/time-entries';
+import { useTimeEntriesByDateRange, useCreateTimeEntry, useUpdateTimeEntry, useDeleteTimeEntry, useTimeEntriesByProjectAndMonth } from '@/lib/supabase/time-entries';
 import { useProjects } from '@/lib/supabase/projects';
 import { useContactsWithCompany } from '@/lib/supabase/contacts';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Clock, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const locales = {
@@ -101,6 +102,9 @@ export default function TimeEntriesPage() {
   // Fetch time entries using date range hook
   const { data: timeEntries, isLoading, error: timeEntriesError, refetch } = useTimeEntriesByDateRange(dateRange.startDate, dateRange.endDate);
 
+  // Fetch time entries by project and month for chart
+  const { data: timeEntriesByProjectMonth } = useTimeEntriesByProjectAndMonth();
+
   // Fetch projects for dropdown
   const { data: projects } = useProjects();
 
@@ -110,6 +114,51 @@ export default function TimeEntriesPage() {
   const timeEntriesArray = timeEntries || [];
   const projectsArray = projects || [];
   const contactsArray = contacts || [];
+
+  // Transform data for chart - group by week and stack by project
+  const chartData = useMemo(() => {
+    if (!timeEntriesByProjectMonth || timeEntriesByProjectMonth.length === 0) return [];
+
+    // Get all unique weeks and projects
+    const weeks = new Set<string>();
+    const projectsInData = new Set<string>();
+
+    timeEntriesByProjectMonth.forEach((entry: any) => {
+      weeks.add(entry.week);
+      projectsInData.add(entry.project_name);
+    });
+
+    // Create a data point for each week with all projects
+    const sortedWeeks = Array.from(weeks).sort();
+    return sortedWeeks.map(week => {
+      const weekData: any = {
+        week,
+        week_name: week,
+      };
+
+      // Add hours for each project in this week
+      projectsInData.forEach(projectName => {
+        const entry = timeEntriesByProjectMonth.find(
+          (e: any) => e.week === week && e.project_name === projectName
+        );
+        weekData[projectName] = entry ? entry.chargeable_hours : 0;
+      });
+
+      return weekData;
+    });
+  }, [timeEntriesByProjectMonth]);
+
+  // Get unique projects for chart with their colors
+  const projectColors = useMemo(() => {
+    if (!timeEntriesByProjectMonth) return {};
+    const colors: any = {};
+    timeEntriesByProjectMonth.forEach((entry: any) => {
+      if (!colors[entry.project_name]) {
+        colors[entry.project_name] = entry.project_color;
+      }
+    });
+    return colors;
+  }, [timeEntriesByProjectMonth]);
 
   // Mutations
   const createMutation = useCreateTimeEntry();
@@ -351,6 +400,53 @@ export default function TimeEntriesPage() {
             Add Time Entry
           </Button>
         </div>
+
+        {/* Time by Project Chart */}
+        {chartData.length > 0 && (
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Time Spent per Project - Last 12 Months (Weekly)
+              </CardTitle>
+              <CardDescription>
+                Chargeable hours logged per project, grouped by week
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <AreaChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="week_name"
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip
+                    formatter={(value: number) => `${value.toFixed(1)}h`}
+                    labelFormatter={(label) => label}
+                  />
+                  <Legend />
+                  {Object.keys(projectColors).map((projectName, index) => (
+                    <Area
+                      key={projectName}
+                      type="monotone"
+                      dataKey={projectName}
+                      stackId="1"
+                      stroke={projectColors[projectName]}
+                      fill={projectColors[projectName]}
+                      fillOpacity={0.7}
+                      name={projectName}
+                    />
+                  ))}
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="p-6 bg-card">
           {isLoading ? (

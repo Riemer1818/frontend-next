@@ -177,6 +177,189 @@ export default function VATPage() {
           </Card>
         </div>
 
+        {/* Dutch VAT Declaration Categories */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle>Rubriek 1: Prestaties binnenland</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Deliveries and services in the Netherlands</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* 1a: High rate (21%) */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">1a. Leveringen/diensten belast met hoog tarief</p>
+                  <p className="text-sm text-muted-foreground">Deliveries/services taxed at high rate (21%)</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€{(vatCollected / 0.21).toFixed(2)}</p>
+                  <p className="text-sm text-green-600 mt-1">BTW: €{vatCollected.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* 1b: Low rate (9%) */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">1b. Leveringen/diensten belast met laag tarief</p>
+                  <p className="text-sm text-muted-foreground">Deliveries/services taxed at low rate (9%)</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                  <p className="text-sm text-green-600 mt-1">BTW: €0.00</p>
+                </div>
+              </div>
+
+              {/* 1c: Other rates */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">1c. Leveringen/diensten belast met overige tarieven, behalve 0%</p>
+                  <p className="text-sm text-muted-foreground">Deliveries/services taxed at other rates, except 0%</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                  <p className="text-sm text-green-600 mt-1">BTW: €0.00</p>
+                </div>
+              </div>
+
+              {/* 1d: Private use */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">1d. Privégebruik</p>
+                  <p className="text-sm text-muted-foreground">Private use</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                  <p className="text-sm text-green-600 mt-1">BTW: €0.00</p>
+                </div>
+              </div>
+
+              {/* 1e: 0% or not taxed */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">1e. Leveringen/diensten belast met 0% of niet bij u belast</p>
+                  <p className="text-sm text-muted-foreground">Deliveries/services taxed at 0% or not taxed by you</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Rubriek 2: Reverse charge */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle>Rubriek 2: Verleggingsregelingen binnenland</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Reverse charge arrangements in the Netherlands</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* 2a: Reverse charge */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">2a. Leveringen/diensten waarbij de btw naar u is verlegd</p>
+                  <p className="text-sm text-muted-foreground">Deliveries/services where VAT has been shifted to you</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                  <p className="text-sm text-orange-600 mt-1">BTW: €0.00</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Rubriek 3: Foreign deliveries */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle>Rubriek 3: Prestaties naar of in het buitenland</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Deliveries to or in foreign countries</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* 3a: Export outside EU */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">3a. Leveringen naar landen buiten de EU (uitvoer)</p>
+                  <p className="text-sm text-muted-foreground">Deliveries to countries outside the EU (export)</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                </div>
+              </div>
+
+              {/* 3b: EU deliveries/services */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">3b. Leveringen naar of diensten in landen binnen de EU</p>
+                  <p className="text-sm text-muted-foreground">Deliveries to or services in EU countries</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                </div>
+              </div>
+
+              {/* 3c: Distance sales within EU */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">3c. Installatie/afstandsverkopen binnen de EU</p>
+                  <p className="text-sm text-muted-foreground">Installation/distance sales within the EU</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Rubriek 4: Foreign purchases */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle>Rubriek 4: Prestaties vanuit het buitenland aan u verricht</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Deliveries from foreign countries to you</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* 4a: From outside EU */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">4a. Leveringen/diensten uit landen buiten de EU</p>
+                  <p className="text-sm text-muted-foreground">Deliveries/services from countries outside the EU</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                  <p className="text-sm text-orange-600 mt-1">BTW: €0.00</p>
+                </div>
+              </div>
+
+              {/* 4b: From within EU */}
+              <div className="flex justify-between items-center p-4 bg-secondary rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">4b. Leveringen/diensten uit landen binnen de EU</p>
+                  <p className="text-sm text-muted-foreground">Deliveries/services from EU countries</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Omzet</p>
+                  <p className="font-bold text-foreground">€0.00</p>
+                  <p className="text-sm text-orange-600 mt-1">BTW: €0.00</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Current Quarter Reference */}
         {selectedYear === currentYear && (
           <Card className="bg-secondary border-border">

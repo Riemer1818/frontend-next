@@ -132,6 +132,150 @@ const taxRouter = router({
     .mutation(async () => {
       return { success: true };
     }),
+
+  // Get monthly tax insights with projections
+  getMonthlyTaxInsights: publicProcedure
+    .input(z.object({
+      year: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const { year } = input;
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1; // 1-12
+
+      // Get tax year configuration
+      const { data: taxYear } = await ctx.supabase
+        .from('backoffice_tax_years')
+        .select('id')
+        .eq('year', year)
+        .single();
+
+      if (!taxYear) {
+        return { months: [], summary: null };
+      }
+
+      // Get tax benefits for the year
+      const { data: benefits } = await ctx.supabase
+        .from('backoffice_tax_benefits')
+        .select('*')
+        .eq('tax_year_id', taxYear.id)
+        .eq('is_active', true);
+
+      // Calculate annual deductions
+      const selfEmployedDeduction = benefits?.find(b => b.benefit_type === 'zelfstandigenaftrek')?.amount || 0;
+      const startupDeduction = benefits?.find(b => b.benefit_type === 'startersaftrek')?.amount || 0;
+      const mkbPercentage = benefits?.find(b => b.benefit_type === 'mkb_winstvrijstelling')?.percentage || 0;
+
+      // Monthly breakdown
+      const months = [];
+      let cumulativeRevenue = 0;
+      let cumulativeExpenses = 0;
+
+      for (let month = 1; month <= 12; month++) {
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+        const endDate = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+
+        // Check if this is a historical month or projection
+        const isHistorical = year < currentYear || (year === currentYear && month <= currentMonth);
+
+        let revenue = 0;
+        let expenses = 0;
+
+        if (isHistorical) {
+          // Get actual data for historical months
+          const { data: invoices } = await ctx.supabase
+            .from('backoffice_invoices')
+            .select('total_amount')
+            .gte('invoice_date', startDate)
+            .lte('invoice_date', endDate);
+
+          const { data: incomingInvoices } = await ctx.supabase
+            .from('backoffice_incoming_invoices')
+            .select('total_amount')
+            .gte('invoice_date', startDate)
+            .lte('invoice_date', endDate);
+
+          revenue = (invoices || []).reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+          expenses = (incomingInvoices || []).reduce((sum, exp) => sum + (exp.total_amount || 0), 0);
+        } else {
+          // Project future months based on average
+          const monthsCompleted = currentMonth;
+          if (monthsCompleted > 0) {
+            revenue = cumulativeRevenue / monthsCompleted;
+            expenses = cumulativeExpenses / monthsCompleted;
+          }
+        }
+
+        cumulativeRevenue += revenue;
+        cumulativeExpenses += expenses;
+
+        const profit = revenue - expenses;
+
+        // Monthly deductions (annual deductions / 12)
+        const monthlyDeductions = (selfEmployedDeduction + startupDeduction) / 12;
+        const profitAfterDeductions = Math.max(0, profit - monthlyDeductions);
+        const mkbExemption = profitAfterDeductions * (mkbPercentage / 100);
+        const taxableIncome = Math.max(0, profitAfterDeductions - mkbExemption);
+
+        months.push({
+          month,
+          month_name: new Date(year, month - 1).toLocaleString('nl-NL', { month: 'long' }),
+          is_historical: isHistorical,
+          revenue,
+          expenses,
+          profit,
+          deductions: monthlyDeductions,
+          profit_after_deductions: profitAfterDeductions,
+          mkb_exemption: mkbExemption,
+          taxable_income: taxableIncome,
+          cumulative_revenue: cumulativeRevenue,
+          cumulative_expenses: cumulativeExpenses,
+          cumulative_profit: cumulativeRevenue - cumulativeExpenses,
+        });
+      }
+
+      // Calculate summary
+      const totalRevenue = cumulativeRevenue;
+      const totalExpenses = cumulativeExpenses;
+      const totalProfit = totalRevenue - totalExpenses;
+      const avgMonthlyRevenue = totalRevenue / 12;
+      const avgMonthlyExpenses = totalExpenses / 12;
+      const avgMonthlyProfit = totalProfit / 12;
+
+      // YTD actuals
+      const ytdMonths = months.filter(m => m.is_historical);
+      const ytdRevenue = ytdMonths.reduce((sum, m) => sum + m.revenue, 0);
+      const ytdExpenses = ytdMonths.reduce((sum, m) => sum + m.expenses, 0);
+      const ytdProfit = ytdRevenue - ytdExpenses;
+
+      return {
+        months,
+        summary: {
+          year,
+          current_month: currentMonth,
+          months_completed: currentMonth,
+          months_remaining: 12 - currentMonth,
+          // YTD Actuals
+          ytd_revenue: ytdRevenue,
+          ytd_expenses: ytdExpenses,
+          ytd_profit: ytdProfit,
+          // Averages
+          avg_monthly_revenue: ytdRevenue / currentMonth,
+          avg_monthly_expenses: ytdExpenses / currentMonth,
+          avg_monthly_profit: ytdProfit / currentMonth,
+          // Annual projections
+          projected_annual_revenue: totalRevenue,
+          projected_annual_expenses: totalExpenses,
+          projected_annual_profit: totalProfit,
+          // Deductions
+          annual_self_employed_deduction: selfEmployedDeduction,
+          annual_startup_deduction: startupDeduction,
+          monthly_deductions: (selfEmployedDeduction + startupDeduction) / 12,
+          mkb_percentage: mkbPercentage,
+        },
+      };
+    }),
 });
 
 export { taxRouter };

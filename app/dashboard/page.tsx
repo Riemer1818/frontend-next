@@ -22,7 +22,7 @@ export default function DashboardPage() {
   const { data: outstandingInvoices, isLoading: loadingInvoices } = useOutstandingInvoices();
   const { data: trendData, isLoading: loadingTrend } = useIncomeExpenseTrend(6, selectedDate);
   const { data: emailStats, isLoading: loadingEmailStats } = useEmailStats();
-  const { data: emails, isLoading: loadingEmails, refetch: refetchEmails } = useEmails(undefined, false, 1, 10);
+  const { data: emails, isLoading: loadingEmails, refetch: refetchEmails } = useEmails(undefined, true, 1, 10);
 
   const fetchEmails = useFetchUnreadEmails();
 

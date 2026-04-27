@@ -48,7 +48,7 @@ export interface TaxCredit {
   phaseout_end: number | null;
   phaseout_rate: number | null;
   description: string | null;
-  is_enabled: boolean;
+  is_active: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -409,6 +409,326 @@ export interface IncomeTaxCalculation {
   net_profit_after_tax: number;
 }
 
+// Monthly tax insights
+export interface MonthlyTaxInsight {
+  month: number;
+  month_name: string;
+  is_historical: boolean;
+  revenue: number;
+  expenses: number;
+  profit: number;
+  deductions: number;
+  profit_after_deductions: number;
+  mkb_exemption: number;
+  taxable_income: number;
+  cumulative_revenue: number;
+  cumulative_expenses: number;
+  cumulative_profit: number;
+}
+
+export interface MonthlyTaxSummary {
+  year: number;
+  current_month: number;
+  months_completed: number;
+  months_remaining: number;
+  ytd_revenue: number;
+  ytd_expenses: number;
+  ytd_profit: number;
+  avg_monthly_revenue: number;
+  avg_monthly_expenses: number;
+  avg_monthly_profit: number;
+  projected_annual_revenue: number;
+  projected_annual_expenses: number;
+  projected_annual_profit: number;
+  annual_self_employed_deduction: number;
+  annual_startup_deduction: number;
+  monthly_deductions: number;
+  mkb_percentage: number;
+  all_deductions: Array<{ name: string; annual_amount: number; monthly_amount: number }>;
+  // Tax calculation
+  projected_profit_after_deductions: number;
+  projected_mkb_exemption: number;
+  projected_taxable_income: number;
+  projected_tax_before_credits: number;
+  projected_tax_credits: number;
+  projected_total_tax: number;
+  projected_effective_rate: number;
+  // Monthly savings recommendation
+  recommended_monthly_tax_savings: number;
+  ytd_should_have_saved: number;
+}
+
+export function useMonthlyTaxInsights(year: number) {
+  return useSupabaseQuery<{ months: MonthlyTaxInsight[], summary: MonthlyTaxSummary | null }>(
+    [...QUERY_KEY, 'monthly-insights', String(year)],
+    async () => {
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1; // 1-12
+
+      // Get tax year
+      const { data: taxYear, error: yearError } = await supabase
+        .from('backoffice_tax_years')
+        .select('id')
+        .eq('year', year)
+        .single();
+
+      if (yearError || !taxYear) {
+        return { data: { months: [], summary: null }, error: null };
+      }
+
+      // Get tax benefits
+      const { data: benefits } = await supabase
+        .from('backoffice_tax_benefits')
+        .select('*')
+        .eq('tax_year_id', taxYear.id)
+        .eq('is_active', true);
+
+      // Calculate annual deductions
+      const selfEmployedDeduction = benefits?.find(b => b.benefit_type === 'zelfstandigenaftrek')?.amount || 0;
+      const startupDeduction = benefits?.find(b => b.benefit_type === 'startersaftrek')?.amount || 0;
+      const mkbPercentage = benefits?.find(b => b.benefit_type === 'mkb_winstvrijstelling')?.percentage || 0;
+
+      // Get ALL other custom benefits (WBSO, etc.) - exclude the ones we already counted and MKB which is percentage-based
+      const customBenefits = (benefits || []).filter(b =>
+        b.benefit_type !== 'zelfstandigenaftrek' &&
+        b.benefit_type !== 'startersaftrek' &&
+        b.benefit_type !== 'mkb_winstvrijstelling'
+      );
+      const totalCustomBenefits = customBenefits.reduce((sum, b) => sum + (b.amount || 0), 0);
+
+      // Total annual deductions
+      const totalAnnualDeductions = selfEmployedDeduction + startupDeduction + totalCustomBenefits;
+
+      // Monthly breakdown
+      const months: MonthlyTaxInsight[] = [];
+      let cumulativeRevenue = 0;
+      let cumulativeExpenses = 0;
+
+      for (let month = 1; month <= 12; month++) {
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+        const endDate = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+
+        // Check if this is a historical month or projection
+        const isHistorical = year < currentYear || (year === currentYear && month <= currentMonth);
+
+        let revenue = 0;
+        let expenses = 0;
+
+        if (isHistorical) {
+          // Get actual data for historical months
+          const { data: invoices } = await supabase
+            .from('backoffice_invoices')
+            .select('total_amount')
+            .gte('invoice_date', startDate)
+            .lte('invoice_date', endDate);
+
+          const { data: incomingInvoices } = await supabase
+            .from('backoffice_incoming_invoices')
+            .select('total_amount')
+            .gte('invoice_date', startDate)
+            .lte('invoice_date', endDate);
+
+          revenue = (invoices || []).reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+          expenses = (incomingInvoices || []).reduce((sum, exp) => sum + (exp.total_amount || 0), 0);
+        } else {
+          // Project future months based on average
+          const monthsCompleted = currentMonth;
+          if (monthsCompleted > 0 && year === currentYear) {
+            revenue = cumulativeRevenue / monthsCompleted;
+            expenses = cumulativeExpenses / monthsCompleted;
+          }
+        }
+
+        cumulativeRevenue += revenue;
+        cumulativeExpenses += expenses;
+
+        const profit = revenue - expenses;
+
+        // Monthly deductions (annual deductions / 12) - including ALL custom benefits
+        const monthlyDeductions = totalAnnualDeductions / 12;
+        const profitAfterDeductions = Math.max(0, profit - monthlyDeductions);
+        const mkbExemption = profitAfterDeductions * (mkbPercentage / 100);
+        const taxableIncome = Math.max(0, profitAfterDeductions - mkbExemption);
+
+        months.push({
+          month,
+          month_name: new Date(year, month - 1).toLocaleString('nl-NL', { month: 'long' }),
+          is_historical: isHistorical,
+          revenue,
+          expenses,
+          profit,
+          deductions: monthlyDeductions,
+          profit_after_deductions: profitAfterDeductions,
+          mkb_exemption: mkbExemption,
+          taxable_income: taxableIncome,
+          cumulative_revenue: cumulativeRevenue,
+          cumulative_expenses: cumulativeExpenses,
+          cumulative_profit: cumulativeRevenue - cumulativeExpenses,
+        });
+      }
+
+      // Calculate summary
+      const totalRevenue = cumulativeRevenue;
+      const totalExpenses = cumulativeExpenses;
+      const totalProfit = totalRevenue - totalExpenses;
+
+      // YTD actuals
+      const ytdMonths = months.filter(m => m.is_historical);
+      const ytdRevenue = ytdMonths.reduce((sum, m) => sum + m.revenue, 0);
+      const ytdExpenses = ytdMonths.reduce((sum, m) => sum + m.expenses, 0);
+      const ytdProfit = ytdRevenue - ytdExpenses;
+
+      // Build deductions list for UI
+      const allDeductions: Array<{ name: string; annual_amount: number; monthly_amount: number }> = [];
+
+      if (selfEmployedDeduction > 0) {
+        allDeductions.push({
+          name: 'Zelfstandigenaftrek',
+          annual_amount: selfEmployedDeduction,
+          monthly_amount: selfEmployedDeduction / 12,
+        });
+      }
+
+      if (startupDeduction > 0) {
+        allDeductions.push({
+          name: 'Startersaftrek',
+          annual_amount: startupDeduction,
+          monthly_amount: startupDeduction / 12,
+        });
+      }
+
+      // Add all custom benefits (WBSO, etc.)
+      customBenefits.forEach(benefit => {
+        if (benefit.amount && benefit.amount > 0) {
+          allDeductions.push({
+            name: benefit.name,
+            annual_amount: benefit.amount,
+            monthly_amount: benefit.amount / 12,
+          });
+        }
+      });
+
+      // Calculate projected annual tax (CORRECTLY - using annual totals, not monthly)
+      const projectedProfitAfterDeductions = Math.max(0, totalProfit - totalAnnualDeductions);
+      const projectedMkbExemption = projectedProfitAfterDeductions * (mkbPercentage / 100);
+      const projectedTaxableIncome = Math.max(0, projectedProfitAfterDeductions - projectedMkbExemption);
+
+      // Get tax brackets
+      const { data: brackets } = await supabase
+        .from('backoffice_income_tax_brackets')
+        .select('*')
+        .eq('tax_year_id', taxYear.id)
+        .order('bracket_order', { ascending: true });
+
+      // Calculate tax by bracket
+      let taxBracket1 = 0;
+      let taxBracket2 = 0;
+
+      if (brackets && brackets.length >= 1) {
+        const bracket1 = brackets[0];
+        const bracket1Limit = bracket1.income_to || 0;
+        const bracket1Rate = bracket1.rate || 0;
+
+        const incomeInBracket1 = Math.min(projectedTaxableIncome, bracket1Limit);
+        taxBracket1 = incomeInBracket1 * (bracket1Rate / 100);
+
+        if (brackets.length >= 2 && projectedTaxableIncome > bracket1Limit) {
+          const bracket2 = brackets[1];
+          const bracket2Rate = bracket2.rate || 0;
+          const incomeInBracket2 = projectedTaxableIncome - bracket1Limit;
+          taxBracket2 = incomeInBracket2 * (bracket2Rate / 100);
+        }
+      }
+
+      const projectedTaxBeforeCredits = taxBracket1 + taxBracket2;
+
+      // Get tax credits
+      const { data: credits } = await supabase
+        .from('backoffice_tax_credits')
+        .select('*')
+        .eq('tax_year_id', taxYear.id)
+        .eq('is_active', true);
+
+      let algemeneHeffingskorting = 0;
+      let arbeidskorting = 0;
+
+      (credits || []).forEach((credit) => {
+        if (credit.credit_type === 'algemene_heffingskorting') {
+          algemeneHeffingskorting = credit.max_amount || 0;
+        }
+      });
+
+      // Calculate arbeidskorting from brackets
+      const { data: arbeidskortingBrackets } = await supabase
+        .from('backoffice_arbeidskorting_brackets')
+        .select('*')
+        .eq('tax_year_id', taxYear.id)
+        .order('bracket_order', { ascending: true });
+
+      if (arbeidskortingBrackets) {
+        for (const bracket of arbeidskortingBrackets) {
+          if (projectedTaxableIncome >= bracket.income_from && (!bracket.income_to || projectedTaxableIncome <= bracket.income_to)) {
+            if (bracket.rate_applies_to_excess && bracket.rate) {
+              const excess = projectedTaxableIncome - bracket.income_from;
+              arbeidskorting = (bracket.base_amount || 0) + (excess * bracket.rate / 100);
+            } else {
+              arbeidskorting = bracket.base_amount || 0;
+            }
+            break;
+          }
+        }
+      }
+
+      const projectedTaxCredits = algemeneHeffingskorting + arbeidskorting;
+      const projectedTotalTax = Math.max(0, projectedTaxBeforeCredits - projectedTaxCredits);
+      const projectedEffectiveRate = totalProfit > 0 ? (projectedTotalTax / totalProfit) * 100 : 0;
+
+      // Calculate monthly savings recommendation
+      const recommendedMonthlySavings = projectedTotalTax / 12;
+      const ytdShouldHaveSaved = recommendedMonthlySavings * (year === currentYear ? currentMonth : 12);
+
+      const summary: MonthlyTaxSummary = {
+        year,
+        current_month: currentMonth,
+        months_completed: year === currentYear ? currentMonth : 12,
+        months_remaining: year === currentYear ? 12 - currentMonth : 0,
+        // YTD Actuals
+        ytd_revenue: ytdRevenue,
+        ytd_expenses: ytdExpenses,
+        ytd_profit: ytdProfit,
+        // Averages
+        avg_monthly_revenue: ytdMonths.length > 0 ? ytdRevenue / ytdMonths.length : 0,
+        avg_monthly_expenses: ytdMonths.length > 0 ? ytdExpenses / ytdMonths.length : 0,
+        avg_monthly_profit: ytdMonths.length > 0 ? ytdProfit / ytdMonths.length : 0,
+        // Annual projections
+        projected_annual_revenue: totalRevenue,
+        projected_annual_expenses: totalExpenses,
+        projected_annual_profit: totalProfit,
+        // Deductions (including ALL custom benefits like WBSO)
+        annual_self_employed_deduction: selfEmployedDeduction,
+        annual_startup_deduction: startupDeduction,
+        monthly_deductions: totalAnnualDeductions / 12,
+        mkb_percentage: mkbPercentage,
+        all_deductions: allDeductions,
+        // Tax calculation
+        projected_profit_after_deductions: projectedProfitAfterDeductions,
+        projected_mkb_exemption: projectedMkbExemption,
+        projected_taxable_income: projectedTaxableIncome,
+        projected_tax_before_credits: projectedTaxBeforeCredits,
+        projected_tax_credits: projectedTaxCredits,
+        projected_total_tax: projectedTotalTax,
+        projected_effective_rate: projectedEffectiveRate,
+        // Monthly savings recommendation
+        recommended_monthly_tax_savings: recommendedMonthlySavings,
+        ytd_should_have_saved: ytdShouldHaveSaved,
+      };
+
+      return { data: { months, summary }, error: null };
+    }
+  );
+}
+
 export function useIncomeTaxCalculation(year: number) {
   return useSupabaseQuery<IncomeTaxCalculation>(
     [...QUERY_KEY, 'income-tax-calculation', String(year)],
@@ -549,7 +869,7 @@ export function useIncomeTaxCalculation(year: number) {
         .from('backoffice_tax_credits')
         .select('*')
         .eq('tax_year_id', taxYear.id)
-        .eq('is_enabled', true);
+        .eq('is_active', true);
 
       if (creditsError) return { data: null, error: creditsError };
 
