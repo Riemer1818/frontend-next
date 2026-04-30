@@ -17,6 +17,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingState } from '@/components/ui/loading-state';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import EmbeddedGraph from '@/components/graph/EmbeddedGraph';
@@ -49,13 +51,7 @@ export default function ProjectDetailPage() {
   };
 
   if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground">Loading project details...</p>
-        </div>
-      </MainLayout>
-    );
+    return <LoadingState message="Loading project details..." />;
   }
 
   if (!project) {
@@ -74,39 +70,37 @@ export default function ProjectDetailPage() {
   return (
     <MainLayout>
       <div className="p-8 space-y-6 bg-background min-h-screen">
-        <div className="flex justify-between items-center">
-          <div>
-            <Link href="/projects" className="text-sm text-muted-foreground hover:text-foreground mb-2 inline-block">
-              ← Back to Projects
-            </Link>
-            <h1 className="text-3xl font-bold text-foreground">{project.name}</h1>
-            <p className="text-muted-foreground mt-1">
-              {project.client_id ? (
-                <Link href={`/companies/${project.client_id}`} className="hover:underline">
-                  {project.client_name || 'View Client'}
-                </Link>
-              ) : (
-                'No client assigned'
-              )}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              onClick={() => router.push(`/projects/${projectId}/edit`)}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="ghost"
-              className="text-foreground hover:bg-secondary"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title={project.name}
+          subtitle={
+            project.client_id ? (
+              <Link href={`/companies/${project.client_id}`} className="hover:underline">
+                {project.client_name || 'View Client'}
+              </Link>
+            ) : (
+              'No client assigned'
+            )
+          }
+          backLink={{ href: '/projects', label: 'Back to Projects' }}
+          actions={
+            <>
+              <Button
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                onClick={() => router.push(`/projects/${projectId}/edit`)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-foreground hover:bg-secondary"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </Button>
+            </>
+          }
+        />
 
         {/* Project Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingState } from '@/components/ui/loading-state';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
@@ -125,13 +128,7 @@ export default function ExpenseDetailPage() {
   };
 
   if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </MainLayout>
-    );
+    return <LoadingState message="Loading expense details..." />;
   }
 
   if (!expense) {
@@ -152,46 +149,30 @@ export default function ExpenseDetailPage() {
       <div className="p-8 space-y-6 bg-background min-h-screen">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Expense Details</h1>
-              <p className="text-muted-foreground mt-1">
-                {expense.supplier_name} • {formatDate(expense.invoice_date)}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {!isPendingStatus && (
-              <Button
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                onClick={() => router.push(`/expenses/${id}/edit`)}
-              >
-                Edit
-              </Button>
-            )}
-          </div>
+          <PageHeader
+            title="Expense Details"
+            subtitle={`${expense.supplier_name} • ${formatDate(expense.invoice_date)}`}
+            backLink={{ href: '/expenses', label: 'Back to Expenses' }}
+            actions={
+              !isPendingStatus ? (
+                <Button
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  onClick={() => router.push(`/expenses/${id}/edit`)}
+                >
+                  Edit
+                </Button>
+              ) : undefined
+            }
+          />
           <div>
             {isPendingStatus && (
-              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                Pending Review
-              </Badge>
+              <StatusBadge status="pending">Pending Review</StatusBadge>
             )}
             {isApproved && (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                Approved
-              </Badge>
+              <StatusBadge status="approved">Approved</StatusBadge>
             )}
             {isRejected && (
-              <Badge variant="destructive">Rejected</Badge>
+              <StatusBadge status="rejected">Rejected</StatusBadge>
             )}
           </div>
         </div>

@@ -18,6 +18,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingState } from '@/components/ui/loading-state';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import EmbeddedGraph from '@/components/graph/EmbeddedGraph';
@@ -48,13 +50,7 @@ export default function CompanyDetailPage() {
   };
 
   if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground">Loading company details...</p>
-        </div>
-      </MainLayout>
-    );
+    return <LoadingState message="Loading company details..." />;
   }
 
   if (!company) {
@@ -70,33 +66,29 @@ export default function CompanyDetailPage() {
   return (
     <MainLayout>
       <div className="p-8 space-y-6 bg-background min-h-screen">
-        <div className="flex justify-between items-center">
-          <div>
-            <Link href="/companies" className="text-sm text-muted-foreground hover:text-foreground mb-2 inline-block">
-              ← Back to Companies
-            </Link>
-            <h1 className="text-3xl font-bold text-foreground">{company.name}</h1>
-            <p className="text-muted-foreground mt-1">
-              {company.type === 'client' ? 'Client' : company.type === 'supplier' ? 'Supplier' : 'Client & Supplier'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              className="bg-primary hover:bg-primary/90 text-white"
-              onClick={() => router.push(`/companies/${companyId}/edit`)}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="ghost"
-              className="text-foreground hover:bg-secondary"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title={company.name}
+          subtitle={company.type === 'client' ? 'Client' : company.type === 'supplier' ? 'Supplier' : 'Client & Supplier'}
+          backLink={{ href: '/companies', label: 'Back to Companies' }}
+          actions={
+            <>
+              <Button
+                className="bg-primary hover:bg-primary/90 text-white"
+                onClick={() => router.push(`/companies/${companyId}/edit`)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-foreground hover:bg-secondary"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </Button>
+            </>
+          }
+        />
 
         {/* Total Spent (for suppliers) */}
         {(company.type === 'supplier' || company.type === 'both') && (

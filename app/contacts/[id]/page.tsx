@@ -16,6 +16,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingState } from '@/components/ui/loading-state';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Mail, Phone, Building2, Briefcase } from 'lucide-react';
@@ -52,13 +54,7 @@ export default function ContactDetailPage() {
   };
 
   if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground">Loading contact details...</p>
-        </div>
-      </MainLayout>
-    );
+    return <LoadingState message="Loading contact details..." />;
   }
 
   if (!contact) {
@@ -74,38 +70,34 @@ export default function ContactDetailPage() {
   return (
     <MainLayout>
       <div className="p-8 space-y-6 bg-background min-h-screen">
-        <div className="flex justify-between items-center">
-          <div>
-            <Link href="/contacts" className="text-sm text-muted-foreground hover:text-foreground mb-2 inline-block">
-              ← Back to Contacts
-            </Link>
-            <h1 className="text-3xl font-bold text-foreground">
-              {contact.first_name} {contact.last_name}
-            </h1>
-            {contact.description && (
-              <p className="text-muted-foreground mt-1">{contact.description}</p>
-            )}
-            {contact.role && (
-              <p className="text-muted-foreground text-sm mt-1">{contact.role}</p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              className="bg-primary hover:bg-primary/90 text-white"
-              onClick={() => router.push(`/contacts/${contactId}/edit`)}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="ghost"
-              className="text-foreground hover:bg-secondary"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title={`${contact.first_name} ${contact.last_name}`}
+          subtitle={
+            <>
+              {contact.description && <p>{contact.description}</p>}
+              {contact.role && <p className="text-sm mt-1">{contact.role}</p>}
+            </>
+          }
+          backLink={{ href: '/contacts', label: 'Back to Contacts' }}
+          actions={
+            <>
+              <Button
+                className="bg-primary hover:bg-primary/90 text-white"
+                onClick={() => router.push(`/contacts/${contactId}/edit`)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-foreground hover:bg-secondary"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </Button>
+            </>
+          }
+        />
 
         {/* Contact Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

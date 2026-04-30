@@ -6,6 +6,8 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { StatCard } from '@/components/ui/stat-card';
+import { StatusBadge } from '@/components/ui/status-badge';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { TrendingUp, TrendingDown, Receipt, FileText, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
@@ -89,18 +91,12 @@ export default function MoneyPage() {
 
         {/* VAT & Tax Overview (Top Row) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* VAT to Pay This Quarter */}
-          <Card className="bg-primary border-primary">
-            <CardHeader>
-              <CardTitle className="text-primary-foreground text-sm font-medium">
-                VAT to Pay (Q{currentQuarter} {currentYear})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-primary-foreground">€{stats.vat_this_quarter.toFixed(2)}</p>
-              <p className="text-sm text-primary-foreground/80 mt-1">Total outstanding: €{stats.vat_to_pay_total.toFixed(2)}</p>
-            </CardContent>
-          </Card>
+          <StatCard
+            label={`VAT to Pay (Q${currentQuarter} ${currentYear})`}
+            value={`€${stats.vat_this_quarter.toFixed(2)}`}
+            subtitle={`Total outstanding: €${stats.vat_to_pay_total.toFixed(2)}`}
+            variant="primary"
+          />
 
           {/* Income vs Expenses This Month */}
           <Card className="bg-card border-border">
@@ -270,10 +266,10 @@ export default function MoneyPage() {
                             {invoice.invoice_number}
                           </span>
                           {invoice.urgency === 'overdue' && (
-                            <Badge variant="destructive" className="text-xs">Overdue</Badge>
+                            <StatusBadge status="overdue" className="text-xs">Overdue</StatusBadge>
                           )}
                           {invoice.urgency === 'due_soon' && (
-                            <Badge className="text-xs bg-orange-500">Due Soon</Badge>
+                            <StatusBadge status="warning" className="text-xs">Due Soon</StatusBadge>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">{invoice.client_name}</p>
@@ -305,9 +301,9 @@ export default function MoneyPage() {
                 <Receipt className="h-5 w-5" />
                 Expenses Pending Review
                 {stats.pending_expenses_count > 0 && (
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                  <StatusBadge status="pending">
                     {stats.pending_expenses_count}
-                  </Badge>
+                  </StatusBadge>
                 )}
               </CardTitle>
             </CardHeader>
@@ -324,18 +320,18 @@ export default function MoneyPage() {
                   {pendingExpensesArray.slice(0, 5).map((expense: any) => (
                     <div
                       key={expense.id}
-                      className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-200 cursor-pointer"
+                      className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors border border-amber-200 dark:border-amber-800 cursor-pointer"
                       onClick={() => router.push(`/expenses/${expense.id}`)}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-yellow-600" />
+                          <AlertCircle className="h-4 w-4 text-amber-600" />
                           <span className="font-medium text-foreground">
                             {expense.supplier_name}
                           </span>
-                          <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">
+                          <StatusBadge status="pending" className="text-xs">
                             Review
-                          </Badge>
+                          </StatusBadge>
                         </div>
                         <p className="text-sm text-muted-foreground ml-6">{expense.description || 'No description'}</p>
                         <p className="text-xs text-muted-foreground ml-6">{format(new Date(expense.invoice_date), 'MMM dd, yyyy')}</p>
@@ -346,7 +342,7 @@ export default function MoneyPage() {
                       </div>
                     </div>
                   ))}
-                  <div className="pt-2 border-t border-yellow-200">
+                  <div className="pt-2 border-t border-amber-200 dark:border-amber-800">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-foreground">Total Pending</span>
                       <span className="text-lg font-bold text-foreground">

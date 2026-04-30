@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Calendar as CalendarIcon, Clock, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { ChartWrapper } from '@/components/ui/chart-wrapper';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const locales = {
@@ -339,6 +340,7 @@ export default function TimeEntriesPage() {
   return (
     <MainLayout>
       <style jsx global>{`
+        /* Calendar event styling */
         .rbc-event {
           border: none !important;
           border-radius: 4px !important;
@@ -353,6 +355,12 @@ export default function TimeEntriesPage() {
         .rbc-selected {
           opacity: 0.85 !important;
         }
+
+        /* Light mode calendar */
+        .rbc-calendar {
+          background-color: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
         .rbc-today {
           background-color: #eff6ff !important;
         }
@@ -362,22 +370,59 @@ export default function TimeEntriesPage() {
         .rbc-header {
           padding: 10px 3px !important;
           font-weight: 600 !important;
-          color: #0f172a !important;
-          border-bottom: 2px solid #e2e8f0 !important;
+          color: hsl(var(--foreground)) !important;
+          border-bottom: 2px solid hsl(var(--border)) !important;
+        }
+        .rbc-month-view, .rbc-time-view, .rbc-agenda-view {
+          border: 1px solid hsl(var(--border)) !important;
+          background-color: hsl(var(--background)) !important;
+        }
+        .rbc-day-bg, .rbc-month-row {
+          background-color: hsl(var(--background)) !important;
+        }
+        .rbc-row-segment {
+          background-color: hsl(var(--background)) !important;
+        }
+        .rbc-time-slot {
+          border-top: 1px solid hsl(var(--border)) !important;
+        }
+        .rbc-day-slot .rbc-time-slot {
+          border-top: 1px solid hsl(var(--border)) !important;
+        }
+        .rbc-timeslot-group {
+          border-left: 1px solid hsl(var(--border)) !important;
+        }
+        .rbc-date-cell {
+          color: hsl(var(--foreground)) !important;
         }
         .rbc-toolbar button {
           color: hsl(var(--primary)) !important;
-          border: 1px solid #cbd5e1 !important;
+          border: 1px solid hsl(var(--border)) !important;
           border-radius: 6px !important;
           padding: 6px 12px !important;
           font-weight: 500 !important;
+          background-color: hsl(var(--background)) !important;
         }
         .rbc-toolbar button:hover {
-          background-color: #f1f5f9 !important;
+          background-color: hsl(var(--secondary)) !important;
         }
         .rbc-toolbar button.rbc-active {
           background-color: hsl(var(--primary)) !important;
           color: white !important;
+        }
+        .rbc-toolbar-label {
+          color: hsl(var(--foreground)) !important;
+        }
+
+        /* Dark mode calendar overrides */
+        .dark .rbc-today {
+          background-color: #1a1a3a !important;
+        }
+        .dark .rbc-off-range-bg {
+          background-color: #0a0a0a !important;
+        }
+        .dark .rbc-day-bg:hover {
+          background-color: #0f0f0f !important;
         }
       `}</style>
       <div className="p-8 space-y-6 bg-background min-h-screen">
@@ -414,36 +459,38 @@ export default function TimeEntriesPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="week_name"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis tick={{ fontSize: 12 }} label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip
-                    formatter={(value: number) => `${value.toFixed(1)}h`}
-                    labelFormatter={(label) => label}
-                  />
-                  <Legend />
-                  {Object.keys(projectColors).map((projectName, index) => (
-                    <Area
-                      key={projectName}
-                      type="monotone"
-                      dataKey={projectName}
-                      stackId="1"
-                      stroke={projectColors[projectName]}
-                      fill={projectColors[projectName]}
-                      fillOpacity={0.7}
-                      name={projectName}
+              <ChartWrapper>
+                <ResponsiveContainer width="100%" height={400}>
+                  <AreaChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="week_name"
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                     />
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
+                    <YAxis tick={{ fontSize: 12 }} label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip
+                      formatter={(value: number) => `${value.toFixed(1)}h`}
+                      labelFormatter={(label) => label}
+                    />
+                    <Legend />
+                    {Object.keys(projectColors).map((projectName, index) => (
+                      <Area
+                        key={projectName}
+                        type="monotone"
+                        dataKey={projectName}
+                        stackId="1"
+                        stroke={projectColors[projectName]}
+                        fill={projectColors[projectName]}
+                        fillOpacity={0.7}
+                        name={projectName}
+                      />
+                    ))}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartWrapper>
             </CardContent>
           </Card>
         )}

@@ -89,17 +89,27 @@ export default function EmbeddedGraph({
   useEffect(() => {
     setIsClient(true);
 
-    // Check dark mode
+    // Check dark mode - check both system preference AND manual theme
     const checkDarkMode = () => {
-      setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const htmlElement = document.documentElement;
+      const hasClass = htmlElement.classList.contains('dark');
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDark(hasClass || systemDark);
     };
     checkDarkMode();
 
+    // Watch for theme changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    const handler = (e: MediaQueryListEvent) => checkDarkMode();
     mediaQuery.addEventListener('change', handler);
 
-    return () => mediaQuery.removeEventListener('change', handler);
+    return () => {
+      mediaQuery.removeEventListener('change', handler);
+      observer.disconnect();
+    };
   }, []);
 
   // Fetch data from backend
@@ -550,15 +560,18 @@ export default function EmbeddedGraph({
         </Card>
       )}
 
-      <Card className="p-4 border-2 border-black dark:border-white bg-card dark:bg-black relative">
+      <Card className="p-4 border-2 border-black dark:border-white bg-white dark:bg-black relative">
         <div
           ref={containerRef}
-          style={{ height }}
-          className="bg-card dark:bg-black"
+          style={{
+            height,
+            backgroundColor: isDark ? '#000000' : '#ffffff',
+          }}
+          className="rounded"
         />
 
         {showLegend && (
-          <div className="absolute bottom-4 left-4 border-2 border-black dark:border-white p-2 bg-card dark:bg-black max-w-xs text-xs">
+          <div className="absolute bottom-4 left-4 border-2 border-black dark:border-white p-2 bg-white dark:bg-black max-w-xs text-xs">
             <div className="font-semibold mb-2">Legend</div>
 
             {/* Active node types */}
@@ -569,14 +582,21 @@ export default function EmbeddedGraph({
                   {activeNodeTypes.map((type) => {
                     const visual = NODE_VISUALS[type];
                     if (!visual) return null;
+
+                    // Get border style class
+                    const borderStyleClass =
+                      visual.borderStyle === 'dashed' ? 'border-dashed' :
+                      visual.borderStyle === 'dotted' ? 'border-dotted' : 'border-solid';
+
                     return (
                       <div key={type} className="flex items-center gap-2">
                         <div
-                          className={`w-4 h-4 border-2 ${
-                            visual.shape === 'ellipse' ? 'rounded-full' : 'rounded-sm'
+                          className={`w-4 h-4 border-2 ${borderStyleClass} ${
+                            visual.shape === 'ellipse' ? 'rounded-full' :
+                            visual.shape === 'diamond' ? 'rotate-45' : 'rounded-sm'
                           }`}
                           style={{
-                            borderColor: visual.color.light,
+                            borderColor: isDark ? visual.color.dark : visual.color.light,
                             backgroundColor: 'transparent',
                           }}
                         />
@@ -592,19 +612,56 @@ export default function EmbeddedGraph({
             {activeStrengths.length > 0 && (
               <div>
                 <div className="font-medium mb-1">Strength:</div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {activeStrengths.map((strength) => {
                     const visual = STRENGTH_VISUALS[strength];
                     if (!visual) return null;
+
+                    // Render line based on style
+                    let lineElement;
+                    if (visual.lineStyle === 'solid') {
+                      lineElement = (
+                        <div
+                          className="w-8"
+                          style={{
+                            height: `${visual.width}px`,
+                            backgroundColor: isDark ? '#ffffff' : '#000000',
+                          }}
+                        />
+                      );
+                    } else if (visual.lineStyle === 'dashed') {
+                      lineElement = (
+                        <svg width="32" height="8" viewBox="0 0 32 8" className="overflow-visible">
+                          <line
+                            x1="0"
+                            y1="4"
+                            x2="32"
+                            y2="4"
+                            stroke={isDark ? '#ffffff' : '#000000'}
+                            strokeWidth={visual.width}
+                            strokeDasharray="4 2"
+                          />
+                        </svg>
+                      );
+                    } else {
+                      lineElement = (
+                        <svg width="32" height="8" viewBox="0 0 32 8" className="overflow-visible">
+                          <line
+                            x1="0"
+                            y1="4"
+                            x2="32"
+                            y2="4"
+                            stroke={isDark ? '#ffffff' : '#000000'}
+                            strokeWidth={visual.width}
+                            strokeDasharray="1 2"
+                          />
+                        </svg>
+                      );
+                    }
+
                     return (
                       <div key={strength} className="flex items-center gap-2">
-                        <div
-                          className={`w-8 bg-black dark:bg-card border-${
-                            visual.lineStyle === 'dashed' ? 'dashed' :
-                            visual.lineStyle === 'dotted' ? 'dotted' : 'solid'
-                          }`}
-                          style={{ height: `${visual.width}px` }}
-                        />
+                        {lineElement}
                         <span>{strength}</span>
                       </div>
                     );

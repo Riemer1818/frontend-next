@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ChartWrapper } from '@/components/ui/chart-wrapper';
+import { StatCard } from '@/components/ui/stat-card';
+import { StatusBadge } from '@/components/ui/status-badge';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -170,79 +173,41 @@ export default function DashboardPage() {
 
         {/* Main Stats Cards (Top Row) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Income This Month */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground text-sm font-medium">Income (This Month)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-foreground">€{(stats.income_this_month || 0).toFixed(2)}</p>
-              <p className="text-sm text-muted-foreground mt-1">YTD: €{(stats.income_ytd || 0).toFixed(2)}</p>
-            </CardContent>
-          </Card>
-
-          {/* Expenses This Month */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground text-sm font-medium">Expenses (This Month)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-foreground">€{(stats.expenses_this_month || 0).toFixed(2)}</p>
-              <p className="text-sm text-muted-foreground mt-1">YTD: €{(stats.expenses_ytd || 0).toFixed(2)}</p>
-            </CardContent>
-          </Card>
-
-          {/* Profit This Month */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground text-sm font-medium">Profit (This Month)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-foreground">€{(stats.profit_this_month || 0).toFixed(2)}</p>
-              <p className="text-sm text-muted-foreground mt-1">YTD: €{(stats.profit_ytd || 0).toFixed(2)}</p>
-            </CardContent>
-          </Card>
-
-          {/* Active Projects */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground text-sm font-medium">Active Projects</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-foreground">{stats.active_projects || 0}</p>
-            </CardContent>
-          </Card>
+          <StatCard
+            label="Income (This Month)"
+            value={`€${(stats.income_this_month || 0).toFixed(2)}`}
+            subtitle={`YTD: €${(stats.income_ytd || 0).toFixed(2)}`}
+          />
+          <StatCard
+            label="Expenses (This Month)"
+            value={`€${(stats.expenses_this_month || 0).toFixed(2)}`}
+            subtitle={`YTD: €${(stats.expenses_ytd || 0).toFixed(2)}`}
+          />
+          <StatCard
+            label="Profit (This Month)"
+            value={`€${(stats.profit_this_month || 0).toFixed(2)}`}
+            subtitle={`YTD: €${(stats.profit_ytd || 0).toFixed(2)}`}
+          />
+          <StatCard
+            label="Active Projects"
+            value={stats.active_projects || 0}
+          />
         </div>
 
         {/* Tax & VAT Section (Second Row) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* VAT to Pay This Quarter */}
-          <Card className="bg-primary border-primary">
-            <CardHeader>
-              <CardTitle className="text-primary-foreground text-sm font-medium">
-                VAT to Pay (Q{currentQuarter})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-primary-foreground">€{(stats.vat_this_quarter || 0).toFixed(2)}</p>
-              <p className="text-sm text-primary-foreground/80 mt-1">Total outstanding: €{(stats.vat_to_pay_total || 0).toFixed(2)}</p>
-            </CardContent>
-          </Card>
-
-          {/* Estimated Income Tax */}
-          <Card className="bg-primary border-primary">
-            <CardHeader>
-              <CardTitle className="text-primary-foreground text-sm font-medium">
-                Estimated Income Tax (YTD)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-primary-foreground">€{parseFloat(String(stats.estimated_income_tax_ytd || '0')).toFixed(2)}</p>
-              <p className="text-sm text-primary-foreground/80 mt-1">30% of profit YTD</p>
-            </CardContent>
-          </Card>
-
-          {/* Pending Expenses */}
+          <StatCard
+            label={`VAT to Pay (Q${currentQuarter})`}
+            value={`€${(stats.vat_this_quarter || 0).toFixed(2)}`}
+            subtitle={`Total outstanding: €${(stats.vat_to_pay_total || 0).toFixed(2)}`}
+            variant="primary"
+          />
+          <StatCard
+            label="Estimated Income Tax (YTD)"
+            value={`€${parseFloat(String(stats.estimated_income_tax_ytd || '0')).toFixed(2)}`}
+            subtitle="30% of profit YTD"
+            variant="primary"
+          />
           <Card className="bg-primary border-primary">
             <CardHeader>
               <CardTitle className="text-primary-foreground text-sm font-medium">
@@ -304,10 +269,10 @@ export default function DashboardPage() {
                             {invoice.invoice_number}
                           </Link>
                           {invoice.urgency === 'overdue' && (
-                            <Badge variant="destructive" className="text-xs">Overdue</Badge>
+                            <StatusBadge status="overdue" className="text-xs">Overdue</StatusBadge>
                           )}
                           {invoice.urgency === 'due_soon' && (
-                            <Badge className="text-xs bg-orange-500">Due Soon</Badge>
+                            <StatusBadge status="warning" className="text-xs">Due Soon</StatusBadge>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">{invoice.client_name}</p>

@@ -6,6 +6,9 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingState } from '@/components/ui/loading-state';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
 import { ArrowLeft, CheckCircle, FileText, Calendar, ExternalLink, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -54,13 +57,7 @@ export default function InvoiceDetailPage() {
   };
 
   if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground">Loading invoice...</p>
-        </div>
-      </MainLayout>
-    );
+    return <LoadingState message="Loading invoice..." />;
   }
 
   if (error) {
@@ -97,18 +94,18 @@ export default function InvoiceDetailPage() {
 
   const getStatusBadge = () => {
     if (isPaid) {
-      return <Badge className="bg-green-600">Paid</Badge>;
+      return <StatusBadge status="paid">Paid</StatusBadge>;
     }
     if (isOverdue) {
-      return <Badge variant="destructive">Overdue</Badge>;
+      return <StatusBadge status="overdue">Overdue</StatusBadge>;
     }
     if (isSent) {
-      return <Badge className="bg-primary">Sent</Badge>;
+      return <StatusBadge status="info">Sent</StatusBadge>;
     }
     if (isCancelled) {
-      return <Badge variant="outline" className="bg-muted text-foreground">Cancelled</Badge>;
+      return <StatusBadge status="neutral">Cancelled</StatusBadge>;
     }
-    return <Badge variant="outline">Draft</Badge>;
+    return <StatusBadge status="draft">Draft</StatusBadge>;
   };
 
   return (
