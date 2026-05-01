@@ -1,7 +1,7 @@
 import { supabase } from './client';
 import { useSupabaseQuery, useSupabaseMutation, useInvalidateQuery } from './hooks';
 
-export type PaymentStatus = 'unpaid' | 'partially_paid' | 'paid' | 'overdue';
+export type PaymentStatus = 'draft' | 'sent' | 'unpaid' | 'partially_paid' | 'paid' | 'overdue';
 
 export interface Invoice {
   id: number;
@@ -379,6 +379,62 @@ export function useGenerateInvoicePdf() {
     {
       onSuccess: (_, variables) => {
         // Invalidate invoice query to refresh PDF data
+        invalidate([...QUERY_KEY, String(variables.id)]);
+      },
+    }
+  );
+}
+
+// Send invoice email
+export interface SendInvoiceEmailInput {
+  id: number;
+  to?: string; // Override recipient for testing
+  cc?: string;
+  preview?: boolean;
+}
+
+export interface SendInvoiceEmailResult {
+  success: boolean;
+  messageId?: string;
+  sentTo?: string;
+  preview?: boolean;
+  email?: {
+    to: string;
+    cc?: string;
+    subject: string;
+    html: string;
+    text: string;
+    attachments: Array<{ filename: string; path: string }>;
+  };
+}
+
+export function useSendInvoiceEmail() {
+  const invalidate = useInvalidateQuery();
+
+  return useSupabaseMutation<SendInvoiceEmailResult, SendInvoiceEmailInput>(
+    async (input) => {
+      const { id, ...emailOptions } = input;
+
+      // Call API route to send email
+      const response = await fetch(`/api/invoices/${id}/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailOptions),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to send email' }));
+        throw new Error(error.error || 'Failed to send email');
+      }
+
+      const result = await response.json();
+      return result;
+    },
+    {
+      onSuccess: (_, variables) => {
+        // Invalidate invoice query to refresh data
         invalidate([...QUERY_KEY, String(variables.id)]);
       },
     }

@@ -1,8 +1,9 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useInvoice, useUpdateInvoiceStatus, useDeleteInvoice, useGenerateInvoicePdf } from '@/lib/supabase/invoices';
+import { useInvoice, useUpdateInvoiceStatus, useDeleteInvoice, useGenerateInvoicePdf, useSendInvoiceEmail } from '@/lib/supabase/invoices';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { EmailPreviewModal, EmailData } from '@/components/email/EmailPreviewModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,21 +28,24 @@ export default function InvoiceDetailPage() {
   const deleteMutation = useDeleteInvoice();
 
   const generatePdfMutation = useGenerateInvoicePdf();
+  const sendEmailMutation = useSendInvoiceEmail();
 
   const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [emailPreviewData, setEmailPreviewData] = useState<EmailData | null>(null);
 
   const handleMarkAsPaid = () => {
     updateStatusMutation.mutate({
       id,
-      status: 'paid',
+      payment_status: 'paid',
     });
   };
 
   const handleMarkAsSent = () => {
-    // Mark as sent by updating to unpaid status (invoice has been sent to client)
+    // Mark as sent - invoice has been sent to client
     updateStatusMutation.mutate({
       id,
-      status: 'unpaid',
+      payment_status: 'sent',
     });
   };
 
@@ -86,35 +90,51 @@ export default function InvoiceDetailPage() {
     }
   };
 
-  const handleSendEmail = () => {
+  const handlePreviewEmail = async () => {
     if (!invoice) return;
 
-    const clientEmail = invoice.client_email || '';
-    const subject = `Invoice ${invoice.invoice_number}`;
-    const body = `Dear ${invoice.client_name || 'valued client'},
+    try {
+      // Fetch email preview from API
+      const result = await sendEmailMutation.mutateAsync({
+        id: invoice.id,
+        preview: true,
+        to: 'riemer.vandervliet@live.nl', // For testing
+      });
 
-Please find attached the invoice ${invoice.invoice_number} for the amount of €${parseFloat(String(invoice.total_amount || 0)).toFixed(2)}.
+      if (result.preview && result.email) {
+        // Set email data for preview modal
+        setEmailPreviewData({
+          to: result.email.to,
+          cc: result.email.cc,
+          subject: result.email.subject,
+          bodyText: result.email.text,
+          bodyHtml: result.email.html,
+          attachments: result.email.attachments,
+        });
+        setEmailPreviewOpen(true);
+      }
+    } catch (error: any) {
+      alert(`Failed to load email preview: ${error.message}`);
+    }
+  };
 
-Payment is due by ${formatDate(invoice.due_date)}.
+  const handleSendEmailFromPreview = async (emailData: EmailData) => {
+    if (!invoice) return;
 
-Best regards,
-Riemer`;
+    try {
+      const result = await sendEmailMutation.mutateAsync({
+        id: invoice.id,
+        to: emailData.to,
+        cc: emailData.cc || undefined,
+      });
 
-    // Get PDF URL
-    const pdfPath = getInvoicePdfPath(invoice.invoice_number);
-    const pdfUrl = getPublicUrl(pdfPath);
-
-    // Note: mailto: links cannot attach files directly
-    // We'll open the email with subject and body, user needs to manually attach
-    // For automatic attachment, we'd need to use a backend email service
-    const mailtoLink = `mailto:${clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-    window.location.href = mailtoLink;
-
-    // Show reminder about attachment
-    setTimeout(() => {
-      alert(`Please manually attach the invoice PDF from the preview below, or download it first.\n\nPDF URL: ${pdfUrl}`);
-    }, 500);
+      if (result.success) {
+        alert(`Invoice email sent successfully to ${result.sentTo}!`);
+        setEmailPreviewOpen(false);
+      }
+    } catch (error: any) {
+      alert(`Failed to send email: ${error.message}`);
+    }
   };
 
   if (isLoading) {
@@ -349,14 +369,15 @@ Riemer`;
                 </Button>
               )}
 
-              {/* Send Invoice Email */}
+              {/* Preview & Send Invoice Email */}
               {isDraft && invoice.pdf_file && (
                 <Button
-                  onClick={handleSendEmail}
+                  onClick={handlePreviewEmail}
+                  disabled={sendEmailMutation.isPending}
                   className="w-full bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
                 >
                   <Mail className="h-4 w-4" />
-                  Send Invoice Email
+                  {sendEmailMutation.isPending ? 'Loading Preview...' : 'Preview & Send Email'}
                 </Button>
               )}
 
@@ -497,6 +518,19 @@ Riemer`;
               })()}
             </CardContent>
           </Card>
+        )}
+
+        {/* Email Preview Modal */}
+        {emailPreviewData && (
+          <EmailPreviewModal
+            open={emailPreviewOpen}
+            onOpenChange={setEmailPreviewOpen}
+            emailData={emailPreviewData}
+            onSend={handleSendEmailFromPreview}
+            sending={sendEmailMutation.isPending}
+            title={`Send Invoice ${invoice?.invoice_number}`}
+            description="Review and edit the email before sending to the client"
+          />
         )}
       </div>
     </MainLayout>

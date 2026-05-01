@@ -9,3 +9,11 @@ todo
 - abstraction layers and whatnot, for pages
 - client side rendering? 
 - set up the remote network graph. 
+- look for any other using pg.Pool instead of supabase client (?)
+
+ ⚠ ./lib/supabase/storage.ts
+Module not found: Can't resolve 'fs/promises' in '/home/thartist/Desktop/riemerFYI/frontend-next/lib/supabase'
+
+- i dont want it to show the projects with time 0 when I hover over the time graph.
+
+- move towards todo based system.

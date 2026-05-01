@@ -72,7 +72,7 @@ const expenseRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { data, error } = await ctx.supabase
         .from('backoffice_incoming_invoices')
-        .insert([input])
+        .insert([{ ...input, payment_status: 'paid' }])
         .select()
         .single();
 
