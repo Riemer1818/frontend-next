@@ -217,9 +217,34 @@ export function useDeleteInvoice() {
   const invalidate = useInvalidateQuery();
 
   return useSupabaseMutation<void, { id: number }>(
-    ({ id }) => supabase.from('backoffice_invoices').delete().eq('id', id),
+    async ({ id }) => {
+      // First, reset time entries linked to this invoice
+      const { error: resetError } = await supabase
+        .from('backoffice_time_entries')
+        .update({ is_invoiced: false, invoice_id: null })
+        .eq('invoice_id', id);
+
+      if (resetError) {
+        console.error('Failed to reset time entries:', resetError);
+        throw resetError;
+      }
+
+      // Then delete the invoice
+      const { error: deleteError } = await supabase
+        .from('backoffice_invoices')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      // Return the expected structure for useSupabaseMutation
+      return { data: null, error: null };
+    },
     {
-      onSuccess: () => invalidate(QUERY_KEY),
+      onSuccess: () => {
+        invalidate(QUERY_KEY);
+        invalidate(['time-entries']);
+      },
     }
   );
 }
@@ -243,15 +268,18 @@ export function useCreateInvoiceFromProject() {
       // Get time entries to calculate totals
       const { data: timeEntries, error: timeEntriesError } = await supabase
         .from('backoffice_time_entries')
-        .select('id, chargeable_hours, is_invoiced')
+        .select('id, chargeable_hours, is_invoiced, invoice_id')
         .in('id', input.timeEntryIds);
 
       if (timeEntriesError) throw timeEntriesError;
 
-      // Check if any are already invoiced
-      const alreadyInvoiced = timeEntries?.filter((te) => te.is_invoiced);
+      console.log('Time entries fetched:', timeEntries);
+
+      // Check if any are already invoiced (is_invoiced = true AND has an invoice_id)
+      const alreadyInvoiced = timeEntries?.filter((te) => te.is_invoiced === true && te.invoice_id !== null);
       if (alreadyInvoiced && alreadyInvoiced.length > 0) {
-        throw new Error('Some time entries are already invoiced');
+        console.error('Already invoiced entries:', alreadyInvoiced);
+        throw new Error(`${alreadyInvoiced.length} time entries are already invoiced (IDs: ${alreadyInvoiced.map(te => te.id).join(', ')})`);
       }
 
       // Calculate totals
@@ -264,6 +292,18 @@ export function useCreateInvoiceFromProject() {
       const vatRate = 21; // Default Dutch VAT
       const vatAmount = subtotalAmount * (vatRate / 100);
       const totalAmount = subtotalAmount + vatAmount;
+
+      console.log('Creating invoice with data:', {
+        client_id: project.client_id,
+        project_id: input.projectId,
+        invoice_number: input.invoiceNumber,
+        invoice_date: input.invoiceDate,
+        due_date: input.dueDate,
+        subtotal: subtotalAmount,
+        tax_amount: vatAmount,
+        total_amount: totalAmount,
+        status: 'draft',
+      });
 
       // Create the invoice (map to database field names)
       const { data: invoice, error: invoiceError } = await supabase
@@ -278,14 +318,17 @@ export function useCreateInvoiceFromProject() {
             subtotal: subtotalAmount,
             tax_amount: vatAmount,
             total_amount: totalAmount,
-            status: 'unpaid',
+            status: 'draft',
             notes: input.notes,
           },
         ])
         .select()
         .single();
 
-      if (invoiceError) throw invoiceError;
+      if (invoiceError) {
+        console.error('Invoice creation error:', invoiceError);
+        throw new Error(`Failed to create invoice: ${invoiceError.message || JSON.stringify(invoiceError)}`);
+      }
 
       // Mark time entries as invoiced
       const { error: updateError } = await supabase
@@ -298,7 +341,8 @@ export function useCreateInvoiceFromProject() {
 
       if (updateError) throw updateError;
 
-      return invoice;
+      // Return in the format expected by useSupabaseMutation
+      return { data: invoice, error: null };
     },
     {
       onSuccess: () => {
@@ -311,30 +355,32 @@ export function useCreateInvoiceFromProject() {
 
 // Generate PDF for an invoice
 export function useGenerateInvoicePdf() {
-  return useSupabaseMutation<any, { id: number }>(
-    async ({ id }) => {
-      // Get invoice with all related data
-      const { data: invoice, error } = await supabase
-        .from('backoffice_invoices')
-        .select(
-          `
-          *,
-          companies:client_id(id, name, street_address, postal_code, city, country, email, btw_number),
-          projects:project_id(id, name)
-        `
-        )
-        .eq('id', id)
-        .single();
+  const invalidate = useInvalidateQuery();
 
-      if (error) throw error;
-      if (!invoice) throw new Error('Invoice not found');
+  return useSupabaseMutation<{ success: boolean; message: string; pdf: string }, { id: number; summarize?: boolean }>(
+    async ({ id, summarize = true }) => {
+      // Call API route to generate PDF
+      const response = await fetch(`/api/invoices/${id}/pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ summarize }),
+      });
 
-      // TODO: Implement PDF generation using InvoicePdfGenerator
-      return {
-        success: true,
-        message: 'PDF generation not yet implemented',
-        invoice,
-      };
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to generate PDF' }));
+        throw new Error(error.error || 'Failed to generate PDF');
+      }
+
+      const result = await response.json();
+      return result;
+    },
+    {
+      onSuccess: (_, variables) => {
+        // Invalidate invoice query to refresh PDF data
+        invalidate([...QUERY_KEY, String(variables.id)]);
+      },
     }
   );
 }

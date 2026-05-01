@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { Pool } from 'pg';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface InvoiceData {
   id: number;
@@ -32,20 +32,10 @@ export class InvoicePdfGenerator {
    */
   private async getLogoDataUrl(): Promise<string> {
     try {
-      // In production (Cloudflare/Vercel), fetch from public folder
-      // In development, this will work with Next.js dev server
-      const response = await fetch('/logo.png');
-      if (!response.ok) {
-        console.warn('Logo not found at /logo.png');
-        return '';
-      }
-      const blob = await response.blob();
-      return new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      // Server-side: use filesystem to read logo
+      // Skip logo for now - relative fetch doesn't work in API routes
+      console.warn('Logo loading skipped in server-side PDF generation');
+      return '';
     } catch (error) {
       console.warn('Could not load logo:', error);
       return '';
@@ -55,64 +45,93 @@ export class InvoicePdfGenerator {
   /**
    * Generate PDF for an invoice using jsPDF
    */
-  async generatePdf(invoiceId: number, db: Pool, summarize: boolean = true): Promise<Buffer> {
+  async generatePdf(invoiceId: number, supabase: SupabaseClient, summarize: boolean = true): Promise<Buffer> {
     // Fetch business info
-    const businessInfoResult = await db.query('SELECT * FROM backoffice_business_info LIMIT 1');
-    const businessInfo = businessInfoResult.rows[0];
+    const { data: businessInfo, error: businessError } = await supabase
+      .from('backoffice_business_info')
+      .select('*')
+      .limit(1)
+      .single();
 
-    if (!businessInfo) {
+    if (businessError || !businessInfo) {
       throw new Error('Business info not found in database');
     }
 
-    // Fetch invoice data
-    const invoiceResult = await db.query(
-      `SELECT i.*,
-              c.name as client_name,
-              c.email as client_email,
-              c.phone as client_phone,
-              c.street_address as client_address,
-              c.postal_code as client_postal,
-              c.city as client_city,
-              c.kvk_number as client_kvk,
-              c.btw_number as client_btw,
-              p.name as project_name,
-              p.hourly_rate
-       FROM backoffice_invoices i
-       LEFT JOIN companies c ON i.client_id = c.id
-       LEFT JOIN projects p ON i.project_id = p.id
-       WHERE i.id = $1`,
-      [invoiceId]
-    );
+    // Fetch invoice data with client and project info
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('backoffice_invoices')
+      .select(`
+        *,
+        client:backoffice_companies!client_id (
+          name,
+          email,
+          phone,
+          street_address,
+          postal_code,
+          city,
+          kvk_number,
+          btw_number
+        ),
+        project:backoffice_projects!project_id (
+          name,
+          hourly_rate
+        )
+      `)
+      .eq('id', invoiceId)
+      .single();
 
-    if (invoiceResult.rows.length === 0) {
+    if (invoiceError || !invoice) {
       throw new Error(`Invoice ${invoiceId} not found`);
     }
 
-    const invoice = invoiceResult.rows[0];
-
     // Fetch time entries for this invoice
-    const timeEntriesResult = await db.query(
-      `SELECT te.date, te.notes, te.chargeable_hours, p.hourly_rate
-       FROM backoffice_time_entries te
-       LEFT JOIN projects p ON te.project_id = p.id
-       WHERE te.invoice_id = $1
-       ORDER BY te.date ASC`,
-      [invoiceId]
-    );
+    const { data: timeEntriesData, error: timeEntriesError } = await supabase
+      .from('backoffice_time_entries')
+      .select(`
+        date,
+        notes,
+        chargeable_hours,
+        project:backoffice_projects!project_id (
+          hourly_rate
+        )
+      `)
+      .eq('invoice_id', invoiceId)
+      .order('date', { ascending: true });
 
-    const timeEntries = timeEntriesResult.rows.map((entry: any) => ({
+    if (timeEntriesError) {
+      throw new Error('Failed to fetch time entries');
+    }
+
+    const timeEntries = (timeEntriesData || []).map((entry: any) => ({
       date: entry.date,
       description: entry.notes || 'Werkzaamheden',
       chargeable_hours: parseFloat(entry.chargeable_hours),
-      hourly_rate: parseFloat(entry.hourly_rate),
-      amount: parseFloat(entry.chargeable_hours) * parseFloat(entry.hourly_rate),
+      hourly_rate: parseFloat(entry.project?.hourly_rate || '0'),
+      amount: parseFloat(entry.chargeable_hours) * parseFloat(entry.project?.hourly_rate || '0'),
     }));
 
     // Calculate tax rate percentage
-    const taxRate = (parseFloat(invoice.tax_amount) / parseFloat(invoice.subtotal)) * 100;
+    const taxRate = invoice.subtotal > 0
+      ? (parseFloat(invoice.tax_amount) / parseFloat(invoice.subtotal)) * 100
+      : 21;
+
+    // Flatten client and project data
+    const flatInvoice = {
+      ...invoice,
+      client_name: invoice.client?.name || '',
+      client_email: invoice.client?.email || '',
+      client_phone: invoice.client?.phone || '',
+      client_address: invoice.client?.street_address || '',
+      client_postal: invoice.client?.postal_code || '',
+      client_city: invoice.client?.city || '',
+      client_kvk: invoice.client?.kvk_number || '',
+      client_btw: invoice.client?.btw_number || '',
+      project_name: invoice.project?.name || '',
+      hourly_rate: invoice.project?.hourly_rate || 0,
+    };
 
     // Generate PDF using jsPDF
-    return await this.generatePdfWithJsPDF(invoice, timeEntries, taxRate, businessInfo, summarize);
+    return await this.generatePdfWithJsPDF(flatInvoice, timeEntries, taxRate, businessInfo, summarize);
   }
 
   /**

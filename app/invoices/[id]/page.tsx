@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useInvoice, useUpdateInvoiceStatus, useDeleteInvoice } from '@/lib/supabase/invoices';
+import { useInvoice, useUpdateInvoiceStatus, useDeleteInvoice, useGenerateInvoicePdf } from '@/lib/supabase/invoices';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { LoadingState } from '@/components/ui/loading-state';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
-import { ArrowLeft, CheckCircle, FileText, Calendar, ExternalLink, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileText, Calendar, ExternalLink, Trash2, Download, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { getInvoicePdfPath, getPublicUrl } from '@/lib/supabase/storage';
+import { useState } from 'react';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -24,6 +25,10 @@ export default function InvoiceDetailPage() {
   const updateStatusMutation = useUpdateInvoiceStatus();
 
   const deleteMutation = useDeleteInvoice();
+
+  const generatePdfMutation = useGenerateInvoicePdf();
+
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   const handleMarkAsPaid = () => {
     updateStatusMutation.mutate({
@@ -41,10 +46,16 @@ export default function InvoiceDetailPage() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this invoice?')) {
+    if (window.confirm('Are you sure you want to delete this invoice? Time entries will be unmarked and available for invoicing again.')) {
+      console.log('Deleting invoice:', id);
       deleteMutation.mutate({ id }, {
         onSuccess: () => {
+          console.log('Invoice deleted successfully, redirecting...');
           router.push('/invoices');
+        },
+        onError: (error: any) => {
+          console.error('Failed to delete invoice:', error);
+          alert(`Failed to delete invoice: ${error?.message || 'Unknown error'}`);
         },
       });
     }
@@ -54,6 +65,56 @@ export default function InvoiceDetailPage() {
     if (confirm('Are you sure you want to delete this invoice? Time entries will be unmarked and available for invoicing again.')) {
       deleteMutation.mutate({ id });
     }
+  };
+
+  const handleGeneratePdf = async () => {
+    setPdfGenerating(true);
+    try {
+      const result = await generatePdfMutation.mutateAsync({ id, summarize: true });
+
+      // Download the PDF
+      const link = document.createElement('a');
+      link.href = `data:application/pdf;base64,${result.pdf}`;
+      link.download = `${invoice?.invoice_number || 'invoice'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error: any) {
+      alert(`Failed to generate PDF: ${error.message}`);
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
+  const handleSendEmail = () => {
+    if (!invoice) return;
+
+    const clientEmail = invoice.client_email || '';
+    const subject = `Invoice ${invoice.invoice_number}`;
+    const body = `Dear ${invoice.client_name || 'valued client'},
+
+Please find attached the invoice ${invoice.invoice_number} for the amount of €${parseFloat(String(invoice.total_amount || 0)).toFixed(2)}.
+
+Payment is due by ${formatDate(invoice.due_date)}.
+
+Best regards,
+Riemer`;
+
+    // Get PDF URL
+    const pdfPath = getInvoicePdfPath(invoice.invoice_number);
+    const pdfUrl = getPublicUrl(pdfPath);
+
+    // Note: mailto: links cannot attach files directly
+    // We'll open the email with subject and body, user needs to manually attach
+    // For automatic attachment, we'd need to use a backend email service
+    const mailtoLink = `mailto:${clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    window.location.href = mailtoLink;
+
+    // Show reminder about attachment
+    setTimeout(() => {
+      alert(`Please manually attach the invoice PDF from the preview below, or download it first.\n\nPDF URL: ${pdfUrl}`);
+    }, 500);
   };
 
   if (isLoading) {
@@ -266,6 +327,16 @@ export default function InvoiceDetailPage() {
               <CardTitle>Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Generate PDF */}
+              <Button
+                onClick={handleGeneratePdf}
+                disabled={pdfGenerating}
+                className="w-full bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {pdfGenerating ? 'Generating PDF...' : 'Generate & Download PDF'}
+              </Button>
+
               {/* Mark as Paid */}
               {!isPaid && !isCancelled && (
                 <Button
@@ -275,6 +346,17 @@ export default function InvoiceDetailPage() {
                 >
                   <CheckCircle className="h-4 w-4" />
                   Mark as Paid
+                </Button>
+              )}
+
+              {/* Send Invoice Email */}
+              {isDraft && invoice.pdf_file && (
+                <Button
+                  onClick={handleSendEmail}
+                  className="w-full bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Send Invoice Email
                 </Button>
               )}
 

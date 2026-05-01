@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useProject } from '@/lib/supabase/projects';
 import { useTimeEntries } from '@/lib/supabase/time-entries';
 import { useCreateInvoiceFromProject, useGenerateInvoicePdf } from '@/lib/supabase/invoices';
+import { supabase } from '@/lib/supabase/client';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,7 @@ export default function NewInvoicePage() {
   // Calculate totals
   const totalHours = selectedTimeEntries.reduce((sum: number, te: any) => sum + parseFloat(te.chargeable_hours || '0'), 0);
   const roundedHours = Math.ceil(totalHours); // Round up to whole hours
-  const hourlyRate = project.hourly_rate ? parseFloat(project.hourly_rate) : 0;
+  const hourlyRate = project?.hourly_rate ? parseFloat(project.hourly_rate) : 0;
   const subtotal = roundedHours * hourlyRate;
   const taxAmount = subtotal * (taxRate / 100);
   const totalAmount = subtotal + taxAmount;
@@ -53,11 +54,33 @@ export default function NewInvoicePage() {
       console.log('Time entry IDs:', timeEntryIds);
 
       // eslint-disable-next-line react-hooks/purity
-      const invoiceDate = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      // eslint-disable-next-line react-hooks/purity
+      const invoiceDate = today.toISOString().split('T')[0];
       // eslint-disable-next-line react-hooks/purity
       const dueDate = new Date(Date.now() + paymentTermsDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      // Generate invoice number with auto-incrementing sequence
       // eslint-disable-next-line react-hooks/purity
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      const datePrefix = `INV-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+
+      // Get the latest invoice number for today
+      const { data: latestInvoices } = await supabase
+        .from('backoffice_invoices')
+        .select('invoice_number')
+        .like('invoice_number', `${datePrefix}-%`)
+        .order('invoice_number', { ascending: false })
+        .limit(1);
+
+      let sequence = 1;
+      if (latestInvoices && latestInvoices.length > 0) {
+        const lastNumber = latestInvoices[0].invoice_number;
+        const lastSequence = parseInt(lastNumber.split('-').pop() || '0');
+        sequence = lastSequence + 1;
+      }
+
+      // eslint-disable-next-line react-hooks/purity
+      const invoiceNumber = `${datePrefix}-${sequence}`;
 
       const invoice: any = await createMutation.mutateAsync({
         projectId,
@@ -68,19 +91,32 @@ export default function NewInvoicePage() {
         notes: notes || null,
       });
 
+      console.log('Invoice mutation result:', invoice);
+
       if (!invoice || !invoice.id) {
-        throw new Error('Failed to create invoice');
+        console.error('Invoice creation returned invalid data:', invoice);
+        throw new Error('Failed to create invoice - no invoice data returned');
       }
 
-      console.log('Invoice created:', invoice);
-      console.log('Generating PDF...');
+      console.log('Invoice created successfully:', invoice);
+      console.log('Invoice ID:', invoice.id);
+      console.log('Generating PDF immediately...');
 
-      await generatePdfMutation.mutateAsync({ id: invoice.id });
+      // Generate PDF immediately after creation
+      try {
+        const pdfResult = await generatePdfMutation.mutateAsync({ id: invoice.id });
+        console.log('PDF generated successfully:', pdfResult);
+      } catch (pdfError: any) {
+        console.error('PDF generation failed (invoice still created):', pdfError);
+        alert(`Invoice created but PDF generation failed: ${pdfError.message}. You can generate it later from the invoice page.`);
+        // Continue anyway - user can generate PDF later
+      }
 
-      console.log('PDF generated, redirecting...');
+      console.log('Redirecting to invoice page:', `/invoices/${invoice.id}`);
       router.push(`/invoices/${invoice.id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in handleCreate:', error);
+      alert(`Failed to create invoice: ${error?.message || JSON.stringify(error)}`);
     }
   };
 
