@@ -290,16 +290,34 @@ export class ImapEmailService extends EventEmitter {
         return;
       }
 
-      // addFlags expects UID or array of UIDs
-      this.imap.addFlags([uid], ['\\Seen'], (err) => {
+      // Convert UID string to number for IMAP library
+      const uidNum = parseInt(uid, 10);
+      if (isNaN(uidNum)) {
+        const error = new Error(`Invalid UID: ${uid}`);
+        console.error(error.message);
+        this.disconnect();
+        reject(error);
+        return;
+      }
+
+      // Use imap.seq.addFlags with UID array to mark as \Seen
+      // The 'seq' object works with sequence numbers, so we use addFlags with UID directly
+      this.imap.addFlags(uidNum, ['\\Seen'], (err) => {
         if (err) {
           console.error(`❌ Failed to mark UID ${uid} as read:`, err);
           this.disconnect();
           reject(err);
         } else {
           console.log(`✅ Successfully marked UID ${uid} as read`);
-          this.disconnect();
-          resolve();
+
+          // EXPUNGE to permanently remove deleted messages and sync flags
+          this.imap.expunge((expungeErr) => {
+            if (expungeErr) {
+              console.warn(`⚠️  EXPUNGE warning for UID ${uid}:`, expungeErr);
+            }
+            this.disconnect();
+            resolve();
+          });
         }
       });
     });

@@ -66,7 +66,17 @@ export class EmailManagementService {
           .single();
 
         if (existing) {
-          console.log(`⏭️  Email "${imapEmail.subject.substring(0, 50)}" already exists, skipping`);
+          console.log(`⏭️  Email "${imapEmail.subject.substring(0, 50)}" already exists, skipping save but marking as read`);
+
+          // IMPORTANT: Still mark as read in IMAP even if already in DB
+          // Otherwise it will keep appearing as UNSEEN in every fetch
+          try {
+            await this.imapService.markAsRead(imapEmail.id);
+            console.log(`📧 Marked existing email ${imapEmail.id} as read in IMAP`);
+          } catch (error) {
+            console.error(`⚠️ Failed to mark existing email ${imapEmail.id} as read:`, error);
+          }
+
           continue;
         }
 

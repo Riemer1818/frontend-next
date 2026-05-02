@@ -7,34 +7,30 @@ This directory contains modular automation applications that extend the backoffi
 Each app is self-contained and uses shared services from `/core`:
 
 ```
-/apps
-  /invoice-ingestion     - Auto-extract invoices from email
+/apps                    - Automation applications (legacy)
   /[future-app]          - Additional automation apps
 
 /core
   /llm                   - LLM service with LangFuse tracing
-  /email                 - Email client (Gmail API)
+  /email                 - Email client (IMAP)
   /parsers               - Document parsing (PDF, OCR)
+  /currency              - Currency conversion
+  /pdf                   - PDF generation
   /queue                 - Job queue (future)
   /storage               - File storage (future)
 ```
 
-## Available Apps
+## Current Implementation
 
-### Invoice Ingestion
+Invoice ingestion is now handled by:
+- **EmailManagementService** (`/server/services/EmailManagementService.ts`) - Email fetching & processing
+- **EmailRepository** (`/server/repositories/EmailRepository.ts`) - Email data access
+- **extractInvoiceFromPdf** (`/app/actions/extract-invoice.ts`) - AI-powered invoice extraction
+- **API Route**: `/api/cron/fetch-emails` - Automated email fetching
+- **Dashboard**: Email inbox with labeling workflow
+- **Direct Upload**: `/expenses/new` page with PDF upload
 
-Automatically processes invoices from email:
-- Monitors Gmail for invoice emails
-- Extracts PDF attachments
-- Uses LLM to extract structured data
-- Creates expense records in database
-
-**Endpoints:**
-- `POST /apps/invoice-ingestion/process` - Manually trigger ingestion
-- `GET /apps/invoice-ingestion/auth/gmail` - Get Gmail OAuth URL
-
-**Configuration:**
-See `.env.template` for required environment variables.
+See dashboard and expenses pages for active invoice processing workflows.
 
 ## Creating New Apps
 
