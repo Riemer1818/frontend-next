@@ -68,28 +68,6 @@ export async function uploadPdfFromBase64(
   }
 }
 
-/**
- * Upload a PDF from file system (for Node.js/scripts)
- */
-export async function uploadPdfFromPath(
-  filePath: string,
-  storagePath: string,
-  options?: { upsert?: boolean }
-): Promise<UploadFileResult> {
-  try {
-    const fs = await import('fs/promises');
-    const fileBuffer = await fs.readFile(filePath);
-    const blob = new Blob([fileBuffer], { type: 'application/pdf' });
-
-    return uploadFile(blob, storagePath, {
-      contentType: 'application/pdf',
-      upsert: options?.upsert,
-    });
-  } catch (err) {
-    console.error('File read error:', err);
-    return { success: false, error: String(err) };
-  }
-}
 
 /**
  * Get public URL for a file

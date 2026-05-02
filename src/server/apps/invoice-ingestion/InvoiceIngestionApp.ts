@@ -1,5 +1,6 @@
 import { ImapEmailService, Email, EmailAttachment } from '@/server/core/email/ImapEmailService';
 import { CurrencyConverter } from '@/server/core/currency/CurrencyConverter';
+import { AttachmentStorage } from '@/server/core/storage/AttachmentStorage';
 import { Pool } from 'pg';
 import { extractInvoiceFromPdf } from '@/app/actions/extract-invoice';
 
@@ -21,6 +22,7 @@ export interface InvoiceData {
 export class InvoiceIngestionApp {
   private emailService: ImapEmailService;
   private currencyConverter: CurrencyConverter;
+  private attachmentStorage: AttachmentStorage;
   private dbPool: Pool;
 
   constructor(dbPool: Pool) {
@@ -36,6 +38,7 @@ export class InvoiceIngestionApp {
     });
 
     this.currencyConverter = new CurrencyConverter();
+    this.attachmentStorage = new AttachmentStorage();
   }
 
   /**
@@ -368,28 +371,21 @@ export class InvoiceIngestionApp {
 
       const invoiceId = invoiceResult.rows[0].id;
 
-      // Insert all attachments
-      for (const attachment of attachments) {
-        const attachmentType = attachment.filename.toLowerCase().includes('receipt')
-          ? 'receipt'
-          : 'invoice';
-
-        await client.query(
-          `INSERT INTO backoffice_invoice_attachments (incoming_invoice_id, file_data, file_name, file_type, file_size, attachment_type)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [
-            invoiceId,
-            attachment.data,
-            attachment.filename,
-            attachment.mimeType,
-            attachment.size,
-            attachmentType,
-          ]
-        );
-      }
-
+      // Commit transaction first (invoice is saved)
       await client.query('COMMIT');
-      console.log(`  💾 Saved invoice #${invoiceId} with ${attachments.length} attachment(s)`);
+
+      // Upload attachments to storage (outside transaction)
+      const uploadedAttachments = await this.attachmentStorage.uploadMultiple(
+        invoiceId,
+        attachments.map(att => ({
+          data: att.data,
+          filename: att.filename,
+          mimeType: att.mimeType,
+          size: att.size,
+        }))
+      );
+
+      console.log(`  💾 Saved invoice #${invoiceId} with ${uploadedAttachments.length}/${attachments.length} attachment(s)`);
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;

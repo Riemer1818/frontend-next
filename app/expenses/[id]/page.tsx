@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format } from 'date-fns';
 import { formatDate, formatDateTime } from '@/lib/utils/date';
 import { CheckCircle, XCircle, ArrowLeft, Save, FileText, Trash2 } from 'lucide-react';
-import { useExpense, useUpdateExpense, useApproveExpense, useRejectExpense, useUploadExpensePdf, useDeleteExpense } from '@/lib/supabase/expenses';
+import { useExpense, useUpdateExpense, useApproveExpense, useRejectExpense, useUploadExpensePdf, useDeleteExpense, useExpenseAttachments } from '@/lib/supabase/expenses';
 import { useProjects } from '@/lib/supabase/projects';
 import { useExpenseCategories } from '@/lib/supabase/categories';
 import { listFiles, getPublicUrl } from '@/lib/supabase/storage';
@@ -26,26 +26,11 @@ export default function ExpenseDetailPage() {
   const id = parseInt(params.id as string);
 
   const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
-  const [attachments, setAttachments] = useState<Array<{ name: string; url: string }>>([]);
 
   const { data: expense, isLoading } = useExpense(id);
+  const { data: attachments = [] } = useExpenseAttachments(id);
   const { data: projectsData } = useProjects({ status: 'active' });
   const projects = projectsData || [];
-
-  // Load attachments from storage
-  useEffect(() => {
-    async function loadAttachments() {
-      const files = await listFiles('invoice-attachments');
-      const expenseFiles = files
-        .filter(f => f.name.startsWith(`expense_${id}_`))
-        .map(f => ({
-          name: f.name.replace(`expense_${id}_`, ''),
-          url: getPublicUrl(`invoice-attachments/${f.name}`)
-        }));
-      setAttachments(expenseFiles);
-    }
-    if (id) loadAttachments();
-  }, [id]);
 
   const { data: categoriesData } = useExpenseCategories();
   const categories = categoriesData || [];
@@ -463,22 +448,26 @@ export default function ExpenseDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {attachments.map((attachment, idx) => (
-                <div key={idx}>
-                  <h3 className="text-sm font-medium mb-2">{attachment.name}</h3>
-                  <div className="bg-secondary rounded-lg overflow-hidden border border-border" style={{ height: '800px' }}>
-                    <iframe
-                      src={attachment.url}
-                      className="w-full h-full"
-                      title={attachment.name}
-                    />
-                  </div>
-                  <div className="mt-4 flex gap-2">
-                    <Button
-                      onClick={() => {
-                        const a = document.createElement('a');
-                        a.href = attachment.url;
-                        a.download = attachment.name;
+              {attachments.map((attachment) => {
+                return (
+                  <div key={attachment.id}>
+                    <h3 className="text-sm font-medium mb-2">{attachment.file_name}</h3>
+                    {attachment.publicUrl && (
+                      <div className="bg-secondary rounded-lg overflow-hidden border border-border" style={{ height: '800px' }}>
+                        <iframe
+                          src={attachment.publicUrl}
+                          className="w-full h-full"
+                          title={attachment.file_name}
+                        />
+                      </div>
+                    )}
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        onClick={() => {
+                          if (!attachment.publicUrl) return;
+                          const a = document.createElement('a');
+                          a.href = attachment.publicUrl;
+                          a.download = attachment.file_name;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
@@ -489,13 +478,14 @@ export default function ExpenseDetailPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => window.open(attachment.url, '_blank')}
+                      onClick={() => window.open(attachment.publicUrl, '_blank')}
                     >
                       Open in New Tab
                     </Button>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </CardContent>
           </Card>
         )}

@@ -261,35 +261,109 @@ export function useDeleteExpense() {
   );
 }
 
+// Fetch attachments for an expense
+export interface ExpenseAttachment {
+  id: number;
+  incoming_invoice_id: number;
+  file_name: string;
+  file_type: string | null;
+  file_size: number | null;
+  attachment_type: string | null;
+  storage_path: string | null;
+  storage_bucket: string | null;
+  created_at: string;
+  publicUrl?: string; // Generated client-side
+}
+
+export function useExpenseAttachments(expenseId?: number) {
+  return useSupabaseQuery<ExpenseAttachment[]>(
+    ['expense-attachments', String(expenseId)],
+    async () => {
+      const { data, error } = await supabase
+        .from('backoffice_invoice_attachments')
+        .select('id, incoming_invoice_id, file_name, file_type, file_size, attachment_type, storage_path, storage_bucket, created_at')
+        .eq('incoming_invoice_id', expenseId!)
+        .order('created_at', { ascending: true });
+
+      if (error) return { data: null, error };
+
+      // Generate public URLs for each attachment
+      const attachmentsWithUrls = (data || []).map(attachment => {
+        let publicUrl: string | undefined;
+
+        if (attachment.storage_path && attachment.storage_bucket) {
+          const { data: urlData } = supabase.storage
+            .from(attachment.storage_bucket)
+            .getPublicUrl(attachment.storage_path);
+          publicUrl = urlData.publicUrl;
+        }
+
+        return {
+          ...attachment,
+          publicUrl
+        };
+      });
+
+      return { data: attachmentsWithUrls, error: null };
+    },
+    { enabled: !!expenseId }
+  );
+}
+
 // Upload PDF attachment for expense
 export function useUploadExpensePdf() {
   const invalidate = useInvalidateQuery();
 
   return useSupabaseMutation<void, { expenseId: number; file: File }>(
     async ({ expenseId, file }) => {
-      // Convert file to buffer
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = new Uint8Array(arrayBuffer);
-
-      // Insert into invoice_attachments table
-      const { error } = await supabase
+      // Step 1: Create database record first to get attachment ID
+      const { data: attachment, error: insertError } = await supabase
         .from('backoffice_invoice_attachments')
         .insert([
           {
             incoming_invoice_id: expenseId,
-            file_data: buffer,
             file_name: file.name,
             file_type: file.type,
             file_size: file.size,
             attachment_type: 'invoice',
+            storage_bucket: 'documents',
           },
-        ]);
+        ])
+        .select('id')
+        .single();
 
-      if (error) throw error;
+      if (insertError || !attachment) throw insertError || new Error('Failed to create attachment record');
+
+      // Step 2: Upload to storage with path: invoices/{expenseId}/{attachmentId}_{filename}
+      const storagePath = `invoices/${expenseId}/${attachment.id}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, file, {
+          contentType: file.type,
+          upsert: false
+        });
+
+      if (uploadError) {
+        // Rollback: delete the database record if upload fails
+        await supabase.from('backoffice_invoice_attachments').delete().eq('id', attachment.id);
+        throw uploadError;
+      }
+
+      // Step 3: Update database record with storage path
+      const { error: updateError } = await supabase
+        .from('backoffice_invoice_attachments')
+        .update({ storage_path: storagePath })
+        .eq('id', attachment.id);
+
+      if (updateError) throw updateError;
+
       return { data: null, error: null };
     },
     {
-      onSuccess: () => invalidate(QUERY_KEY),
+      onSuccess: () => {
+        invalidate(QUERY_KEY);
+        invalidate(['expense-attachments']);
+      },
     }
   );
 }

@@ -7,7 +7,7 @@ import { expenseCategoryRouter } from './expenseCategoryRouter';
 import { reportingRouter } from './reportingRouter';
 import { timeEntriesRouter } from './timeEntriesRouter';
 import { contactRouter } from './contactRouter';
-// import { contactAssociationRouter } from './contactAssociationRouter'; // TODO: Fix ctx.repos usage
+import { contactAssociationRouter } from './contactAssociationRouter';
 import { taxRouter } from './taxRouter';
 import { emailRouter } from './emailRouter';
 
@@ -20,7 +20,7 @@ export const appRouter = router({
   reporting: reportingRouter,
   timeEntries: timeEntriesRouter,
   contact: contactRouter,
-  // contactAssociation: contactAssociationRouter, // TODO
+  contactAssociation: contactAssociationRouter,
   tax: taxRouter,
   email: emailRouter,
 });
