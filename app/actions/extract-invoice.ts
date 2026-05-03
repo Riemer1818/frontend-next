@@ -15,6 +15,18 @@ const INVOICE_SCHEMA = `{
   "language": "string (2-letter ISO language code like en, nl, fr)"
 }`;
 
+type ExtractedInvoiceData = {
+  supplier_name?: string;
+  invoice_date?: string;
+  total_amount?: number;
+  tax_amount?: number;
+  subtotal?: number;
+  description?: string;
+  invoice_number?: string;
+  currency?: string;
+  language?: string;
+};
+
 /**
  * Shared extraction logic used by both manual PDF upload and email ingestion
  * Supports PDFs and images (images require OCR - shows warning if empty)
@@ -26,7 +38,7 @@ export async function extractInvoiceFromPdf(
     from?: string;
     body?: string;
   }
-) {
+): Promise<{ success: true; data: ExtractedInvoiceData } | { success: false; error: string }> {
   try {
     const documentParser = new DocumentParser();
     const llmService = new LLMService();

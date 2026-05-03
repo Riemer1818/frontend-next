@@ -54,7 +54,7 @@ export interface ExpenseWithSupplier extends Expense {
 
 export type CreateExpenseInput = Omit<
   Expense,
-  'id' | 'created_at' | 'updated_at' | 'reviewed_at' | 'invoice_file_base64' | 'original_currency' | 'original_amount' | 'original_subtotal' | 'original_tax_amount'
+  'id' | 'created_at' | 'updated_at' | 'reviewed_at' | 'invoice_file_base64'
 >;
 export type UpdateExpenseInput = Partial<CreateExpenseInput>;
 

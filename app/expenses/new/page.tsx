@@ -69,7 +69,7 @@ export default function NewExpensePage() {
         // Call server action to extract data from PDF or image
         const result = await extractInvoiceFromPdf(base64);
 
-        if (result.success && result.data) {
+        if ('data' in result && result.success) {
           // Pre-fill form with extracted data
           setFormData({
             ...formData,
@@ -81,7 +81,7 @@ export default function NewExpensePage() {
             total_amount: result.data.total_amount || 0,
             currency: result.data.currency || 'EUR',
           });
-        } else {
+        } else if ('error' in result) {
           alert(`Failed to extract invoice data: ${result.error}`);
         }
 

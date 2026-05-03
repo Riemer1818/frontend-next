@@ -4,7 +4,7 @@ import { Button } from './button';
 
 interface PageHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: string | ReactNode;
   backLink?: {
     href: string;
     label: string;
@@ -42,7 +42,7 @@ export function PageHeader({ title, subtitle, backLink, actions }: PageHeaderPro
         )}
         <h1 className="text-3xl font-bold text-foreground">{title}</h1>
         {subtitle && (
-          <p className="text-muted-foreground mt-1">{subtitle}</p>
+          <div className="text-muted-foreground mt-1">{subtitle}</div>
         )}
       </div>
       {actions && (

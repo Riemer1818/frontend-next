@@ -14,6 +14,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { supabase } from '@/lib/supabase/client';
+import { LogoutButton } from '@/components/LogoutButton';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -27,16 +29,35 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<string>('loading...');
+  const [userEmail, setUserEmail] = useState<string>('');
 
   useEffect(() => {
-    // Get role from dev bypass or actual auth
-    const devRole = process.env.NEXT_PUBLIC_DEV_USER_ROLE || process.env.DEV_USER_ROLE;
-    if (devRole) {
-      setUserRole(devRole);
-    } else {
-      // In production, this would fetch from session/API
-      setUserRole('unknown');
+    // Fetch actual user session and profile
+    async function fetchUserRole() {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setUserRole('not logged in');
+        return;
+      }
+
+      setUserEmail(session.user.email || '');
+
+      // Fetch user profile to get role
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (profile) {
+        setUserRole(profile.role);
+      } else {
+        setUserRole('no role');
+      }
     }
+
+    fetchUserRole();
   }, []);
 
   return (
@@ -71,7 +92,11 @@ export function Sidebar() {
           <p className="text-xs text-muted-foreground">Theme</p>
           <ThemeToggle />
         </div>
-        <p className="text-xs text-muted-foreground">Logged in as {userRole}</p>
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">{userEmail}</p>
+          <p className="text-xs text-muted-foreground">Role: {userRole}</p>
+        </div>
+        <LogoutButton className="w-full text-xs text-muted-foreground hover:text-foreground" />
       </div>
     </div>
   );

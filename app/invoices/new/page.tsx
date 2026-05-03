@@ -43,7 +43,7 @@ export default function NewInvoicePage() {
   // Calculate totals
   const totalHours = selectedTimeEntries.reduce((sum: number, te: any) => sum + parseFloat(te.chargeable_hours || '0'), 0);
   const roundedHours = Math.ceil(totalHours); // Round up to whole hours
-  const hourlyRate = project?.hourly_rate ? parseFloat(project.hourly_rate) : 0;
+  const hourlyRate = project?.hourly_rate ? (typeof project.hourly_rate === 'string' ? parseFloat(project.hourly_rate) : project.hourly_rate) : 0;
   const subtotal = roundedHours * hourlyRate;
   const taxAmount = subtotal * (taxRate / 100);
   const totalAmount = subtotal + taxAmount;

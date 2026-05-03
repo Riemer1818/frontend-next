@@ -11,23 +11,6 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // DEV BYPASS MODE - Only for local development!
-  const devBypass = process.env.DEV_BYPASS_AUTH === 'true';
-  if (devBypass) {
-    const devRole = process.env.DEV_USER_ROLE || 'riemer';
-    console.log(`🔓 DEV MODE: Bypassing auth as role "${devRole}"`);
-
-    // Check if dev role can access backoffice
-    if (!BACKOFFICE_ROLES.includes(devRole)) {
-      return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_MAIN_SITE_URL || 'http://localhost:3000'));
-    }
-
-    // Attach role to response headers for use in components
-    response.headers.set('x-user-role', devRole);
-    return response;
-  }
-
-  // PRODUCTION AUTH
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -60,9 +43,9 @@ export async function middleware(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession();
 
-  // No session - redirect to main site login
+  // No session - redirect to login page
   if (!session) {
-    return NextResponse.redirect(new URL('/login', process.env.NEXT_PUBLIC_MAIN_SITE_URL || 'http://localhost:3000'));
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   // Check user role
@@ -72,9 +55,13 @@ export async function middleware(request: NextRequest) {
     .eq('user_id', session.user.id)
     .single();
 
-  // No profile or insufficient role - access denied, redirect to main site
+  // No profile or insufficient role - sign out and redirect to login with error
   if (!profile || !BACKOFFICE_ROLES.includes(profile.role)) {
-    return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_MAIN_SITE_URL || 'http://localhost:3000'));
+    await supabase.auth.signOut();
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('error', 'access_denied');
+    loginUrl.searchParams.set('message', 'You do not have permission to access the backoffice');
+    return NextResponse.redirect(loginUrl);
   }
 
   // Attach role to response headers for use in components
@@ -87,11 +74,13 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
+     * - login (login page)
+     * - auth (auth callback)
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!login|auth|api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

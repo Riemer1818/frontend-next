@@ -167,11 +167,11 @@ export default function InvoiceDetailPage() {
     );
   }
 
-  const isDraft = invoice.status === 'draft';
-  const isSent = invoice.status === 'sent';
-  const isPaid = invoice.status === 'paid';
-  const isOverdue = invoice.status === 'overdue';
-  const isCancelled = invoice.status === 'cancelled';
+  const isDraft = invoice.payment_status === 'draft';
+  const isSent = invoice.payment_status === 'sent';
+  const isPaid = invoice.payment_status === 'paid';
+  const isOverdue = invoice.payment_status === 'overdue';
+  const isCancelled = invoice.payment_status === 'cancelled';
 
   const getStatusBadge = () => {
     if (isPaid) {

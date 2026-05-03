@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/server';
 import { InvoicePdfGenerator } from '@/server/core/pdf/InvoicePdfGenerator';
 
 export const runtime = 'nodejs';
@@ -22,15 +22,8 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     const summarize = body.summarize !== false; // Default to true
 
-    // Create Supabase client (server-side with service role key)
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error('Missing Supabase environment variables');
-    }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
-    );
+    // Create Supabase admin client (server-side with service role key)
+    const supabase = createAdminClient();
 
     // First, get invoice number for storage path
     const { data: invoice, error: invoiceError } = await supabase
@@ -108,15 +101,8 @@ export async function GET(
       );
     }
 
-    // Create Supabase client (server-side with service role key)
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error('Missing Supabase environment variables');
-    }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
-    );
+    // Create Supabase admin client (server-side with service role key)
+    const supabase = createAdminClient();
 
     // Fetch invoice
     const { data: invoice, error } = await supabase

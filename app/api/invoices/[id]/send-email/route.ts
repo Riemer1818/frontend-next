@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/server';
 import { createSmtpServiceFromEnv } from '@/server/core/email/SmtpEmailService';
 import {
   generateInvoiceEmailHtml,
@@ -30,18 +30,8 @@ export async function POST(
     // Parse request body
     const body: SendEmailRequest = await request.json().catch(() => ({}));
 
-    // Create Supabase client
-    if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      !process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
-    ) {
-      throw new Error('Missing Supabase environment variables');
-    }
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
-    );
+    // Create Supabase admin client (server-side with service role key)
+    const supabase = createAdminClient();
 
     // Fetch invoice with client details
     const { data: invoice, error: invoiceError } = await supabase

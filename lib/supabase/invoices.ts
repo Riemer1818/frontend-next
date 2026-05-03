@@ -10,18 +10,26 @@ export interface Invoice {
   invoice_number: string;
   invoice_date: string;
   due_date?: string | null;
+  paid_date?: string | null;
   subtotal_amount: number;
   vat_amount: number;
   total_amount: number;
   vat_rate?: number | null;
   payment_status: string;
   notes?: string | null;
+  description?: string | null;
+  pdf_file?: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface InvoiceWithClient extends Invoice {
   client_name?: string | null;
+  client_email?: string | null;
+  client_phone?: string | null;
+  project_name?: string | null;
+  project_description?: string | null;
+  description?: string | null;
 }
 
 export type CreateInvoiceInput = Omit<Invoice, 'id' | 'created_at' | 'updated_at'>;
